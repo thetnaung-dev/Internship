@@ -1,4 +1,3 @@
-// src/features/emergency/components/EmergencyButton.tsx
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef, useState } from "react";
 import { Linking, Pressable, Text, View } from "react-native";
@@ -14,7 +13,6 @@ import { i18n } from "@/services/localization";
 import { useLanguageStore } from "@/store/useLanguageStore";
 
 export default function EmergencyButton() {
-  // Keep this to make sure the component is linked to the store
   useLanguageStore((state) => state.locale);
 
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -74,7 +72,7 @@ export default function EmergencyButton() {
       <Pressable
         onPressIn={startHold}
         onPressOut={cancelHold}
-        className="h-36 w-36 items-center justify-center rounded-full bg-red-600"
+        className="h-36 w-36 p-4 items-center justify-center rounded-full bg-red-600"
         style={{
           shadowColor: "#dc2626",
           shadowOffset: { width: 0, height: 10 },
@@ -83,7 +81,7 @@ export default function EmergencyButton() {
           elevation: 12,
         }}
       >
-        <Text className="text-3xl font-bold text-white tracking-wide">
+        <Text className="text-lg font-bold text-white tracking-wide">
           {i18n.t("emergencyTitle")}
         </Text>
 

@@ -1,9 +1,5 @@
-import { Text, View } from "react-native";
+import MedicineScreen from "@/features/medicine/screens/MedicineScreen";
 
-export default function Screen() {
-  return (
-    <View className="flex-1 items-center justify-center">
-      <Text>Medicine</Text>
-    </View>
-  );
+export default function Page() {
+  return <MedicineScreen />;
 }

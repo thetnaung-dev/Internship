@@ -1,7 +1,5 @@
-// src/features/home/components/HealthNewsCard.tsx
 import { useLanguageStore } from "@/store/useLanguageStore";
 import React from "react";
-import { useTranslation } from "react-i18next";
 import { Image, Linking, Text, TouchableOpacity, View } from "react-native";
 
 interface HealthNewsCardProps {
@@ -23,7 +21,6 @@ export default function HealthNewsCard({
   publishedAt,
   url,
 }: HealthNewsCardProps) {
-  const { t } = useTranslation();
   const locale = useLanguageStore((state) => state.locale);
 
   const handlePress = async () => {
@@ -32,7 +29,6 @@ export default function HealthNewsCard({
     }
   };
 
-  // Format date based on current locale
   const formattedDate = publishedAt
     ? new Date(publishedAt).toLocaleDateString(
         locale === "my" ? "my-MM" : "en-US",
@@ -46,7 +42,6 @@ export default function HealthNewsCard({
       className={`p-5 rounded-3xl mb-4 ${color} border border-black/5 flex-row items-center justify-between`}
     >
       <View className="flex-1 pr-3">
-        {/* Source Meta Header */}
         <View className="flex-row items-center mb-2 gap-x-2">
           <Text className="text-xs font-bold text-blue-600 tracking-wider uppercase">
             {sourceName}

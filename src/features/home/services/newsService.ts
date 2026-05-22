@@ -31,11 +31,9 @@
 //   }
 // };
 
-// src/features/home/services/newsService.ts
 import axios from "axios";
 import { Article } from "../types/new";
 
-// 1. Local Mock Data for Myanmar Health News (100% Free, No Key, Instant Load)
 const MYANMAR_MOCK_NEWS = [
   {
     title:
@@ -70,7 +68,6 @@ const MYANMAR_MOCK_NEWS = [
 ];
 
 const NEWS_URLS: Record<string, string> = {
-  // Free open-source endpoint for US Health News (No Key required)
   en: "https://saurav.tech/NewsAPI/top-headlines/category/health/us.json",
 };
 
@@ -78,7 +75,6 @@ export const fetchHealthNewsData = async (
   locale: string,
 ): Promise<Article[]> => {
   try {
-    // 2. Serve Local Mock Data instantly if the locale is Myanmar ('my')
     if (locale === "my") {
       return MYANMAR_MOCK_NEWS.slice(0, 8).map((art) => ({
         title: art.title || "No Title Available",
@@ -90,7 +86,6 @@ export const fetchHealthNewsData = async (
       }));
     }
 
-    // 3. Fallback to free live API processing for English ('en')
     const url = NEWS_URLS[locale] ?? NEWS_URLS.en;
     const response = await axios.get(url);
 

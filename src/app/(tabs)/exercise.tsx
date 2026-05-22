@@ -1,9 +1,5 @@
-import { Text, View } from "react-native";
+import ExerciseScreen from "@/features/exercise/screens/ExerciseScreen";
 
-export default function Screen() {
-  return (
-    <View className="flex-1 items-center justify-center">
-      <Text>Exercise</Text>
-    </View>
-  );
+export default function Page() {
+  return <ExerciseScreen />;
 }

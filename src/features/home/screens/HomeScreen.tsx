@@ -1,4 +1,4 @@
-// src/features/home/screens/HomeScreen.tsx
+import ScreenWrapper from "@/components/common/ScreenWrapper";
 import EmergencyButton from "@/features/home/components/EmergencyButton";
 import HealthNewsCard from "@/features/home/components/HealthNewsCard";
 import HomeHeader from "@/features/home/components/HomeHeader";
@@ -6,7 +6,6 @@ import { useLanguageStore } from "@/store/useLanguageStore";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ActivityIndicator, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { fetchHealthNewsData } from "../services/newsService";
 import { Article } from "../types/new";
 
@@ -18,14 +17,13 @@ export default function HomeScreen() {
   const [error, setError] = useState<boolean>(false);
   const cardColors = ["bg-blue-50", "bg-red-50", "bg-green-50", "bg-purple-50"];
 
-  // ✅ Re-fetch whenever locale changes
   useEffect(() => {
     let isMounted = true;
     const loadNews = async () => {
       try {
         setLoading(true);
         setError(false);
-        const data = await fetchHealthNewsData(locale); // ✅ pass locale
+        const data = await fetchHealthNewsData(locale);
         if (isMounted) setArticles(data);
       } catch {
         if (isMounted) setError(true);
@@ -37,10 +35,10 @@ export default function HomeScreen() {
     return () => {
       isMounted = false;
     };
-  }, [locale]); // ✅ locale in dependency array
+  }, [locale]);
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top", "left", "right"]}>
+    <ScreenWrapper bg="bg-white">
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
@@ -75,7 +73,7 @@ export default function HomeScreen() {
           ) : (
             articles.map((item, index) => (
               <HealthNewsCard
-                key={`${locale}-${index}`} // ✅ locale in key forces card refresh
+                key={`${locale}-${index}`}
                 title={item.title}
                 description={item.description}
                 sourceName={item.sourceName}
@@ -88,6 +86,6 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
