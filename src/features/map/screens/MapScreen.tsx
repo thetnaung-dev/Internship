@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
 import { router } from "expo-router";
 
@@ -16,6 +16,7 @@ import NearbyPlaceCard from "../components/NearbyPlaceCard";
 import { getUserLocation } from "../services/locationService";
 import { searchNearbyPlaces } from "../services/placesService";
 
+import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import type { Place } from "../types/Place";
 
 const DEFAULT_REGION: Region = {
@@ -37,7 +38,8 @@ export default function MapScreen() {
   >("All");
 
   const [places, setPlaces] = useState<Place[]>([]);
-
+  const snapPoints = useMemo(() => ["20%", "50%", "88%"], []);
+  const bottomSheetRef = useRef<BottomSheet>(null);
   useEffect(() => {
     loadLocation();
   }, []);
@@ -107,117 +109,146 @@ export default function MapScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      <View className="px-5 pt-5">
-        <Text className="text-3xl font-bold text-gray-900">
-          Nearby Healthcare
-        </Text>
+      {/* MAP */}
+      <MapView
+        ref={mapRef}
+        style={{ flex: 1 }}
+        region={region}
+        mapType="hybrid"
+        showsUserLocation
+        moveOnMarkerPress={false}
+      >
+        {searchedPlaces.map((place) => (
+          <Marker
+            key={place.id}
+            coordinate={{
+              latitude: place.latitude,
+              longitude: place.longitude,
+            }}
+            title={place.name}
+            description={place.type}
+          />
+        ))}
+      </MapView>
 
-        <Text className="text-gray-500 mt-2">
-          Find hospitals and pharmacies near you
-        </Text>
+      {/* HEADER CARD */}
+      <View className="absolute top-0 left-0 right-0 px-4 pt-3 mt-7">
+        <View className="rounded-[22px] px-4 py-3">
+          {/* TOP ROW */}
 
-        {/* Search */}
-        <View className="mt-6">
-          <MapSearchBar value={search} onChange={setSearch} />
+          {/* SEARCH */}
+          <View className="mt-3">
+            <MapSearchBar value={search} onChange={setSearch} />
+          </View>
+
+          {/* FILTERS */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="mt-3"
+          >
+            <View className="flex-row">
+              <FilterChip
+                title="All"
+                active={selectedFilter === "All"}
+                onPress={() => setSelectedFilter("All")}
+              />
+
+              <FilterChip
+                title="Hospitals"
+                active={selectedFilter === "Hospital"}
+                onPress={() => setSelectedFilter("Hospital")}
+              />
+
+              <FilterChip
+                title="Pharmacies"
+                active={selectedFilter === "Pharmacy"}
+                onPress={() => setSelectedFilter("Pharmacy")}
+              />
+            </View>
+          </ScrollView>
         </View>
-
-        {/* Filters */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="mt-6"
-        >
-          <FilterChip
-            title="All"
-            active={selectedFilter === "All"}
-            onPress={() => setSelectedFilter("All")}
-          />
-
-          <FilterChip
-            title="Hospitals"
-            active={selectedFilter === "Hospital"}
-            onPress={() => setSelectedFilter("Hospital")}
-          />
-
-          <FilterChip
-            title="Pharmacies"
-            active={selectedFilter === "Pharmacy"}
-            onPress={() => setSelectedFilter("Pharmacy")}
-          />
-        </ScrollView>
       </View>
 
-      {/* Map */}
-      <View className="h-80 mx-5 mt-6 rounded-3xl overflow-hidden relative">
-        <MapView
-          key={`${region.latitude}-${region.longitude}`}
-          ref={mapRef}
-          style={{ flex: 1 }}
-          region={region}
-          mapType="hybrid"
-          showsUserLocation
-          moveOnMarkerPress={false}
-        >
-          {searchedPlaces.map((place) => (
-            <Marker
-              key={place.id}
-              coordinate={{
-                latitude: place.latitude,
-                longitude: place.longitude,
-              }}
-              title={place.name}
-              description={place.type}
-            />
-          ))}
-        </MapView>
-
+      <View className="absolute right-5 bottom-44">
         <CurrentLocationButton onPress={goToMyLocation} />
       </View>
 
-      {/* Nearby Places */}
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingHorizontal: 20,
-          paddingTop: 24,
-          paddingBottom: 120,
+      {/* BOTTOM SHEET */}
+      {/* BOTTOM SHEET */}
+      <BottomSheet
+        ref={bottomSheetRef}
+        index={1}
+        snapPoints={snapPoints}
+        enablePanDownToClose={false}
+        backgroundStyle={{
+          borderTopLeftRadius: 32,
+          borderTopRightRadius: 32,
+          backgroundColor: "#ffffff",
+        }}
+        handleIndicatorStyle={{
+          backgroundColor: "#d1d5db",
+          width: 60,
+          height: 5,
         }}
       >
-        <View className="mb-5">
-          <Text className="text-2xl font-bold text-gray-900">
-            Nearby Places
-          </Text>
+        {/* HEADER */}
+        <View className="px-5 pb-4 pt-2">
+          <View className="flex-row items-center justify-between">
+            <View>
+              <Text className="text-[30px] font-bold text-gray-900">
+                Nearby Places
+              </Text>
 
-          <Text className="text-gray-500 mt-2">
-            Healthcare places near your location
-          </Text>
+              <Text className="text-gray-500 mt-1 text-base">
+                Healthcare places near you
+              </Text>
+            </View>
+
+            <View className="bg-blue-100 px-4 py-2 rounded-full">
+              <Text className="text-blue-600 font-semibold text-sm">
+                {searchedPlaces.length} Places
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {searchedPlaces.map((place) => (
-          <NearbyPlaceCard
-            key={place.id}
-            name={place.name}
-            distance={place.distance}
-            type={place.type}
-            onPress={() =>
-              router.push({
-                pathname: "/(tabs)/place/[id]",
-                params: {
-                  id: place.id,
-                  name: place.name,
-                  type: place.type,
-                  distance: place.distance,
-                  latitude: place.latitude.toString(),
-                  longitude: place.longitude.toString(),
-                  phone: place.phone ?? "",
-                  address: place.address ?? "",
-                },
-              })
-            }
-          />
-        ))}
-      </ScrollView>
+        {/* LIST */}
+        <BottomSheetScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 20,
+            paddingBottom: 140,
+          }}
+          showsVerticalScrollIndicator={false}
+        >
+          {searchedPlaces.map((place) => (
+            <View key={place.id} className="mb-4">
+              <NearbyPlaceCard
+                name={place.name}
+                distance={place.distance}
+                type={place.type}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(tabs)/place/[id]",
+                    params: {
+                      id: place.id,
+                      name: place.name,
+                      type: place.type,
+                      distance: place.distance,
+                      latitude: place.latitude.toString(),
+                      longitude: place.longitude.toString(),
+                      phone: place.phone ?? "",
+                      address: place.address ?? "",
+                      website: place.website ?? "",
+                      openingHours: place.openingHours ?? "",
+                    },
+                  })
+                }
+              />
+            </View>
+          ))}
+        </BottomSheetScrollView>
+      </BottomSheet>
     </SafeAreaView>
   );
 }

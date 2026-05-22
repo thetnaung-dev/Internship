@@ -9,7 +9,7 @@ type Props = {
 
 export default function MapSearchBar({ value, onChange }: Props) {
   return (
-    <View className="flex-row items-center bg-gray-100 rounded-full px-4 py-2">
+    <View className="flex-row items-center bg-gray-100 rounded-full px-4 py-1">
       <Search size={20} color="#64748b" />
 
       <TextInput

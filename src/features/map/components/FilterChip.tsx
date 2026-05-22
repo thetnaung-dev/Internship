@@ -11,7 +11,7 @@ export default function FilterChip({ title, active, onPress }: Props) {
     <Pressable
       onPress={onPress}
       className={`px-5 py-3 rounded-full mr-3 ${
-        active ? "bg-blue-600" : "bg-gray-100"
+        active ? "bg-blue-600" : "bg-gray-300"
       }`}
     >
       <Text
