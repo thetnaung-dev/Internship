@@ -1,85 +1,173 @@
 import type { Place } from "../types/Place";
 
-type PlaceWithDistance = Place & {
-  distanceNum: number;
+type GooglePhoto = {
+  name?: string;
 };
 
-const GEOAPIFY_API_KEY = process.env.EXPO_PUBLIC_GEOAPIFY_API_KEY;
+type GoogleNearbyPlace = {
+  id?: string;
+  formattedAddress?: string;
+  location?: {
+    latitude?: number;
+    longitude?: number;
+  };
+  displayName?: {
+    text?: string;
+  };
+  nationalPhoneNumber?: string;
+  websiteUri?: string;
+  regularOpeningHours?: {
+    weekdayDescriptions?: string[];
+  };
+  photos?: GooglePhoto[];
+};
+
+const GOOGLE_PLACES_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_PLACES_API_KEY;
+
+type Category = "hospital" | "pharmacy" | "clinic";
+
+const CATEGORY_CONFIG: Record<Category, { label: string; types: string[] }> = {
+  hospital: {
+    label: "Hospital",
+    types: ["hospital"],
+  },
+  pharmacy: {
+    label: "Pharmacy",
+    types: ["pharmacy"],
+  },
+  clinic: {
+    label: "Clinic",
+    types: ["medical_clinic", "medical_center"],
+  },
+};
+
+export const getGooglePlacePhotoUrl = (
+  photoName?: string,
+  maxWidthPx = 1200,
+) => {
+  if (!photoName || !GOOGLE_PLACES_API_KEY) return undefined;
+  return `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=${maxWidthPx}&key=${GOOGLE_PLACES_API_KEY}`;
+};
+
+const fetchPlacePhotos = async (placeId: string): Promise<string[]> => {
+  try {
+    const res = await fetch(
+      `https://places.googleapis.com/v1/places/${placeId}`,
+      {
+        headers: {
+          "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY!,
+          "X-Goog-FieldMask": "photos",
+        },
+      },
+    );
+    const data = await res.json();
+    console.log(`Photos for ${placeId}:`, JSON.stringify(data?.photos?.[0]));
+    return (data?.photos ?? [])
+      .map((p: GooglePhoto) => p.name)
+      .filter(Boolean) as string[];
+  } catch {
+    return [];
+  }
+};
+
+const cache = new Map<string, Place[]>();
 
 export const searchNearbyPlaces = async (
   latitude: number,
   longitude: number,
-  category: "hospital" | "pharmacy",
+  category: Category,
 ): Promise<Place[]> => {
+  const cacheKey = `${category}-${latitude.toFixed(3)}-${longitude.toFixed(3)}`;
+
+  if (cache.has(cacheKey)) {
+    console.log(`Cache hit for ${category}`);
+    return cache.get(cacheKey)!;
+  }
+
   try {
-    if (!GEOAPIFY_API_KEY) {
-      throw new Error("Missing GEOAPIFY API key");
+    if (!GOOGLE_PLACES_API_KEY) {
+      throw new Error("Missing GOOGLE_PLACES_API_KEY");
     }
 
-    const radius = 5000;
-    const geoapifyCategory =
-      category === "hospital" ? "healthcare.hospital" : "healthcare.pharmacy";
+    const config = CATEGORY_CONFIG[category];
 
-    const url =
-      `https://api.geoapify.com/v2/places` +
-      `?categories=${encodeURIComponent(geoapifyCategory)}` +
-      `&filter=circle:${longitude},${latitude},${radius}` +
-      `&bias=proximity:${longitude},${latitude}` +
-      `&limit=20` +
-      `&apiKey=${GEOAPIFY_API_KEY}`;
-
-    console.log("Fetching:", url);
-
-    const response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
+    const body = {
+      includedTypes: config.types,
+      maxResultCount: 20,
+      rankPreference: "DISTANCE",
+      locationRestriction: {
+        circle: {
+          center: { latitude, longitude },
+          radius: 5000,
+        },
       },
-    });
+    };
+
+    const response = await fetch(
+      "https://places.googleapis.com/v1/places:searchNearby",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+          "X-Goog-FieldMask":
+            "places.id,places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.websiteUri,places.regularOpeningHours,places.types",
+        },
+        body: JSON.stringify(body),
+      },
+    );
 
     const text = await response.text();
-    console.log("RAW RESPONSE:", text);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${text}`);
     }
 
     const json = JSON.parse(text);
-    const features = Array.isArray(json?.features) ? json.features : [];
+    const placesData: GoogleNearbyPlace[] = Array.isArray(json?.places)
+      ? json.places
+      : [];
 
-    const places: PlaceWithDistance[] = features
-      .map((feature: any) => {
-        const lon = feature?.geometry?.coordinates?.[0];
-        const lat = feature?.geometry?.coordinates?.[1];
+    const places: Place[] = (
+      await Promise.all(
+        placesData.map(async (item) => {
+          const lat = item.location?.latitude;
+          const lon = item.location?.longitude;
 
-        if (typeof lat !== "number" || typeof lon !== "number") {
-          return null;
-        }
+          if (typeof lat !== "number" || typeof lon !== "number") return null;
 
-        const distanceNum = getDistance(latitude, longitude, lat, lon);
+          const distance = getDistance(latitude, longitude, lat, lon);
+          const placeId = String(item.id || `${lat},${lon}`);
+          const photos = await fetchPlacePhotos(placeId);
 
-        return {
-          id: String(
-            feature?.properties?.place_id ||
-              feature?.properties?.osm_id ||
-              `${lat},${lon}`,
-          ),
-          name:
-            feature?.properties?.name ||
-            (category === "hospital" ? "Hospital" : "Pharmacy"),
-          latitude: lat,
-          longitude: lon,
-          type: category === "hospital" ? "Hospital" : "Pharmacy",
-          distanceNum,
-          distance: `${distanceNum}m away`,
-        };
-      })
-      .filter(Boolean) as PlaceWithDistance[];
+          return {
+            id: placeId,
+            name: item.displayName?.text || config.label,
+            type: config.label,
+            latitude: lat,
+            longitude: lon,
+            distance: `${distance}m away`,
+            address: item.formattedAddress,
+            phone: item.nationalPhoneNumber,
+            website: item.websiteUri,
+            openingHours:
+              item.regularOpeningHours?.weekdayDescriptions?.join("\n"),
+            photos,
+          };
+        }),
+      )
+    ).filter(Boolean) as Place[];
 
-    places.sort((a, b) => a.distanceNum - b.distanceNum);
+    places.sort((a, b) => {
+      const da = Number(a.distance.replace(/[^\d]/g, ""));
+      const db = Number(b.distance.replace(/[^\d]/g, ""));
+      return da - db;
+    });
 
+    cache.set(cacheKey, places);
     return places;
   } catch (error) {
-    console.log("Places Error:", error);
+    console.log(`Places Error (${category}):`, error);
     return [];
   }
 };

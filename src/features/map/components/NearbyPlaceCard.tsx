@@ -1,40 +1,85 @@
-import { Clock3, MapPin } from "lucide-react-native";
-
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
+import { getGooglePlacePhotoUrl } from "../services/placesService";
 
 type Props = {
   name: string;
-  distance: string;
   type: string;
-  onPress?: () => void;
+  distance: string;
+  photoName?: string;
+  onPress: () => void;
 };
 
 export default function NearbyPlaceCard({
   name,
-  distance,
   type,
+  distance,
+  photoName,
   onPress,
 }: Props) {
+  const photoUrl = getGooglePlacePhotoUrl(photoName, 400);
+
   return (
-    <Pressable onPress={onPress} className="bg-gray-100 rounded-3xl p-5 mb-4">
-      <View className="flex-row items-center justify-between">
-        <Text className="text-lg font-bold text-gray-900">{name}</Text>
-
-        <View className="bg-blue-100 px-3 py-1 rounded-full">
-          <Text className="text-blue-700 text-xs font-semibold">{type}</Text>
-        </View>
+    <Pressable
+      onPress={onPress}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#fff",
+        borderRadius: 20,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: "#e5e7eb",
+        marginBottom: 12,
+      }}
+    >
+      <View
+        style={{
+          width: 80,
+          height: 80,
+          borderRadius: 16,
+          overflow: "hidden",
+          backgroundColor: "#e5e7eb",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        {photoUrl ? (
+          <Image
+            source={{ uri: photoUrl }}
+            style={{ width: "100%", height: "100%" }}
+            resizeMode="cover"
+            onError={(e) => console.log("photo error", e.nativeEvent)}
+          />
+        ) : (
+          <View style={{ height: 240, backgroundColor: "#e5e7eb" }} />
+        )}
       </View>
 
-      <View className="flex-row items-center mt-4">
-        <MapPin size={16} color="#64748b" />
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <Text
+          style={{ fontSize: 18, fontWeight: "700", color: "#111827" }}
+          numberOfLines={1}
+        >
+          {name}
+        </Text>
 
-        <Text className="ml-2 text-gray-500">{distance}</Text>
-      </View>
+        <Text
+          style={{ fontSize: 14, color: "#6b7280", marginTop: 4 }}
+          numberOfLines={1}
+        >
+          {type}
+        </Text>
 
-      <View className="flex-row items-center mt-2">
-        <Clock3 size={16} color="#64748b" />
-
-        <Text className="ml-2 text-gray-500">Open Now</Text>
+        <Text
+          style={{
+            fontSize: 14,
+            color: "#2563eb",
+            marginTop: 4,
+            fontWeight: "600",
+          }}
+        >
+          {distance}
+        </Text>
       </View>
     </Pressable>
   );
