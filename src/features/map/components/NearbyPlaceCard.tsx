@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Image, Pressable, Text, View } from "react-native";
 import { getGooglePlacePhotoUrl } from "../services/placesService";
 
@@ -17,6 +18,13 @@ export default function NearbyPlaceCard({
   onPress,
 }: Props) {
   const photoUrl = getGooglePlacePhotoUrl(photoName, 400);
+  const typeKeyMap: Record<string, string> = {
+    Hospital: "filterHospitals",
+    Pharmacy: "filterPharmacies",
+    Clinic: "filterClinics",
+  };
+  const { t } = useTranslation();
+  const translatedType = typeKeyMap[type] ? t(typeKeyMap[type]) : type;
 
   return (
     <Pressable
@@ -67,9 +75,8 @@ export default function NearbyPlaceCard({
           style={{ fontSize: 14, color: "#6b7280", marginTop: 4 }}
           numberOfLines={1}
         >
-          {type}
+          {translatedType} {/* was {type} */}
         </Text>
-
         <Text
           style={{
             fontSize: 14,

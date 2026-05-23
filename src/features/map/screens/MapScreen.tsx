@@ -10,6 +10,7 @@ import FilterChip from "../components/FilterChip";
 import MapSearchBar from "../components/MapSearchBar";
 import NearbyPlaceCard from "../components/NearbyPlaceCard";
 
+import { useTranslation } from "react-i18next";
 import { getUserLocation } from "../services/locationService";
 import { searchNearbyPlaces } from "../services/placesService";
 import type { Place } from "../types/Place";
@@ -38,6 +39,7 @@ export default function MapScreen() {
   const [places, setPlaces] = useState<PlaceWithCategory[]>([]);
 
   const snapPoints = useMemo(() => ["20%", "50%", "88%"], []);
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadLocation();
@@ -151,22 +153,22 @@ export default function MapScreen() {
           >
             <View className="flex-row">
               <FilterChip
-                title="All"
+                title={t("filterAll")}
                 active={selectedFilter === "All"}
                 onPress={() => setSelectedFilter("All")}
               />
               <FilterChip
-                title="Hospitals"
+                title={t("filterHospitals")}
                 active={selectedFilter === "Hospital"}
                 onPress={() => setSelectedFilter("Hospital")}
               />
               <FilterChip
-                title="Pharmacies"
+                title={t("filterPharmacies")}
                 active={selectedFilter === "Pharmacy"}
                 onPress={() => setSelectedFilter("Pharmacy")}
               />
               <FilterChip
-                title="Clinics"
+                title={t("filterClinics")}
                 active={selectedFilter === "Clinic"}
                 onPress={() => setSelectedFilter("Clinic")}
               />
@@ -195,22 +197,20 @@ export default function MapScreen() {
           height: 5,
         }}
       >
-        <View className="px-5 pb-4 pt-2">
-          <View className="flex-row items-center justify-between">
-            <View>
-              <Text className="text-[30px] font-bold text-gray-900">
-                Nearby Places
-              </Text>
-              <Text className="text-gray-500 mt-1 text-base">
-                Healthcare places near you
-              </Text>
-            </View>
+        <View className="flex-row items-center justify-between">
+          <View>
+            <Text className="text-[30px] font-bold text-gray-900">
+              {t("nearbyPlaces")}
+            </Text>
+            <Text className="text-gray-500 mt-1 text-base">
+              {t("healthcarePlacesNearYou")}
+            </Text>
+          </View>
 
-            <View className="bg-blue-100 px-4 py-2 rounded-full">
-              <Text className="text-blue-600 font-semibold text-sm">
-                {searchedPlaces.length} Places
-              </Text>
-            </View>
+          <View className="bg-blue-100 px-4 py-2 rounded-full">
+            <Text className="text-blue-600 font-semibold text-sm">
+              {t("places", { count: searchedPlaces.length })}
+            </Text>
           </View>
         </View>
 
