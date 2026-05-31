@@ -1,5 +1,6 @@
 {
   "expo": {
+    "main": "expo-router/entry",
     "name": "medicare",
     "slug": "medicare",
     "version": "1.0.0",

@@ -1,27 +1,37 @@
-// src/store/useLanguageStore.ts
-import { i18n } from "@/services/localization";
+import i18n from "@/lib/i18n";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create } from "zustand";
 
-interface LanguageState {
-  locale: string;
-  setLocale: (locale: string) => void;
-  toggleLanguage: () => void;
-}
+type Language = "en" | "mm";
 
-export const useLanguageStore = create<LanguageState>((set, get) => ({
-  locale: i18n.language || "en",
-  setLocale: async (locale) => {
-    await i18n.changeLanguage(locale);
-    set({ locale });
+type LanguageStore = {
+  language: Language;
+  setLanguage: (lang: Language) => Promise<void>;
+  loadLanguage: () => Promise<void>;
+};
+
+export const useLanguageStore = create<LanguageStore>((set) => ({
+  language: "en",
+
+  setLanguage: async (lang) => {
+    await AsyncStorage.setItem("language", lang);
+
+    i18n.changeLanguage(lang);
+
+    set({
+      language: lang,
+    });
   },
-  toggleLanguage: async () => {
-    const currentLocale = get().locale;
-    const nextLocale = currentLocale === "en" ? "my" : "en";
-    try {
-      await i18n.changeLanguage(nextLocale);
-      set({ locale: nextLocale });
-    } catch (err) {
-      console.error("Failed to change language in i18next:", err);
+
+  loadLanguage: async () => {
+    const saved = await AsyncStorage.getItem("language");
+
+    if (saved === "en" || saved === "mm") {
+      i18n.changeLanguage(saved);
+
+      set({
+        language: saved,
+      });
     }
   },
 }));

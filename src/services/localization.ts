@@ -1,105 +1,53 @@
-// src/services/localization.ts
-import * as Localization from "expo-localization";
-import i18next from "i18next";
-import { initReactI18next } from "react-i18next";
+// ── services/locationService.ts ──────────────────────────────────
 
-const resources = {
-  en: {
-    translation: {
-      emergencyTitle: "SOS",
-      callingIn: "Calling in {{count}}...",
-      holdInstructions: "Hold 3 seconds",
-      healthNews: "Health News",
-      latestUpdates: "Latest healthcare updates",
-      healthFeatures: "Health Features",
-      exploreTools: "Explore healthcare tools",
-      traditionalMed: "Traditional Medicine",
-      exploreMyanmarMed: "Explore Myanmar traditional medicine",
-      fetchingUpdates: "Fetching live updates...",
-      loadError: "Could not load live updates at this moment.",
-      tabHome: "Home",
-      tabChat: "AI Chat",
-      tabMap: "Map",
-      tabExercise: "Workout",
-      tabMedicine: "Medicine",
-      mapSearchPlaceholder: "Search hospitals or pharmacies...",
-      nearbyPlaces: "Nearby Places",
-      healthcarePlacesNearYou: "Healthcare places near you",
-      places: "{{count}} Places",
-      filterAll: "All",
-      filterHospitals: "Hospitals",
-      filterPharmacies: "Pharmacies",
-      filterClinics: "Clinics",
-      medicinesTitle: "Medicines",
-      medicinesSubtitle: "Search medicines and dosage information",
-      medicineSearchPlaceholder: "Search medicines...",
-      medicineFilterAll: "All",
-      medicineFilterEnglish: "English",
-      medicineFilterTraditional: "Traditional",
-      medicineBenefits: "Benefits",
-      medicineDosage: "How to Use",
-      medicineIngredients: "Ingredients",
-      medicineWarnings: "Warnings",
-      medicineLoading: "Loading medicines...",
-      medicineError: "Could not load medicines.",
-      medicineEmpty: "No medicines found.",
-      medicineEnglishTag: "English",
-      medicineTraditionalTag: "Traditional",
-    },
+export interface DropdownItem {
+  label: string; // The text displayed to the user (e.g., "Yangon Region")
+  value: string; // The ID value stored in state (e.g., "MMR013")
+}
+
+export interface TownshipItem extends DropdownItem {
+  regionId: string; // Used to link/filter the cascading township lists
+}
+
+const BASE_URL =
+  "https://raw.githubusercontent.com/colbyfayock/myanmar-datasets/main/data";
+
+export const LocationService = {
+  /**
+   * Fetches States/Regions and maps them into Dropdown Items
+   */
+  async getRegions(): Promise<DropdownItem[]> {
+    const response = await fetch(`${BASE_URL}/states-regions.json`);
+    if (!response.ok) throw new Error("Failed to fetch regions");
+    const data = await response.json();
+
+    // Fallback labels provided if English fields are missing
+    return data
+      .map((item: any) => ({
+        label: item.nameEnglish || item.name,
+        value: item.stateRegionCode || item.id,
+      }))
+      .sort((a: DropdownItem, b: DropdownItem) =>
+        a.label.localeCompare(b.label),
+      );
   },
-  my: {
-    translation: {
-      emergencyTitle: "အရေးပေါ်",
-      callingIn: "{{count}} စက္ကန့်အတွင်း ခေါ်ဆိုမည်...",
-      holdInstructions: "၃ စက္ကန့် ဖိထားပါ",
-      healthNews: "ကျန်းမာရေးသတင်း",
-      latestUpdates: "နောက်ဆုံးရ ကျန်းမာရေးစောင့်ရှောက်မှုသတင်းများ",
-      healthFeatures: "ကျန်းမာရေးကဏ္ဍများ",
-      exploreTools: "ကျန်းမာရေးကိရိယာများကို လေ့လာပါ",
-      traditionalMed: "တိုင်းရင်းဆေးပညာ",
-      exploreMyanmarMed: "မြန်မာ့ရိုးရာ တိုင်းရင်းဆေးပညာများကို လေ့လာပါ",
-      fetchingUpdates: "သတင်းအသစ်များကို ရယူနေသည်...",
-      loadError: "ယခုအချိန်တွင် သတင်းအသစ်များကို မရယူနိုင်သေးပါ။",
-      tabHome: "ပင်မစာမျက်နှာ",
-      tabChat: "မေးမြန်းရန်",
-      tabMap: "မြေပုံ",
-      tabExercise: "လေ့ကျင့်ခန်း",
-      tabMedicine: "ဆေးညွန်း",
-      mapSearchPlaceholder: "ဆေးရုံ သို့မဟုတ် ဆေးဆိုင်များ ရှာဖွေပါ...",
-      nearbyPlaces: "နီးစပ်သောနေရာများ",
-      healthcarePlacesNearYou: "သင့်အနီးရှိ ကျန်းမာရေးဝန်ဆောင်မှုနေရာများ",
-      places: "{{count}} နေရာ",
-      filterAll: "အားလုံး",
-      filterHospitals: "ဆေးရုံများ",
-      filterPharmacies: "ဆေးဆိုင်များ",
-      filterClinics: "ကလင်းနစ်များ",
-      medicinesTitle: "ဆေးများ",
-      medicinesSubtitle: "ဆေးများနှင့် သောက်သုံးနည်းများ ရှာဖွေပါ",
-      medicineSearchPlaceholder: "ဆေးများ ရှာဖွေပါ...",
-      medicineFilterAll: "အားလုံး",
-      medicineFilterEnglish: "အင်္ဂလိပ်ဆေး",
-      medicineFilterTraditional: "တိုင်းရင်းဆေး",
-      medicineBenefits: "အကျိုးကျေးဇူးများ",
-      medicineDosage: "သုံးစွဲနည်း",
-      medicineIngredients: "ပါဝင်ပစ္စည်းများ",
-      medicineWarnings: "သတိပြုရန်",
-      medicineLoading: "ဆေးများ ရယူနေသည်...",
-      medicineError: "ဆေးများကို မရယူနိုင်သေးပါ။",
-      medicineEmpty: "ဆေးများ မတွေ့ပါ။",
-      medicineEnglishTag: "အင်္ဂလိပ်",
-      medicineTraditionalTag: "တိုင်းရင်းဆေး",
-    },
+
+  /**
+   * Fetches Townships and maps them into Dropdown Items
+   */
+  async getTownships(): Promise<TownshipItem[]> {
+    const response = await fetch(`${BASE_URL}/townships.json`);
+    if (!response.ok) throw new Error("Failed to fetch townships");
+    const data = await response.json();
+
+    return data
+      .map((item: any) => ({
+        label: item.nameEnglish || item.name,
+        value: item.townshipCode || item.id,
+        regionId: item.stateRegionCode || item.stateRegionId,
+      }))
+      .sort(
+        (a: TownshipItem, b: TownshipItem) => a.label.localeCompare(b.label), // Fixed the .label.label typo here!
+      );
   },
 };
-
-i18next.use(initReactI18next).init({
-  compatibilityJSON: "v4",
-  resources,
-  lng: Localization.getLocales()[0].languageCode ?? "en",
-  fallbackLng: "en",
-  interpolation: {
-    escapeValue: false,
-  },
-});
-
-export const i18n = i18next;

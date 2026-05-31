@@ -1,82 +1,56 @@
-// src/app/(tabs)/_layout.tsx
-import { useLanguageStore } from "@/store/useLanguageStore";
 import { Tabs } from "expo-router";
-import {
-    Dumbbell,
-    House,
-    MapPinned,
-    MessageCircle,
-    Pill,
-} from "lucide-react-native";
-import React from "react";
-import { useTranslation } from "react-i18next";
+import { Bookmark, Home, Plus, User } from "lucide-react-native";
 
 export default function TabsLayout() {
-  const { t } = useTranslation();
-  const locale = useLanguageStore((state) => state.locale);
-
   return (
     <Tabs
-      key={locale}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#2563eb",
+        tabBarActiveTintColor: "#0f172a",
         tabBarInactiveTintColor: "#94a3b8",
         tabBarStyle: {
-          height: 70,
-          paddingTop: 10,
-          paddingBottom: 10,
-          borderTopWidth: 0,
-          elevation: 0,
           backgroundColor: "#ffffff",
+          borderTopWidth: 1,
+          borderTopColor: "#f1f5f9",
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "600",
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: t("tabHome"),
-          tabBarIcon: ({ color, size }) => <House color={color} size={size} />,
+          title: "Home",
+          tabBarIcon: ({ color }) => <Home size={24} color={color} />,
         }}
       />
+
       <Tabs.Screen
-        name="map"
+        name="favourites"
         options={{
-          title: t("tabMap"),
-          tabBarIcon: ({ color, size }) => (
-            <MapPinned color={color} size={size} />
-          ),
+          title: "Saved",
+          tabBarIcon: ({ color }) => <Bookmark size={24} color={color} />,
         }}
       />
+
       <Tabs.Screen
-        name="medicine"
+        name="create_post"
         options={{
-          title: t("tabMedicine"),
-          tabBarIcon: ({ color, size }) => <Pill color={color} size={size} />,
+          title: "Create",
+          tabBarIcon: ({ color }) => <Plus size={24} color={color} />,
         }}
       />
+
       <Tabs.Screen
-        name="exercise"
+        name="profile"
         options={{
-          title: t("tabExercise"),
-          tabBarIcon: ({ color, size }) => (
-            <Dumbbell color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="chat"
-        options={{
-          title: t("tabChat"),
-          tabBarIcon: ({ color, size }) => (
-            <MessageCircle color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="place/[id]"
-        options={{
-          href: null,
+          title: "Profile",
+          tabBarIcon: ({ color }) => <User size={24} color={color} />,
         }}
       />
     </Tabs>
