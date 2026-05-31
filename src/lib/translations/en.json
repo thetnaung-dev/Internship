@@ -43,6 +43,66 @@
   "wantToRent": "Want to Rent",
   "categoryScreenSubtitle": "If you have a property to sell, rent, or are looking to acquire one, you can post your advertisement below.",
   "findyourDreamProperty": "Find Your Dream Property",
+  "createPost": {
+    "selectCategory": "Choose Advertisement Type",
+
+    "sale": "For Sale",
+    "rent": "For Rent",
+    "hostel": "Hostel For Rent",
+    "wantToBuy": "Want To Buy",
+    "wantToRent": "Want To Rent",
+
+    "saleTitle": "Sale Advertisement",
+    "rentTitle": "Rental Advertisement",
+    "hostelTitle": "Hostel Advertisement",
+    "wantToBuyTitle": "Wanted To Buy Advertisement",
+    "wantToRentTitle": "Wanted To Rent Advertisement",
+
+    "fillForm": "Fill Form",
+
+    "basicInfo": "Basic Information",
+    "detailInfo": "Property Details",
+    "locationContact": "Location & Contact",
+
+    "titleMm": "Advertisement Title (Myanmar) *",
+    "propertyType": "Select Property Type *",
+
+    "priceSale": "Sale Price / Desired Price (Lakh) *",
+    "priceRent": "Monthly Rental Fee (Lakh) *",
+
+    "floor": "Floor",
+    "rooms": "Number of Rooms",
+    "sqft": "Area (Sqft)",
+
+    "region": "State / Region *",
+    "township": "Township *",
+    "phone": "Contact Phone Number *",
+
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit Advertisement",
+
+    "apartment": "Apartment",
+    "condo": "Condo",
+    "house": "House",
+    "land": "Land",
+
+    "warning": "Warning",
+    "success": "Success",
+    "error": "Error",
+
+    "loginRequired": "Please login first before creating a post.",
+    "postSuccess": "Your advertisement has been posted successfully.",
+
+    "requiredFields": "Please fill in all required fields.",
+    "locationRequired": "Please provide location and contact phone number.",
+
+    "ok": "OK",
+    "loginRequiredTitle": "Warning",
+    "loginRequiredMessage": "Please log in first to create a post.",
+    "cancel": "Cancel",
+    "login": "Login"
+  },
 
   "categories": {
     "all": "All",
@@ -80,5 +140,61 @@
     "stateRegion": "All States & Regions",
     "township": "All Townships",
     "searchButton": "Search Ad"
+  },
+  "login": {
+    "title": "Welcome Back",
+    "subtitle": "Sign in to continue using Horizon Real Estate",
+    "email": "Email",
+    "emailPlaceholder": "example@gmail.com",
+    "password": "Password",
+    "passwordPlaceholder": "••••••••",
+    "signIn": "Sign In",
+    "noAccount": "Don't have an account?",
+    "register": "Register",
+    "errorTitle": "Error",
+    "loginFailed": "Login Failed",
+    "enterEmailPassword": "Please enter email and password"
+  },
+
+  "register": {
+    "title": "Create New Account",
+    "subtitle": "Create an account to post real estate ads.",
+
+    "name": "Name",
+    "namePlaceholder": "Your name",
+
+    "email": "Email",
+    "emailPlaceholder": "example@mail.com",
+
+    "password": "Password",
+    "passwordPlaceholder": "Password",
+
+    "confirmPassword": "Confirm Password",
+
+    "button": "Create Account",
+
+    "haveAccount": "Already have an account?",
+    "login": "Login",
+
+    "successTitle": "Success",
+    "successMessage": "Your account has been created successfully.",
+
+    "errors": {
+      "fillAll": "Please fill in all fields.",
+      "passwordMismatch": "Passwords do not match.",
+      "error": "Error",
+      "invalid": "Invalid"
+    }
+  },
+  "profile": {
+    "user": "User",
+    "totalPosts": "Total Posts",
+    "active": "Active",
+    "accountStatus": "Account Status",
+    "settings": "Settings",
+    "profileSettings": "Profile Settings",
+    "savedProperties": "Saved Properties",
+    "security": "Security",
+    "logout": "Logout"
   }
 }

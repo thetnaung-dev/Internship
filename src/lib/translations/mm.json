@@ -43,6 +43,66 @@
   "wantToRent": "ငှားချင်ပါသည်",
   "categoryScreenSubtitle": "သင့်တွင် ဝယ်လိုသော အိမ်ခြံမြေ (သို့မဟုတ်) ငှားရမ်းလိုသော အိမ်ခြံမြေ ရှိပါက အောက်တွင် ကြော်ငြာတင်နိုင်ပါသည်။",
   "findyourDreamProperty": "သင့်အိမ်မက်ကို ရှာဖွေပါ",
+  "createPost": {
+    "selectCategory": "ကြော်ငြာအမျိုးအစားရွေးချယ်ပါ",
+
+    "sale": "ရောင်းရန်ရှိသည်",
+    "rent": "ငှားရန်ရှိသည်",
+    "hostel": "အဆောင်(ငှားရန်)",
+    "wantToBuy": "ဝယ်ချင်ပါသည်",
+    "wantToRent": "ငှားချင်ပါသည်",
+
+    "saleTitle": "အရောင်းကြော်ငြာ",
+    "rentTitle": "အငှားကြော်ငြာ",
+    "hostelTitle": "အဆောင်ကြော်ငြာ",
+    "wantToBuyTitle": "ဝယ်လိုသည့်ကြော်ငြာ",
+    "wantToRentTitle": "ငှားရမ်းလိုသည့်ကြော်ငြာ",
+
+    "fillForm": "ဖြည့်စွက်ရန်",
+
+    "basicInfo": "အခြေခံအချက်အလက်များ",
+    "detailInfo": "အသေးစိတ် အချက်အလက်များ",
+    "locationContact": "တည်နေရာနှင့် ဆက်သွယ်ရန်",
+
+    "titleMm": "ကြော်ငြာခေါင်းစဉ် (Myanmar) *",
+    "propertyType": "အိမ်ခြံမြေ အမျိုးအစား ရွေးချယ်ပါ *",
+
+    "priceSale": "ရောင်းဈေး/ဝယ်လိုဈေး (သိန်း) *",
+    "priceRent": "လစဉ်ငှားရမ်းခ (သိန်း) *",
+
+    "floor": "အလွှာ (Floor)",
+    "rooms": "အခန်းအရေအတွက်",
+    "sqft": "အကျယ်အဝန်း (Sqft)",
+
+    "region": "တိုင်းဒေသကြီး / ပြည်နယ် *",
+    "township": "မြို့နယ် *",
+    "phone": "ဆက်သွယ်ရန် ဖုန်းနံပါတ် *",
+
+    "back": "နောက်သို့",
+    "next": "ရှေ့သို့",
+    "submit": "ကြော်ငြာတင်မည်",
+
+    "apartment": "တိုက်ခန်း (Apartment)",
+    "condo": "ကွန်ဒို (Condo)",
+    "house": "လုံးချင်းအိမ် (House)",
+    "land": "မြေကွက် (Land)",
+
+    "warning": "သတိပေးချက်",
+    "success": "အောင်မြင်ပါသည်",
+    "error": "မှားယွင်းမှု",
+
+    "loginRequired": "ပို့စ်တင်ရန်အတွက် ဦးစွာ Login ဝင်ပေးပါရန်။",
+    "postSuccess": "သင်၏ ကြော်ငြာကို အောင်မြင်စွာ တင်ပြီးပါပြီ။",
+
+    "requiredFields": "လိုအပ်သော အချက်အလက်များကို ဖြည့်စွက်ပေးပါ။",
+    "locationRequired": "တည်နေရာနှင့် ဆက်သွယ်ရန် ဖုန်းနံပါတ် ဖြည့်စွက်ပေးပါ။",
+
+    "ok": "ကောင်းပြီ",
+    "loginRequiredTitle": "သတိပေးချက်",
+    "loginRequiredMessage": "ပို့စ်တင်ရန်အတွက် ဦးစွာ Login ဝင်ပေးပါရန်။",
+    "cancel": "မလုပ်တော့ပါ",
+    "login": "Login ဝင်မည်"
+  },
   "categories": {
     "all": "အားလုံး",
     "for sale": "ရောင်းရန်",
@@ -79,5 +139,61 @@
     "stateRegion": "တိုင်းဒေသကြီးနှင့်ပြည်နယ်အားလုံး",
     "township": "မြို့နယ်အားလုံး",
     "searchButton": "ရှာမည်"
+  },
+  "login": {
+    "title": "ကြိုဆိုပါတယ်",
+    "subtitle": "Horizon Real Estate ကို အသုံးပြုရန် login ဝင်ပါ",
+    "email": "အီးမေးလ်",
+    "emailPlaceholder": "example@gmail.com",
+    "password": "လျှို့ဝှက်နံပါတ်",
+    "passwordPlaceholder": "••••••••",
+    "signIn": "ဝင်မည်",
+    "noAccount": "အကောင့်မရှိသေးဘူးလား?",
+    "register": "အကောင့်ဖွင့်ရန်",
+    "errorTitle": "အမှား",
+    "loginFailed": "Login မအောင်မြင်ပါ",
+    "enterEmailPassword": "အီးမေးလ်နှင့် လျှို့ဝှက်နံပါတ်ထည့်ပါ"
+  },
+
+  "register": {
+    "title": "အကောင့်အသစ်ဖွင့်ရန်",
+    "subtitle": "အိမ်ခြံမြေကြော်ငြာများ တင်ရန်အတွက် အကောင့်ပြုလုပ်ပေးပါ။",
+
+    "name": "အမည်",
+    "namePlaceholder": "သင်၏အမည်",
+
+    "email": "အီးမေးလ်",
+    "emailPlaceholder": "example@mail.com",
+
+    "password": "လျှို့ဝှက်နံပါတ်",
+    "passwordPlaceholder": "လျှို့ဝှက်နံပါတ်",
+
+    "confirmPassword": "အတည်ပြုပါ",
+
+    "button": "အကောင့်အသစ်ပြုလုပ်မည်",
+
+    "haveAccount": "အကောင့်ရှိပြီးသားလား?",
+    "login": "Login ဝင်ရန်",
+
+    "successTitle": "အောင်မြင်ပါသည်",
+    "successMessage": "အကောင့်အသစ်ကို အောင်မြင်စွာ ပြုလုပ်ပြီးပါပြီ။",
+
+    "errors": {
+      "fillAll": "အချက်အလက်အားလုံးကို ဖြည့်စွက်ပေးပါ။",
+      "passwordMismatch": "လျှို့ဝှက်နံပါတ်များ တူညီမှုမရှိပါ။",
+      "error": "သတိပေးချက်",
+      "invalid": "မှားယွင်းမှု"
+    }
+  },
+  "profile": {
+    "user": "အသုံးပြုသူ",
+    "totalPosts": "တင်ထားသော ပို့စ်များ",
+    "active": "အသုံးပြုနေဆဲ",
+    "accountStatus": "အကောင့်အခြေအနေ",
+    "settings": "ဆက်တင်များ",
+    "profileSettings": "ပရိုဖိုင် ဆက်တင်များ",
+    "savedProperties": "သိမ်းဆည်းထားသော အိမ်ခြံမြေများ",
+    "security": "လုံခြုံရေး",
+    "logout": "ထွက်မည်"
   }
 }

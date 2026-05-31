@@ -465,9 +465,9 @@ export default function PropertySearchForm() {
       {/* DISPATCH ACTION */}
       <TouchableOpacity
         onPress={handleSearchSubmit}
-        className="bg-slate-900 w-full py-4 rounded-xl items-center justify-center shadow-md active:opacity-90 mt-2"
+        className="bg-amber-500 w-full py-4 rounded-xl items-center justify-center shadow-md active:opacity-90 mt-2"
       >
-        <Text className="text-white font-bold text-lg">
+        <Text className="text-slate-800 font-bold text-lg">
           {t("filter.searchButton") || "Search"}
         </Text>
       </TouchableOpacity>

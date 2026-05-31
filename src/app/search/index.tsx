@@ -44,14 +44,14 @@ export default function SearchScreen() {
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
       <StatusBar style="dark" />
-      <View className="bg-slate-950 px-4 py-4 flex-row items-center shadow-sm">
+      <View className="bg-amber-500 px-4 py-4 flex-row items-center shadow-sm">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-full"
+          className="w-10 h-10 items-center justify-center rounded-full bg-slate-50"
         >
-          <ChevronLeft size={28} color="#ffffff" />
+          <ChevronLeft size={28} color="#334155" />
         </TouchableOpacity>
-        <Text className="text-white text-lg font-bold ml-2 flex-1 text-center mr-10">
+        <Text className="text-slate-800 text-lg font-bold ml-2 flex-1 text-center mr-10">
           {t("findyourDreamProperty", {
             defaultValue: "သင့်အိမ်မက်ကို ရှာဖွေပါ",
           })}

@@ -1,15 +1,187 @@
-import React from "react";
-import { Text, View } from "react-native";
+import { supabase } from "@/lib/supabase";
+import { router, useFocusEffect } from "expo-router";
+import {
+  ChevronRight,
+  LogOut,
+  MapPin,
+  Shield,
+  User,
+} from "lucide-react-native";
+import React, { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const Profile = () => {
-  return (
-    <SafeAreaView>
-      <View className="flex-1 justify-center items-center">
-        <Text className="text-lg font-bold">Profile Screen</Text>
+export default function ProfileScreen() {
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [postCount, setPostCount] = useState(0);
+
+  const { t } = useTranslation();
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, []),
+  );
+
+  const fetchProfile = async () => {
+    setLoading(true);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.replace("/(auth)/login");
+      return;
+    }
+
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", user.id)
+      .single();
+
+    const { count } = await supabase
+      .from("properties")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    setProfile(profileData);
+    setPostCount(count || 0);
+    setLoading(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+
+    router.replace({
+      pathname: "/(auth)/login",
+      params: { logout: "success" },
+    });
+  };
+
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center bg-slate-50">
+        <ActivityIndicator size="large" color="#f59e0b" />
       </View>
+    );
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-slate-50">
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* HEADER */}
+        <View className="bg-amber-500 pt-8 pb-14 px-6 items-center rounded-b-[40px]">
+          <View className="w-24 h-24 bg-white rounded-full items-center justify-center border-4 border-amber-300">
+            <User size={50} color="#f59e0b" />
+          </View>
+
+          <Text className="text-white text-2xl font-extrabold mt-4">
+            {profile?.full_name || t("profile.user")}
+          </Text>
+
+          <Text className="text-amber-100 mt-1 text-sm">{profile?.email}</Text>
+        </View>
+
+        {/* STATS CARD */}
+        <View className="mx-6 -mt-10 bg-white rounded-2xl p-5 flex-row shadow-sm border border-slate-100">
+          <View className="flex-1 items-center border-r border-slate-100">
+            <Text className="text-2xl font-black text-slate-800">
+              {postCount}
+            </Text>
+
+            <Text className="text-slate-400 text-xs mt-1">
+              {t("profile.totalPosts")}
+            </Text>
+          </View>
+
+          <View className="flex-1 items-center">
+            <Text className="text-2xl font-black text-emerald-500">
+              {t("profile.active")}
+            </Text>
+
+            <Text className="text-slate-400 text-xs mt-1">
+              {t("profile.accountStatus")}
+            </Text>
+          </View>
+        </View>
+
+        {/* MENU */}
+        <View className="mt-8 px-6">
+          <Text className="text-slate-500 text-xs font-bold mb-3 uppercase">
+            {t("profile.settings")}
+          </Text>
+
+          <View className="bg-white rounded-2xl overflow-hidden border border-slate-100">
+            <MenuRow
+              icon={<User size={20} color="#64748b" />}
+              title={t("profile.profileSettings")}
+              onPress={() => {}}
+            />
+
+            <MenuRow
+              icon={<MapPin size={20} color="#64748b" />}
+              title={t("profile.savedProperties")}
+              onPress={() => router.push("/(tabs)")}
+            />
+
+            <MenuRow
+              icon={<Shield size={20} color="#64748b" />}
+              title={t("profile.security")}
+              onPress={() => {}}
+            />
+          </View>
+
+          {/* LOGOUT */}
+          <TouchableOpacity
+            onPress={handleLogout}
+            className="mt-6 bg-red-50 border border-red-100 py-4 rounded-2xl flex-row justify-center items-center active:opacity-80"
+          >
+            <LogOut size={20} color="#ef4444" />
+            <Text className="text-red-500 font-bold ml-2">
+              {t("profile.logout")}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <View className="h-10" />
+      </ScrollView>
     </SafeAreaView>
   );
-};
+}
 
-export default Profile;
+function MenuRow({
+  icon,
+  title,
+  onPress,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 active:bg-slate-50"
+    >
+      <View className="flex-row items-center">
+        <View className="w-9 h-9 bg-slate-50 rounded-xl items-center justify-center mr-3">
+          {icon}
+        </View>
+
+        <Text className="text-slate-700 font-semibold">{title}</Text>
+      </View>
+
+      <ChevronRight size={18} color="#cbd5e1" />
+    </TouchableOpacity>
+  );
+}
