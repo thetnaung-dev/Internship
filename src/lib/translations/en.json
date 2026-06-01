@@ -196,5 +196,69 @@
     "savedProperties": "Saved Properties",
     "security": "Security",
     "logout": "Logout"
+  },
+  "form_headers": {
+    "step_title_suffix": "Registration Details",
+    "step_indicator_prefix": "Step"
+  },
+  "dropdown_options": {
+    "property_types": [
+      { "label": "Apartment", "value": "apartment" },
+      { "label": "Condo", "value": "condo" },
+      { "label": "House", "value": "house" },
+      { "label": "Land", "value": "land" }
+    ]
+  },
+  "step_1": {
+    "section_title": "Basic Information",
+    "placeholders": {
+      "title_mm": "Listing Title *",
+      "property_type_dropdown": "Select Property Type *",
+      "price_rent": "Monthly Rent (Lakhs) *",
+      "price_sale": "Selling / Buying Price (Lakhs) *"
+    }
+  },
+  "step_2": {
+    "section_title": "Detailed Information",
+    "placeholders": {
+      "floor": "Floor",
+      "rooms": "Number of Rooms",
+      "sqft": "Area size (Sqft)"
+    }
+  },
+  "step_3": {
+    "section_title": "Location and Contact",
+    "placeholders": {
+      "region": "State / Region *",
+      "township": "Township *",
+      "phone": "Contact Phone Number *"
+    }
+  },
+  "footer_buttons": {
+    "back": "Back",
+    "next": "Next",
+    "submit": "Publish Listing"
+  },
+  "alerts_and_dialogs": {
+    "button_confirm": "OK",
+    "login_required": {
+      "title": "Notice",
+      "message": "Please log in first before posting a listing."
+    },
+    "step_0_validation": {
+      "title": "Notice",
+      "message": "Please fill in all the required information."
+    },
+    "step_2_validation": {
+      "title": "Notice",
+      "message": "Please provide your location and contact phone number."
+    },
+    "submission_success": {
+      "title": "Success",
+      "message": "Your advertisement has been published successfully."
+    },
+    "submission_error": {
+      "title": "Error"
+    }
   }
 }

@@ -13,14 +13,14 @@ export default function TabsLayout() {
         tabBarActiveTintColor: "#0f172a",
         tabBarInactiveTintColor: "#94a3b8",
 
-        // ✅ FIXED TAB BAR
+        // Default tab bar style for other screens
         tabBarStyle: {
           backgroundColor: "#ffffff",
           borderTopWidth: 1,
           borderTopColor: "#f1f5f9",
 
-          height: 70 + insets.bottom, // 👈 important fix
-          paddingBottom: insets.bottom + 10, // 👈 safe area + spacing
+          height: 70 + insets.bottom,
+          paddingBottom: insets.bottom + 10,
           paddingTop: 10,
 
           paddingHorizontal: 10,
@@ -53,11 +53,13 @@ export default function TabsLayout() {
         }}
       />
 
+      {/* ✅ FIXED: Tab bar is hidden completely when this screen is active */}
       <Tabs.Screen
         name="create_post"
         options={{
           title: "Create",
           tabBarIcon: ({ color }) => <Plus size={24} color={color} />,
+          tabBarStyle: { display: "none" },
         }}
       />
 
