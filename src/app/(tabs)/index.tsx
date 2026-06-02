@@ -1,9 +1,11 @@
+import { supabase } from "@/lib/supabase";
 import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { MapPin, Search, Star } from "lucide-react-native";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ActivityIndicator,
   BackHandler,
   Image,
   ScrollView,
@@ -13,43 +15,71 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const PROPERTIES = [
-  {
-    id: "1",
-    title: "The Glass Pavilion",
-    location: "Bahan Township, Yangon",
-    price: "$4,500/mo",
-    rating: "4.9",
-    image:
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80",
-    tagKey: "premium",
-  },
-  {
-    id: "2",
-    title: "Modernist Oasis Vibe",
-    location: "Yankin Township, Yangon",
-    price: "$3,200/mo",
-    rating: "4.8",
-    image:
-      "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80",
-    tagKey: "trending",
-  },
-];
+// 💡 Details Component ကို ၎င်းတည်ရှိရာ လမ်းကြောင်းအတိုင်း မှန်ကန်စွာ Import ခေါ်ယူခြင်း
+import Details from "../../components/features/property/details";
+
+const DEFAULT_IMAGE =
+  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80";
 
 export default function HomeScreen() {
-  // ✅ i18n object ကိုပါ destruct လုပ်ပြီး ယူထားပါတယ်
   const { t, i18n } = useTranslation();
+  const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
 
-  // ✅ useFocusEffect ကို HomeScreen component အတွင်း၌ စနစ်တကျ ရေးသားထားပါတယ်
+  // ── STATES ──────────────────────────────────────────────────────
+  const [properties, setProperties] = useState<any[]>([]);
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 💡 Component အဖြစ် ပြသရန် ရွေးချယ်လိုက်သော Property ID state
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
+    null,
+  );
+
+  const fetchActiveListings = async (category: string) => {
+    try {
+      setIsLoading(true);
+      let query = supabase
+        .from("properties")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (category === "for rent") {
+        query = query.eq("deal_type", "rent");
+      } else if (category === "for sale") {
+        query = query.eq("deal_type", "sale");
+      } else if (category !== "all") {
+        query = query.eq("property_type", category);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setProperties(data || []);
+    } catch (err) {
+      console.error("Error fetching properties:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useFocusEffect(
     React.useCallback(() => {
+      // အကယ်၍ Details Component ပွင့်နေရင် hardware back ကို အရင်ပိတ်ဖို့
+      const onHardwareBackPress = () => {
+        if (selectedPropertyId) {
+          setSelectedPropertyId(null); // Details ကို အရင်ပိတ်မယ်
+          return true;
+        }
+        return true; // Onboarding ပြန်မသွားအောင် တားဆီးရန်
+      };
+
+      fetchActiveListings(activeCategory);
+
       const subscription = BackHandler.addEventListener(
         "hardwareBackPress",
-        () => true, // Onboarding သို့ ပြန်သွားခြင်းကို တားဆီးရန်
+        onHardwareBackPress,
       );
-
       return () => subscription.remove();
-    }, []),
+    }, [activeCategory, selectedPropertyId]),
   );
 
   const categories = [
@@ -61,7 +91,17 @@ export default function HomeScreen() {
     { id: "hostel", label: t("categories.hostel") },
   ];
 
-  const [activeCategory, setActiveCategory] = useState("all");
+  // ── 💡 IF SELECTED PROPERTY ID EXIST, SHOW DETAILS COMPONENT DIRECTLY ──
+  if (selectedPropertyId) {
+    return (
+      <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+        <Details
+          propertyId={selectedPropertyId}
+          onBack={() => setSelectedPropertyId(null)} // ပြန်ပိတ်ပေးမည့် function
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
@@ -81,7 +121,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* RIGHT SIDE HEADER ACTIONS */}
         <View className="flex-row items-center gap-4">
           <TouchableOpacity
             onPress={() => router.push("/search")}
@@ -90,7 +129,6 @@ export default function HomeScreen() {
             <Search size={20} color="#0f172a" />
           </TouchableOpacity>
 
-          {/* ✅ Language Switcher Button (EN ⇄ MM ကို ချက်ချင်းပြောင်းပေးမည့် ခလုတ်) */}
           <TouchableOpacity
             onPress={() => {
               const nextLng = i18n.language === "en" ? "mm" : "en";
@@ -129,11 +167,7 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   key={cat.id}
                   onPress={() => setActiveCategory(cat.id)}
-                  className={`mr-3 px-5 py-3 rounded-full ${
-                    isActive
-                      ? "bg-slate-900"
-                      : "bg-white border border-slate-100"
-                  }`}
+                  className={`mr-3 px-5 py-3 rounded-full ${isActive ? "bg-slate-900" : "bg-white border border-slate-100"}`}
                 >
                   <Text
                     className={`font-semibold text-sm ${isActive ? "text-white" : "text-slate-500"}`}
@@ -159,54 +193,87 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {PROPERTIES.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              className="bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-md shadow-slate-100 mb-6 active:opacity-95"
-            >
-              <View className="relative h-56 w-full">
-                <Image source={{ uri: item.image }} className="w-full h-full" />
+          {isLoading && (
+            <View className="py-10 items-center justify-center">
+              <ActivityIndicator size="small" color="#10b981" />
+            </View>
+          )}
 
-                {/* Localized Badges */}
-                <View className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full">
-                  <Text className="text-white text-xs font-bold uppercase tracking-wider">
-                    {t(item.tagKey)}
-                  </Text>
-                </View>
+          {!isLoading && properties.length === 0 && (
+            <View className="py-12 items-center bg-white rounded-3xl border border-slate-100 p-6">
+              <Text className="text-slate-400 font-medium text-sm text-center">
+                {isBurmese
+                  ? "မရှိသေးပါ သို့မဟုတ် တင်ထားသော ကြော်ငြာမတွေ့ပါ။"
+                  : "No active advertisements found."}
+              </Text>
+            </View>
+          )}
 
-                <View className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-xl flex-row items-center gap-1">
-                  <Star size={14} color="#f59e0b" fill="#f59e0b" />
-                  <Text className="text-slate-900 text-xs font-bold">
-                    {item.rating}
-                  </Text>
-                </View>
-              </View>
+          {!isLoading &&
+            properties.map((item) => {
+              const displayImage =
+                item.images && item.images.length > 0
+                  ? item.images[0]
+                  : DEFAULT_IMAGE;
+              const displayTitle =
+                isBurmese && item.title_mm
+                  ? item.title_mm
+                  : item.title_en || item.title_mm;
+              const displayPrice =
+                item.currency_unit === "lakhs"
+                  ? `${item.price} ${isBurmese ? "သိန်း" : "Lakhs"}`
+                  : `$${item.price}`;
 
-              <View className="p-5">
-                <View className="flex-row justify-between items-start mb-2">
-                  <Text
-                    className="text-lg font-bold text-slate-900 flex-1 mr-2"
-                    numberOfLines={1}
-                  >
-                    {item.title}
-                  </Text>
-                  <Text className="text-lg font-black text-emerald-600">
-                    {item.price}
-                  </Text>
-                </View>
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  // 💡 router.push() အစား id ကို state ထဲထည့်ပြီး Component ကို တိုက်ရိုက်ဖွင့်စေခြင်း
+                  onPress={() => setSelectedPropertyId(item.id)}
+                  className="bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-md shadow-slate-100 mb-6 active:opacity-95"
+                >
+                  <View className="relative h-56 w-full">
+                    <Image
+                      source={{ uri: displayImage }}
+                      className="w-full h-full"
+                    />
+                    <View className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-full">
+                      <Text className="text-white text-xs font-bold uppercase tracking-wider">
+                        {t(item.property_type || "premium")}
+                      </Text>
+                    </View>
+                    <View className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-xl flex-row items-center gap-1">
+                      <Star size={14} color="#f59e0b" fill="#f59e0b" />
+                      <Text className="text-slate-900 text-xs font-bold">
+                        {item.rating || "5.0"}
+                      </Text>
+                    </View>
+                  </View>
 
-                <View className="flex-row items-center">
-                  <MapPin size={14} color="#94a3b8" />
-                  <Text
-                    className="text-slate-400 text-sm font-medium ml-1"
-                    numberOfLines={1}
-                  >
-                    {item.location}
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+                  <View className="p-5">
+                    <View className="flex-row justify-between items-start mb-2">
+                      <Text
+                        className="text-lg font-bold text-slate-900 flex-1 mr-2"
+                        numberOfLines={1}
+                      >
+                        {displayTitle}
+                      </Text>
+                      <Text className="text-lg font-black text-emerald-600">
+                        {displayPrice}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center">
+                      <MapPin size={14} color="#94a3b8" />
+                      <Text
+                        className="text-slate-400 text-sm font-medium ml-1"
+                        numberOfLines={1}
+                      >
+                        {item.search_value || "Yangon, Myanmar"}
+                      </Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
         </View>
       </ScrollView>
     </SafeAreaView>

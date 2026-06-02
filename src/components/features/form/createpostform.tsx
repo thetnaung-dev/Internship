@@ -1,11 +1,22 @@
 import { supabase } from "@/lib/supabase";
-import { useFocusEffect } from "expo-router";
-import { ChevronDown, ChevronLeft } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
+import { useFocusEffect, useRouter } from "expo-router";
+// 💡 Expo SDK ဗားရှင်းအသစ်အတွက် readAsStringAsync ကို legacy ကနေ ပြောင်းခေါ်ပြီး Error ရှင်းထားပါသည်
+import { decode } from "base64-arraybuffer";
+import { readAsStringAsync } from "expo-file-system/legacy";
+import {
+  ChevronDown,
+  ChevronLeft,
+  Image as ImageIcon,
+  Video,
+  X,
+} from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -58,6 +69,7 @@ export default function CreatePostForm({
   onBack,
 }: CreatePostFormProps) {
   const { t, i18n } = useTranslation();
+  const router = useRouter();
   const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -72,6 +84,9 @@ export default function CreatePostForm({
 
   const [showDimensions, setShowDimensions] = useState(false);
   const [showAreaBox, setShowAreaBox] = useState(false);
+
+  const [images, setImages] = useState<string[]>([]);
+  const [video, setVideo] = useState<string | null>(null);
 
   const [isAlertOpen, setIsAlertOpen] = useState(false);
   const [alertConfig, setAlertConfig] = useState({
@@ -171,15 +186,12 @@ export default function CreatePostForm({
       } catch (error: any) {
         Alert.alert(
           t("error.databaseErrorTitle") || "Database Error",
-          t("error.databaseErrorMessage") ||
-            "Could not synchronize geolocation assets.",
+          "Could not synchronize geolocation assets.",
         );
-        console.error("Supabase Query Error:", error.message);
       } finally {
         setIsMapSyncing(false);
       }
     }
-
     fetchMyanmarLocations();
   }, [t]);
 
@@ -197,13 +209,11 @@ export default function CreatePostForm({
       .toLowerCase();
 
     return rawTownships
-      .filter((twn) => {
-        if (twn.region_id === undefined || twn.region_id === null) return false;
-        return (
+      .filter(
+        (twn) =>
           String(twn.region_id).trim().toLowerCase() ===
-          selectedRegionIdNormalized
-        );
-      })
+          selectedRegionIdNormalized,
+      )
       .map((item) => ({
         label: isBurmese && item.name_mm ? item.name_mm : item.name_en,
         value: String(item.id).trim(),
@@ -213,16 +223,13 @@ export default function CreatePostForm({
   useEffect(() => {
     const w = parseFloat(formData.width);
     const l = parseFloat(formData.length);
-
     if (!isNaN(w) && !isNaN(l)) {
       setShowAreaBox(true);
-
       const baseSqft = w * l;
       if (formData.areaUnit === "acre") {
-        const calculatedAcres = baseSqft / 43560;
         setFormData((prev) => ({
           ...prev,
-          areaValue: String(Number(calculatedAcres.toFixed(4))),
+          areaValue: String(Number((baseSqft / 43560).toFixed(4))),
         }));
       } else {
         setFormData((prev) => ({ ...prev, areaValue: String(baseSqft) }));
@@ -236,27 +243,8 @@ export default function CreatePostForm({
         setCurrentStep(0);
         setIsLoading(false);
         setIsAlertOpen(false);
-        setIsRegionFocused(false);
-        setIsTownshipFocused(false);
-        setShowDimensions(false);
-        setShowAreaBox(false);
-        setFormData({
-          titleMm: "",
-          titleEn: "",
-          propertyType: "",
-          price: "",
-          currencyUnit: "lakhs",
-          floor: "",
-          width: "",
-          length: "",
-          areaValue: "",
-          areaUnit: "sqft",
-          bedrooms: "0",
-          bathrooms: "0",
-          regionId: "",
-          townshipId: "",
-          phone: "",
-        });
+        setImages([]);
+        setVideo(null);
       };
     }, []),
   );
@@ -283,6 +271,58 @@ export default function CreatePostForm({
     setIsAlertOpen(true);
   };
 
+  const pickImages = async () => {
+    if (images.length >= 5) {
+      showAlert(
+        isBurmese ? "ကန့်သတ်ချက်ပြည့်ပြီ" : "Limit Reached",
+        "You can only upload up to 5 images.",
+      );
+      return;
+    }
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      selectionLimit: 5 - images.length,
+      quality: 0.6,
+    });
+
+    if (!result.canceled) {
+      // 💡 (asset: any) ဟု ပြောင်းလဲသတ်မှတ်ခြင်းဖြင့် TypeScript 'implicitly has any type' error ကို ရှင်းလင်းထားပါသည်
+      const selectedUris = result.assets.map((asset: any) => asset.uri);
+      setImages((prev) => [...prev, ...selectedUris].slice(0, 5));
+    }
+  };
+
+  const pickVideo = async () => {
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) return;
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["videos"],
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      const videoAsset: any = result.assets[0];
+      if (videoAsset.fileSize && videoAsset.fileSize > 300 * 1024 * 1024) {
+        showAlert("Video Too Large", "Video file size must be under 300 MB.");
+        return;
+      }
+      setVideo(videoAsset.uri);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // ── BACKEND LOGIC (FIXED DEPRECATION AND REDIRECTS TO HOME) ──
   const handleSubmitPost = async () => {
     try {
       setIsLoading(true);
@@ -299,10 +339,61 @@ export default function CreatePostForm({
         return;
       }
 
+      // ၁။ ဓာတ်ပုံများကို property-media bucket သို့ တင်ခြင်း
+      const uploadedImageUrls: string[] = [];
+      for (const localUri of images) {
+        const fileName = `${user.id}/img_${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`;
+
+        // 💡 legacy မဟုတ်သော readAsStringAsync သို့ ပြောင်းလဲအသုံးပြုထားပါသည်
+        const base64 = await readAsStringAsync(localUri, {
+          encoding: "base64",
+        });
+
+        const { error: uploadError } = await supabase.storage
+          .from("property-media")
+          .upload(fileName, decode(base64), {
+            contentType: "image/jpeg",
+            upsert: true,
+          });
+
+        if (uploadError) throw uploadError;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("property-media").getPublicUrl(fileName);
+        uploadedImageUrls.push(publicUrl);
+      }
+
+      // ၂။ ဗီဒီယိုကို property-media bucket သို့ တင်ခြင်း
+      let uploadedVideoUrl: string | null = null;
+      if (video) {
+        const videoName = `${user.id}/vid_${Date.now()}.mp4`;
+
+        // 💡 legacy မဟုတ်သော readAsStringAsync သို့ ပြောင်းလဲအသုံးပြုထားပါသည်
+        const base64Video = await readAsStringAsync(video, {
+          encoding: "base64",
+        });
+
+        const { error: vidError } = await supabase.storage
+          .from("property-media")
+          .upload(videoName, decode(base64Video), {
+            contentType: "video/mp4",
+            upsert: true,
+          });
+
+        if (vidError) throw vidError;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("property-media").getPublicUrl(videoName);
+        uploadedVideoUrl = publicUrl;
+      }
+
       const rawWidth = parseFloat(formData.width) || 0;
       const rawLength = parseFloat(formData.length) || 0;
       const computedSqft = rawWidth * rawLength;
 
+      // ၃။ Database INSERT လုပ်ပြီး ad_number ကို ယူခြင်း
       const payload = {
         user_id: user.id,
         deal_type: dealType,
@@ -328,19 +419,34 @@ export default function CreatePostForm({
         search_value: formData.phone,
         title_mm: formData.titleMm || null,
         title_en: formData.titleEn || null,
+        images: uploadedImageUrls,
+        video_url: uploadedVideoUrl,
       };
 
-      const { error } = await supabase.from("properties").insert([payload]);
+      const { data: insertedData, error } = await supabase
+        .from("properties")
+        .insert([payload])
+        .select("ad_number")
+        .single();
+
       if (error) throw error;
 
+      const formattedAdNumber = `PROP-${10000 + (insertedData?.ad_number || 1)}`;
+
+      // ၄။ အောင်မြင်စွာတင်ပြီးနောက် Home Screen သို့ လမ်းကြောင်းလွှဲပြောင်းပေးခြင်း
       showAlert(
-        t("alerts_and_dialogs.submission_success.title"),
-        t("alerts_and_dialogs.submission_success.message"),
-        () => onBack(),
+        isBurmese ? "အောင်မြင်ပါသည်" : "Submission Successful",
+        isBurmese
+          ? `သင့်ကြော်ငြာအား အောင်မြင်စွာ တင်ပြီးပါပြီ။ ကြော်ငြာနံပါတ်မှာ ${formattedAdNumber} ဖြစ်ပါသည်။`
+          : `Your listing is live. The Advertisement Number is ${formattedAdNumber}.`,
+        () => {
+          // Confirm နှိပ်လိုက်သည်နှင့် Home သို့ ရောက်ရှိသွားမည်ဖြစ်သည်
+          router.replace("/(tabs)");
+        },
         false,
       );
     } catch (err: any) {
-      showAlert(t("alerts_and_dialogs.submission_error.title"), err.message);
+      showAlert("Error", err.message);
     } finally {
       setIsLoading(false);
     }
@@ -367,11 +473,9 @@ export default function CreatePostForm({
         >
           <ChevronLeft size={24} color="#334155" />
         </TouchableOpacity>
-
         <Text className="text-slate-800 font-bold text-base">
           {dealTitle} {t("form_headers.step_title_suffix")}
         </Text>
-
         <Text className="text-slate-900 font-bold text-xs">
           {t("form_headers.step_indicator_prefix")} {currentStep + 1}/3
         </Text>
@@ -392,16 +496,13 @@ export default function CreatePostForm({
             <Text className="text-slate-800 font-bold text-base mb-2">
               {t("step_1.section_title")}
             </Text>
-
             {isBurmese ? (
               <View className="gap-1.5">
                 <Text className="text-slate-600 font-semibold text-xs px-1">
-                  {t("step_1.labels.title_mm", "Listing Title (Myanmar)")} *
+                  {t("step_1.labels.title_mm")} *
                 </Text>
                 <TextInput
-                  placeholder={
-                    t("step_1.placeholders.title_mm") || "ခေါင်းစဉ် ထည့်သွင်းပါ"
-                  }
+                  placeholder="ခေါင်းစဉ် ထည့်သွင်းပါ"
                   value={formData.titleMm}
                   onChangeText={(text) => handleInputChange("titleMm", text)}
                   style={styles.textInput}
@@ -410,13 +511,10 @@ export default function CreatePostForm({
             ) : (
               <View className="gap-1.5">
                 <Text className="text-slate-600 font-semibold text-xs px-1">
-                  {t("step_1.labels.title_en", "Listing Title (English)")} *
+                  {t("step_1.labels.title_en")} *
                 </Text>
                 <TextInput
-                  placeholder={
-                    t("step_1.placeholders.title_en") ||
-                    "Enter title in English"
-                  }
+                  placeholder="Enter title in English"
                   value={formData.titleEn}
                   onChangeText={(text) => handleInputChange("titleEn", text)}
                   style={styles.textInput}
@@ -426,17 +524,14 @@ export default function CreatePostForm({
 
             <View className="gap-1.5">
               <Text className="text-slate-600 font-semibold text-xs px-1">
-                {t("step_1.labels.property_type", "Property Type")}
+                {t("step_1.labels.property_type")}
               </Text>
               <Dropdown
                 style={styles.dropdown}
                 placeholderStyle={styles.placeholderStyle}
                 selectedTextStyle={styles.selectedTextStyle}
                 containerStyle={styles.containerDropdownStyle}
-                itemTextStyle={styles.itemTextStyle}
-                activeColor="#fef3c7"
                 data={propertyTypes}
-                maxHeight={250}
                 labelField="label"
                 valueField="value"
                 placeholder={t("step_1.placeholders.property_type_dropdown")}
@@ -459,7 +554,7 @@ export default function CreatePostForm({
             <View className="flex-row gap-3 w-full">
               <View className="flex-[5] gap-1.5">
                 <Text className="text-slate-600 font-semibold text-xs px-1">
-                  {t("step_1.labels.price", "Price")} *
+                  {t("step_1.labels.price")} *
                 </Text>
                 <TextInput
                   placeholder="500"
@@ -469,23 +564,18 @@ export default function CreatePostForm({
                   style={styles.textInput}
                 />
               </View>
-
               <View className="flex-[4] gap-1.5">
                 <Text className="text-slate-600 font-semibold text-xs px-1">
-                  {t("step_1.labels.currency", "Currency")}
+                  {t("step_1.labels.currency")}
                 </Text>
                 <Dropdown
                   style={styles.dropdown}
                   placeholderStyle={styles.placeholderStyle}
                   selectedTextStyle={styles.selectedTextStyle}
                   containerStyle={styles.containerDropdownStyle}
-                  itemTextStyle={styles.itemTextStyle}
-                  activeColor="#fef3c7"
                   data={currencyUnits}
-                  maxHeight={150}
                   labelField="label"
                   valueField="value"
-                  placeholder="ကျပ် (သိန်း)"
                   value={formData.currencyUnit}
                   renderRightIcon={() => (
                     <ChevronDown size={20} color="#64748b" />
@@ -503,26 +593,22 @@ export default function CreatePostForm({
         {currentStep === 1 && (
           <View className="gap-4">
             <Text className="text-slate-800 font-bold text-base mb-2">
-              {t("step_2.section_title", "Property Details")}
+              {t("step_2.section_title")}
             </Text>
-
             {["apartment", "condo"].includes(formData.propertyType) && (
               <View className="gap-1.5">
                 <Text className="text-slate-600 font-semibold text-xs px-1">
-                  {t("step_2.labels.floor", "Floor / Level")} *
+                  {t("step_2.labels.floor")} *
                 </Text>
                 <Dropdown
                   style={styles.dropdown}
                   placeholderStyle={styles.placeholderStyle}
                   selectedTextStyle={styles.selectedTextStyle}
                   containerStyle={styles.containerDropdownStyle}
-                  itemTextStyle={styles.itemTextStyle}
-                  activeColor="#fef3c7"
                   data={floorOptionsDataset}
-                  maxHeight={250}
                   labelField="label"
                   valueField="value"
-                  placeholder={t("filter.floor") || "Select Floor"}
+                  placeholder="Select Floor"
                   value={formData.floor}
                   renderRightIcon={() => (
                     <ChevronDown size={20} color="#64748b" />
@@ -532,12 +618,10 @@ export default function CreatePostForm({
               </View>
             )}
 
-            {/* ADJUSTED SELECTION CONTROLS FOR VISIBILITY */}
             <View className="flex-row items-center justify-between py-2 border-b border-slate-100">
               <Text className="text-slate-700 font-bold text-sm">
                 {isBurmese ? "အကျယ်အဝန်း" : "Property Size"}
               </Text>
-
               <View className="flex-row bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
                 <TouchableOpacity
                   onPress={() => setShowDimensions(!showDimensions)}
@@ -559,7 +643,6 @@ export default function CreatePostForm({
                     Length x Width
                   </Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity
                   onPress={() => setShowAreaBox(!showAreaBox)}
                   style={[
@@ -583,12 +666,11 @@ export default function CreatePostForm({
               </View>
             </View>
 
-            {/* DIMENSIONS VIEW */}
             {showDimensions && (
-              <View className="flex-row gap-3 w-full animate-fadeIn">
+              <View className="flex-row gap-3 w-full">
                 <View className="flex-1 gap-1.5">
                   <Text className="text-slate-600 font-semibold text-xs px-1">
-                    {isBurmese ? "အကျယ် - အနံ (ပေ) *" : "Width (ft) *"}
+                    {isBurmese ? "အနံ (ပေ) *" : "Width (ft) *"}
                   </Text>
                   <TextInput
                     placeholder="20"
@@ -598,7 +680,6 @@ export default function CreatePostForm({
                     style={styles.textInput}
                   />
                 </View>
-
                 <View className="flex-1 gap-1.5">
                   <Text className="text-slate-600 font-semibold text-xs px-1">
                     {isBurmese ? "အလျား (ပေ) *" : "Length (ft) *"}
@@ -614,13 +695,11 @@ export default function CreatePostForm({
               </View>
             )}
 
-            {/* DUAL UNIT AREA VIEW */}
             {showAreaBox && (
-              <View className="gap-1.5 animate-fadeIn">
+              <View className="gap-1.5">
                 <Text className="text-slate-600 font-semibold text-xs px-1">
                   {isBurmese ? "စုစုပေါင်း ဧရိယာ *" : "Total Area *"}
                 </Text>
-
                 <View className="flex-row gap-3 w-full">
                   <View className="flex-[5]">
                     <TextInput
@@ -631,17 +710,13 @@ export default function CreatePostForm({
                       style={styles.textInput}
                     />
                   </View>
-
                   <View className="flex-[4]">
                     <Dropdown
                       style={styles.dropdown}
                       placeholderStyle={styles.placeholderStyle}
                       selectedTextStyle={styles.selectedTextStyle}
                       containerStyle={styles.containerDropdownStyle}
-                      itemTextStyle={styles.itemTextStyle}
-                      activeColor="#fef3c7"
                       data={areaUnitsDataset}
-                      maxHeight={120}
                       labelField="label"
                       valueField="value"
                       value={formData.areaUnit}
@@ -657,7 +732,6 @@ export default function CreatePostForm({
               </View>
             )}
 
-            {/* SPLIT DROPDOWN LIST ROW */}
             <View className="flex-row gap-3 w-full">
               <View className="flex-1 gap-1.5">
                 <Text className="text-slate-600 font-semibold text-xs px-1">
@@ -668,20 +742,13 @@ export default function CreatePostForm({
                   placeholderStyle={styles.placeholderStyle}
                   selectedTextStyle={styles.selectedTextStyle}
                   containerStyle={styles.containerDropdownStyle}
-                  itemTextStyle={styles.itemTextStyle}
-                  activeColor="#fef3c7"
                   data={roomCountOptions}
-                  maxHeight={200}
                   labelField="label"
                   valueField="value"
                   value={formData.bedrooms}
-                  renderRightIcon={() => (
-                    <ChevronDown size={20} color="#64748b" />
-                  )}
                   onChange={(item) => handleInputChange("bedrooms", item.value)}
                 />
               </View>
-
               <View className="flex-1 gap-1.5">
                 <Text className="text-slate-600 font-semibold text-xs px-1">
                   {isBurmese ? "ရေချိုးခန်း" : "Bathrooms"}
@@ -691,16 +758,10 @@ export default function CreatePostForm({
                   placeholderStyle={styles.placeholderStyle}
                   selectedTextStyle={styles.selectedTextStyle}
                   containerStyle={styles.containerDropdownStyle}
-                  itemTextStyle={styles.itemTextStyle}
-                  activeColor="#fef3c7"
                   data={roomCountOptions}
-                  maxHeight={200}
                   labelField="label"
                   valueField="value"
                   value={formData.bathrooms}
-                  renderRightIcon={() => (
-                    <ChevronDown size={20} color="#64748b" />
-                  )}
                   onChange={(item) =>
                     handleInputChange("bathrooms", item.value)
                   }
@@ -716,10 +777,9 @@ export default function CreatePostForm({
             <Text className="text-slate-800 font-bold text-base mb-2">
               {t("step_3.section_title")}
             </Text>
-
             <View className="gap-1.5">
               <Text className="text-slate-600 font-semibold text-xs px-1">
-                {t("step_3.labels.region", "State / Region")}
+                {t("step_3.labels.region")}
               </Text>
               <Dropdown
                 style={[
@@ -729,79 +789,125 @@ export default function CreatePostForm({
                 placeholderStyle={styles.placeholderStyle}
                 selectedTextStyle={styles.selectedTextStyle}
                 containerStyle={styles.containerDropdownStyle}
-                itemTextStyle={styles.itemTextStyle}
-                activeColor="#fef3c7"
                 data={regionOptions}
-                maxHeight={300}
                 labelField="label"
                 valueField="value"
-                placeholder={t("filter.stateRegion") || "Select State/Region"}
                 value={formData.regionId}
                 onFocus={() => setIsRegionFocused(true)}
                 onBlur={() => setIsRegionFocused(false)}
-                renderRightIcon={() => (
-                  <ChevronDown size={20} color="#64748b" />
-                )}
-                onChange={(item) => {
+                onChange={(item) =>
                   setFormData((prev) => ({
                     ...prev,
                     regionId: item.value,
                     townshipId: "",
-                  }));
-                  setIsRegionFocused(false);
-                }}
+                  }))
+                }
               />
             </View>
 
             <View className="gap-1.5">
               <Text className="text-slate-600 font-semibold text-xs px-1">
-                {t("step_3.labels.township", "Township")}
+                {t("step_3.labels.township")}
               </Text>
               <Dropdown
                 style={[
                   styles.dropdown,
-                  isTownshipFocused && styles.focusedBorder,
                   !formData.regionId && { backgroundColor: "#f1f5f9" },
                 ]}
                 placeholderStyle={styles.placeholderStyle}
                 selectedTextStyle={styles.selectedTextStyle}
                 containerStyle={styles.containerDropdownStyle}
-                itemTextStyle={styles.itemTextStyle}
-                activeColor="#fef3c7"
                 data={activeTownships}
-                maxHeight={300}
                 labelField="label"
                 valueField="value"
                 disable={!formData.regionId}
-                placeholder={
-                  formData.regionId
-                    ? t("filter.township") || "Select Township"
-                    : "Choose region first"
-                }
                 value={formData.townshipId}
-                onFocus={() => setIsTownshipFocused(true)}
-                onBlur={() => setIsTownshipFocused(false)}
-                renderRightIcon={() => (
-                  <ChevronDown size={20} color="#64748b" />
-                )}
-                onChange={(item) => {
-                  setFormData((prev) => ({ ...prev, townshipId: item.value }));
-                  setIsTownshipFocused(false);
-                }}
+                onChange={(item) =>
+                  setFormData((prev) => ({ ...prev, townshipId: item.value }))
+                }
               />
             </View>
 
             <View className="gap-1.5">
               <Text className="text-slate-600 font-semibold text-xs px-1">
-                {t("step_3.labels.phone", "Contact Phone Number")}
+                {t("step_3.labels.phone")}
               </Text>
               <TextInput
-                placeholder={t("step_3.placeholders.phone")}
+                placeholder="09xxxxxxxxx"
                 value={formData.phone}
                 onChangeText={(t) => handleInputChange("phone", t)}
                 keyboardType="phone-pad"
                 style={styles.textInput}
               />
+            </View>
+
+            {/* MEDIA SECTION */}
+            <View className="mt-4 border-t border-slate-100 pt-4 gap-4">
+              <Text className="text-slate-700 font-bold text-sm">
+                {isBurmese
+                  ? "မီဒီယာ ဖိုင်များ တင်ရန်"
+                  : "Upload Media Resources"}
+              </Text>
+              <View className="gap-2">
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  className="flex-row gap-3"
+                >
+                  {images.map((uri, index) => (
+                    <View
+                      key={index}
+                      className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-200"
+                    >
+                      <Image source={{ uri }} className="w-full h-full" />
+                      <TouchableOpacity
+                        onPress={() => removeImage(index)}
+                        className="absolute top-1 right-1 bg-slate-900/60 p-1 rounded-full"
+                      >
+                        <X size={12} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  {images.length < 5 && (
+                    <TouchableOpacity
+                      onPress={pickImages}
+                      style={styles.mediaPlaceholderBox}
+                    >
+                      <ImageIcon size={20} color="#64748b" />
+                      <Text style={styles.mediaPlaceholderText}>Add Image</Text>
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
+              </View>
+
+              <View className="gap-2">
+                {video ? (
+                  <View className="bg-slate-100 border border-slate-200 rounded-xl p-3 flex-row items-center justify-between">
+                    <Text
+                      numberOfLines={1}
+                      className="text-slate-700 text-xs font-semibold flex-1"
+                    >
+                      {video.split("/").pop()}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setVideo(null)}
+                      className="bg-slate-200 p-1.5 rounded-full"
+                    >
+                      <X size={14} color="#475569" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    onPress={pickVideo}
+                    className="border border-dashed border-slate-300 rounded-xl p-4 flex-row items-center justify-center gap-2 bg-white"
+                  >
+                    <Video size={20} color="#64748b" />
+                    <Text className="text-slate-500 font-bold text-xs">
+                      Select Video File
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </View>
         )}
@@ -826,88 +932,21 @@ export default function CreatePostForm({
                 const hasValidTitle = isBurmese
                   ? formData.titleMm.trim()
                   : formData.titleEn.trim();
-                if (
-                  !hasValidTitle ||
-                  !formData.propertyType ||
-                  !formData.price
-                ) {
-                  showAlert(
-                    t(
-                      "alerts_and_dialogs.step_0_validation.title",
-                      "Required Fields Missing",
-                    ),
-                    t(
-                      "alerts_and_dialogs.step_0_validation.message",
-                      "Please complete all mandatory fields.",
-                    ),
-                  );
+                if (!hasValidTitle || !formData.propertyType || !formData.price)
                   return;
-                }
               }
               if (currentStep === 1) {
-                if (!showDimensions && !showAreaBox) {
-                  showAlert(
-                    isBurmese ? "ရွေးချယ်ရန် လိုအပ်သည်" : "Selection Required",
-                    isBurmese
-                      ? "ကျေးဇူးပြု၍ အကျယ်အဝန်း ပုံစံတစ်ခု ရွေးချယ်ပါ"
-                      : "Please select either Length x Width or Area input configurations.",
-                  );
-                  return;
-                }
-                if (showDimensions && (!formData.width || !formData.length)) {
-                  showAlert(
-                    isBurmese ? "အချက်အလက် လိုအပ်ချက်" : "Dimensions Required",
-                    isBurmese
-                      ? "အနံနှင့် အလျားကို ဖြည့်စွက်ပေးပါ"
-                      : "Please input both width and length properties.",
-                  );
-                  return;
-                }
-                if (showAreaBox && !formData.areaValue) {
-                  showAlert(
-                    isBurmese ? "ဧရိယာ လိုအပ်သည်" : "Area Metric Missing",
-                    isBurmese
-                      ? "စုစုပေါင်းဧရိယာကို ဖြည့်စွက်ပေးပါ"
-                      : "Please specify a valid total area configuration.",
-                  );
-                  return;
-                }
-                if (
-                  ["apartment", "condo"].includes(formData.propertyType) &&
-                  !formData.floor
-                ) {
-                  showAlert(
-                    isBurmese
-                      ? "ထပ်ခိုး/အလွှာ လိုအပ်သည်"
-                      : "Floor Level Required",
-                    isBurmese
-                      ? "အလွှာနံပါတ်ကို ရွေးချယ်ပေးပါ"
-                      : "Please select a floor tier level.",
-                  );
-                  return;
-                }
+                if (!showDimensions && !showAreaBox) return;
               }
               setCurrentStep(currentStep + 1);
             } else {
-              if (
-                !formData.regionId ||
-                !formData.townshipId ||
-                !formData.phone
-              ) {
-                showAlert(
-                  t("alerts_and_dialogs.step_2_validation.title"),
-                  t("alerts_and_dialogs.step_2_validation.message"),
-                );
+              if (!formData.regionId || !formData.townshipId || !formData.phone)
                 return;
-              }
-
               showAlert(
+                isBurmese ? "ကြော်ငြာတင်ရန် သေချာပါသလား။" : "Publish Listing?",
                 isBurmese
-                  ? "ကြော်ငြာတင်ရန် သေချာပါသလား၊"
-                  : "Publish Property Listing?",
-                isBurmese
-                  ? "သင်ဖြည့်စွက်ထားသော အချက်အလက်များဖြင့် ကြော်ငြာအား လွှင့်တင်ပါမည်။"
-                  : "Are you sure you want to finalize and publish this real estate listing?",
+                  ? "အချက်အလက်များဖြင့် ကြော်ငြာအား လွှင့်တင်ပါမည်။"
+                  : "Are you sure you want to publish?",
                 () => handleSubmitPost(),
                 true,
               );
@@ -928,46 +967,36 @@ export default function CreatePostForm({
         </TouchableOpacity>
       </View>
 
-      {/* DYNAMIC GLUESTACK UI DIALOG MARKUP */}
+      {/* DIALOG BOX */}
       <AlertDialog isOpen={isAlertOpen} onClose={() => setIsAlertOpen(false)}>
         <AlertDialogBackdrop />
         <AlertDialogContent className="p-5 rounded-2xl bg-white max-w-[85%]">
-          <AlertDialogHeader className="border-b-0 pb-2">
-            <Heading
-              size="md"
-              className="text-slate-900 font-bold text-lg text-left"
-            >
-              {alertConfig.title}
-            </Heading>
+          <AlertDialogHeader>
+            <Heading size="md">{alertConfig.title}</Heading>
           </AlertDialogHeader>
           <AlertDialogBody className="mt-1 mb-4">
-            <Text className="text-slate-600 text-sm leading-relaxed text-left">
+            <Text className="text-slate-600 text-sm">
               {alertConfig.message}
             </Text>
           </AlertDialogBody>
-          <AlertDialogFooter className="border-t-0 p-0 flex-row gap-3 justify-end">
+          <AlertDialogFooter className="flex-row gap-3 justify-end">
             {alertConfig.showCancel && (
               <Button
                 variant="outline"
                 action="secondary"
-                size="sm"
-                className="border-slate-200 rounded-xl px-5 py-2.5"
+                className="rounded-xl"
                 onPress={() => setIsAlertOpen(false)}
               >
-                <ButtonText className="text-slate-500 font-semibold text-sm">
-                  {isBurmese ? "မလုပ်တော့ပါ" : "Cancel"}
-                </ButtonText>
+                <ButtonText>{isBurmese ? "မလုပ်တော့ပါ" : "Cancel"}</ButtonText>
               </Button>
             )}
-
             <Button
               variant="solid"
               action="primary"
-              size="sm"
-              className="bg-amber-500 rounded-xl px-5 py-2.5"
+              className="bg-amber-500 rounded-xl"
               onPress={alertConfig.onConfirm}
             >
-              <ButtonText className="text-white font-semibold text-sm">
+              <ButtonText className="text-white">
                 {isBurmese ? "သေချာပါသည်" : "Confirm"}
               </ButtonText>
             </Button>
@@ -997,60 +1026,30 @@ const styles = StyleSheet.create({
     color: "#334155",
     fontSize: 16,
   },
-  focusedBorder: {
-    borderColor: "#f59e0b",
-  },
-  placeholderStyle: {
-    fontSize: 16,
-    color: "#94a3b8",
-    fontWeight: "600",
-    textAlign: "left",
-  },
-  selectedTextStyle: {
-    fontSize: 16,
-    color: "#1e293b",
-    fontWeight: "600",
-    textAlign: "left",
-  },
+  focusedBorder: { borderColor: "#f59e0b" },
+  placeholderStyle: { fontSize: 16, color: "#94a3b8", fontWeight: "600" },
+  selectedTextStyle: { fontSize: 16, color: "#1e293b", fontWeight: "600" },
   containerDropdownStyle: {
     borderRadius: 12,
     marginTop: 4,
     overflow: "hidden",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
   },
-  itemTextStyle: {
-    fontSize: 15,
-    color: "#334155",
-    textAlign: "left",
+  toggleBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8 },
+  toggleBtnNonActive: { backgroundColor: "transparent" },
+  toggleBtnActive: { backgroundColor: "#334155" },
+  toggleBtnText: { fontSize: 13, fontWeight: "700" },
+  toggleBtnTextNonActive: { color: "#64748b" },
+  toggleBtnTextActive: { color: "#ffffff" },
+  mediaPlaceholderBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderStyle: "dashed",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#ffffff",
   },
-  toggleBtn: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  toggleBtnNonActive: {
-    backgroundColor: "transparent",
-  },
-  toggleBtnActive: {
-    backgroundColor: "#334155", // High-visibility dark slate color for active selections
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  toggleBtnText: {
-    fontSize: 13,
-    fontWeight: "700",
-  },
-  toggleBtnTextNonActive: {
-    color: "#64748b",
-  },
-  toggleBtnTextActive: {
-    color: "#ffffff", // Pure white text makes it highly visible when selected
-  },
+  mediaPlaceholderText: { fontSize: 10, color: "#64748b", fontWeight: "700" },
 });
