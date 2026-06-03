@@ -227,8 +227,12 @@ export default function HomeScreen() {
               return (
                 <TouchableOpacity
                   key={item.id}
-                  // 💡 router.push() အစား id ကို state ထဲထည့်ပြီး Component ကို တိုက်ရိုက်ဖွင့်စေခြင်း
-                  onPress={() => setSelectedPropertyId(item.id)}
+                  onPress={() =>
+                    router.push({
+                      pathname: "./detail",
+                      params: { id: item.id },
+                    })
+                  }
                   className="bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-md shadow-slate-100 mb-6 active:opacity-95"
                 >
                   <View className="relative h-56 w-full">

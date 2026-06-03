@@ -1,5 +1,11 @@
 import { Tabs } from "expo-router";
-import { Bookmark, Home, Plus, User } from "lucide-react-native";
+import {
+  Bookmark,
+  CirclePlus,
+  Home,
+  MessageSquare,
+  User,
+} from "lucide-react-native";
 import React from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -58,11 +64,17 @@ export default function TabsLayout() {
         name="create_post"
         options={{
           title: "Create",
-          tabBarIcon: ({ color }) => <Plus size={24} color={color} />,
+          tabBarIcon: ({ color }) => <CirclePlus size={35} color={color} />,
           tabBarStyle: { display: "none" },
         }}
       />
-
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: "Chat",
+          tabBarIcon: ({ color }) => <MessageSquare size={22} color={color} />,
+        }}
+      />
       <Tabs.Screen
         name="profile"
         options={{

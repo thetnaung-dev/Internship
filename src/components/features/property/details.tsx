@@ -4,10 +4,12 @@ import { VideoView, useVideoPlayer } from "expo-video";
 import {
   Bed,
   ChevronLeft,
+  Clock,
   Compass,
   Layers,
   MapPin,
   Maximize2,
+  MessageCircle,
   Minimize2,
   Phone,
   ShowerHead,
@@ -27,19 +29,19 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80";
-
 interface DetailsProps {
   propertyId: string;
   onBack: () => void;
+  navigation?: any;
 }
-
 const isVideoFile = (url: string) => {
   if (!url) return false;
+
   const cleanUrl = url.split(/[?#]/)[0].toLowerCase();
+
   return (
     cleanUrl.endsWith(".mp4") ||
     cleanUrl.endsWith(".mov") ||
@@ -49,34 +51,56 @@ const isVideoFile = (url: string) => {
   );
 };
 
-export default function Details({ propertyId, onBack }: DetailsProps) {
+export default function Details({
+  propertyId,
+  onBack,
+  navigation,
+}: DetailsProps) {
   const { t, i18n } = useTranslation();
   const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
-
   const [property, setProperty] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-
-  // Full Screen Image Modal States
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedFullImage, setSelectedFullImage] = useState<string | null>(
     null,
   );
 
+  const formatRelativeTime = (isoDate: string, isBurmese: boolean) => {
+    const date = new Date(isoDate);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diffInSeconds < 60) return isBurmese ? "ယခုလေးတင်" : "Just now";
+    if (diffInSeconds < 3600)
+      return `${Math.floor(diffInSeconds / 60)} ${isBurmese ? "မိနစ်ခန့်က" : "mins ago"}`;
+
+    if (diffInSeconds < 86400)
+      return `${Math.floor(diffInSeconds / 3600)} ${isBurmese ? "နာရီခန့်က" : "hours ago"}`;
+
+    return date.toLocaleDateString(); // တစ်ရက်ကျော်ရင် ရက်စွဲပြမယ်
+  };
+
   useEffect(() => {
     async function fetchPropertyDetails() {
       if (!propertyId) return;
+
       try {
         setIsLoading(true);
+
         const { data, error } = await supabase
+
           .from("properties")
+
           .select(
-            `*, states_regions(name_en, name_mm), townships(name_en, name_mm)`,
+            `*, states_regions(name_en, name_mm), townships(name_en, name_mm), created_at`,
           )
+
           .eq("id", propertyId)
+
           .single();
 
         if (error) throw error;
+
         setProperty(data);
       } catch (err) {
         console.error("Error fetching property details:", err);
@@ -84,6 +108,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
         setIsLoading(false);
       }
     }
+
     fetchPropertyDetails();
   }, [propertyId]);
 
@@ -103,6 +128,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             ? "ကြော်ငြာအချက်အလက် ရှာမတွေ့ပါ။"
             : "Property details not found."}
         </Text>
+
         <TouchableOpacity
           onPress={onBack}
           className="mt-4 bg-slate-900 px-6 py-3 rounded-xl"
@@ -128,11 +154,13 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
       ? property.states_regions.name_mm
       : property.states_regions.name_en
     : "";
+
   const townshipName = property.townships
     ? isBurmese && property.townships.name_mm
       ? property.townships.name_mm
       : property.townships.name_en
     : "";
+
   const displayLocation =
     townshipName && regionName
       ? `${townshipName}, ${regionName}`
@@ -156,23 +184,26 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
 
   const handleImagePress = (url: string) => {
     setSelectedFullImage(url);
+
     setIsModalVisible(true);
   };
 
   const handleCallPress = (phoneNumber: string) => {
     if (!phoneNumber) return;
+
     Linking.openURL(`tel:${phoneNumber}`);
   };
 
   return (
     <View className="flex-1 bg-white">
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         className="flex-1 bg-slate-50"
       >
         {/* ── IMAGE & VIDEO CAROUSEL SECTION ── */}
+
         <View className="relative h-80 w-full bg-slate-900">
           <ScrollView
             horizontal
@@ -182,6 +213,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
               const slide = Math.round(
                 e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
               );
+
               if (slide !== activeImageIndex) setActiveImageIndex(slide);
             }}
             scrollEventThrottle={16}
@@ -214,6 +246,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           </ScrollView>
 
           {/* BACK BUTTON */}
+
           <TouchableOpacity
             onPress={onBack}
             className="absolute top-4 left-4 w-10 h-10 items-center justify-center rounded-full bg-slate-900/40 backdrop-blur-md border border-white/20"
@@ -222,6 +255,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           </TouchableOpacity>
 
           {/* DEAL TYPE TAG */}
+
           <View className="absolute top-4 right-4 bg-emerald-600 px-3 py-1.5 rounded-full shadow-sm shadow-black/20">
             <Text className="text-white text-xs font-black uppercase tracking-wider">
               {t(
@@ -233,6 +267,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           </View>
 
           {/* CAROUSEL INDEX DOTS */}
+
           {mediaDataset.length > 1 && (
             <View className="absolute bottom-4 left-0 right-0 flex-row justify-center gap-1.5">
               {mediaDataset.map((_: any, idx: number) => (
@@ -246,27 +281,40 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
         </View>
 
         {/* ── CONTENT BODY SECTION ── */}
-        <View className="bg-white rounded-t-[32px] -mt-6 p-6 shadow-xl shadow-slate-200/50 min-h-[500px]">
-          <View className="flex-row justify-between items-center mb-2">
+
+        <View className="bg-white rounded-t-[32px] -mt-10 p-6 shadow-xl shadow-slate-200/50 min-h-[500px]">
+          <View className="flex-row justify-between items-start mb-2">
             <View className="bg-amber-100 px-2.5 py-1 rounded-lg">
-              <Text className="text-amber-700 text-xs font-bold uppercase tracking-wide">
+              <Text className="text-amber-700 text-xs font-bold uppercase">
                 {t(property.property_type)}
               </Text>
             </View>
-            <Text className="text-slate-400 font-mono text-xs">
-              PROP-{10000 + (property.ad_number || 1)}
-            </Text>
+
+            <View className="items-end">
+              <Text className="text-slate-400 font-mono text-xs">
+                PROP-{10000 + (property.ad_number || 1)}
+              </Text>
+
+              <View className="flex-row items-center gap-1 mt-1">
+                <Clock size={12} color="#94a3b8" />
+                <Text className="text-slate-400 text-[10px]">
+                  {formatRelativeTime(property.created_at, isBurmese)}
+                </Text>
+              </View>
+            </View>
           </View>
 
           <Text className="text-slate-900 text-2xl font-black tracking-tight mb-2 leading-tight">
             {displayTitle}
           </Text>
+
           <Text className="text-emerald-600 text-2xl font-black mb-4">
             {displayPrice}
           </Text>
 
           <View className="flex-row items-center border-b border-slate-100 pb-5 mb-5">
             <MapPin size={18} color="#64748b" />
+
             <Text
               className="text-slate-500 font-semibold text-sm ml-1.5 flex-1"
               numberOfLines={2}
@@ -278,22 +326,28 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           <Text className="text-slate-800 font-bold text-base mb-3">
             {isBurmese ? "အချက်အလက်များ" : "Specifications"}
           </Text>
+
           <View className="flex-row flex-wrap gap-3 mb-6">
             <View style={styles.specBox}>
               <Bed size={20} color="#475569" />
+
               <Text style={styles.specVal}>
                 {property.bedrooms || 0} {isBurmese ? "ခန်း" : "Beds"}
               </Text>
             </View>
+
             <View style={styles.specBox}>
               <ShowerHead size={20} color="#475569" />
+
               <Text style={styles.specVal}>
                 {property.bathrooms || 0} {isBurmese ? "ခန်း" : "Baths"}
               </Text>
             </View>
+
             {property.area_value && (
               <View style={styles.specBox}>
                 <Maximize2 size={18} color="#475569" />
+
                 <Text style={styles.specVal}>
                   {property.area_value}{" "}
                   {property.area_unit === "sqft"
@@ -306,17 +360,21 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
                 </Text>
               </View>
             )}
+
             {property.width && property.length && (
               <View style={styles.specBox}>
                 <Compass size={18} color="#475569" />
+
                 <Text style={styles.specVal}>
                   {property.width}ft x {property.length}ft
                 </Text>
               </View>
             )}
+
             {property.floor && (
               <View style={styles.specBox}>
                 <Layers size={18} color="#475569" />
+
                 <Text style={styles.specVal} numberOfLines={1}>
                   {t(property.floor)}
                 </Text>
@@ -327,15 +385,18 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           <Text className="text-slate-800 font-bold text-base mb-3">
             {isBurmese ? "ဆက်သွယ်ရန်" : "Contact Information"}
           </Text>
+
           <View className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex-row items-center justify-between">
             <View className="flex-row items-center gap-3">
               <View className="w-10 h-10 bg-slate-200 rounded-full items-center justify-center">
                 <Phone size={18} color="#334155" />
               </View>
+
               <View>
                 <Text className="text-slate-400 text-xs font-medium">
                   {isBurmese ? "ဖုန်းနံပါတ်" : "Phone Call Direct"}
                 </Text>
+
                 <Text className="text-slate-800 font-bold text-sm mt-0.5">
                   {property.search_value || property.phone}
                 </Text>
@@ -346,15 +407,24 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
       </ScrollView>
 
       {/* FIXED ACTION BOTTOM BAR */}
+
       <View className="px-6 py-4 bg-white border-t border-slate-100 flex-row items-center gap-4 shadow-2xl">
-        <View className="flex-1">
-          <Text className="text-slate-400 text-xs font-bold uppercase tracking-wider">
-            {isBurmese ? "စုစုပေါင်း" : "Total Amount"}
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate("/chat", {
+              propertyId: property.id,
+              receiverId: property.user_id, // ADD THIS: The owner's ID
+              title: displayTitle,
+            })
+          }
+          className="flex-1 flex-row items-center justify-center bg-slate-100 py-4 rounded-xl gap-2 active:opacity-90"
+        >
+          <MessageCircle size={18} color="#334155" />
+          <Text className="text-slate-800 font-bold text-base">
+            {isBurmese ? "စာပို့ရန်" : "Chat"}
           </Text>
-          <Text className="text-slate-900 font-black text-xl tracking-tight">
-            {displayPrice}
-          </Text>
-        </View>
+        </TouchableOpacity>
+
         <TouchableOpacity
           onPress={() =>
             handleCallPress(property.search_value || property.phone)
@@ -362,6 +432,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           className="flex-row items-center bg-emerald-600 px-6 py-4 rounded-xl gap-2 active:opacity-90 shadow-md shadow-emerald-100"
         >
           <Phone size={18} color="#fff" />
+
           <Text className="text-white font-bold text-base">
             {isBurmese ? "ဖုန်းခေါ်ဆိုရန်" : "Call Now"}
           </Text>
@@ -369,6 +440,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
       </View>
 
       {/* ── FULL SCREEN IMAGE MODAL ── */}
+
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -377,6 +449,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
       >
         <View style={styles.modalBackground}>
           <StatusBar style="light" />
+
           <TouchableOpacity
             style={styles.closeButton}
             onPress={() => setIsModalVisible(false)}
@@ -397,18 +470,20 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
   );
 }
 
-// ── 💡 ဗီဒီယိုရဲ့ ညာဘက်ထောင့်မှာပဲ လေးထောင့်ကွက်လေး တင်ပေးထားသော COMPONENT ──
 function VideoItem({
   videoUrl,
+
   isActive,
 }: {
   videoUrl: string;
+
   isActive: boolean;
 }) {
   const [isVideoFull, setIsVideoFull] = useState(false);
 
   const player = useVideoPlayer(videoUrl, (playerInstance) => {
     playerInstance.loop = true;
+
     playerInstance.muted = false;
   });
 
@@ -428,7 +503,6 @@ function VideoItem({
         allowsFullscreen={false}
       />
 
-      {/* 💡 ညာဘက်အောက်ခြေနားလေးတင် ပေါ်နေမယ့် ဇိမ်ခံ လေးထောင့်ကွက် Fullscreen Icon */}
       <TouchableOpacity
         onPress={() => setIsVideoFull(true)}
         activeOpacity={0.6}
@@ -438,6 +512,7 @@ function VideoItem({
       </TouchableOpacity>
 
       {/* ── FULL SCREEN VIDEO MODAL ── */}
+
       <Modal
         visible={isVideoFull}
         transparent={false}
@@ -455,10 +530,11 @@ function VideoItem({
           />
 
           {/* Minimize/Close Button */}
+
           <TouchableOpacity
             onPress={() => {
               setIsVideoFull(false);
-              // 💡 ခဏကြာမှ ပြန်ဆော့စေရန် (UI Thread ရှင်းသွားအောင်)
+
               setTimeout(() => {
                 player.play();
               }, 100);
@@ -476,26 +552,42 @@ function VideoItem({
 const styles = StyleSheet.create({
   modalBackground: {
     flex: 1,
+
     backgroundColor: "rgba(0, 0, 0, 0.95)",
+
     justifyContent: "center",
+
     alignItems: "center",
   },
+
   closeButton: {
     position: "absolute",
+
     top: 50,
+
     right: 20,
+
     width: 44,
+
     height: 44,
+
     backgroundColor: "rgba(255, 255, 255, 0.2)",
+
     borderRadius: 22,
+
     justifyContent: "center",
+
     alignItems: "center",
+
     zIndex: 10,
   },
+
   fullImage: {
     width: SCREEN_WIDTH,
+
     height: SCREEN_HEIGHT * 0.8,
   },
+
   specBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -509,12 +601,13 @@ const styles = StyleSheet.create({
     minWidth: "47%",
     flexGrow: 1,
   },
+
   specVal: {
     fontSize: 14,
     fontWeight: "700",
     color: "#334155",
   },
-  // 💡 ဗီဒီယို Container နှင့် ညာဘက်ထောင့်က လေးထောင့်ကွက် Style များ
+
   videoWrapper: {
     width: SCREEN_WIDTH,
     height: 320,
@@ -523,33 +616,49 @@ const styles = StyleSheet.create({
   },
   squareFullBtn: {
     position: "absolute",
-    bottom: 50, // Native Play/Pause Bar တွေနဲ့ မလွတ်ရင် 16 သို့မဟုတ် 20 ကို လိုသလို အနည်းငယ် တိုး/လျှော့ ချိန်နိုင်ပါတယ်
+    bottom: 50,
     right: 14,
-    backgroundColor: "rgba(0, 0, 0, 0.5)", // မှန်အမည်းကွက် ပုံစံလေး
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     width: 36,
     height: 36,
-    borderRadius: 6, // Square ဆန်ဆန်လေး ဖြစ်အောင် လေးထောင့်ကွက် ပုံစံ
+    borderRadius: 6,
     justifyContent: "center",
     alignItems: "center",
+
     borderWidth: 0.5,
+
     borderColor: "rgba(255, 255, 255, 0.3)",
-    zIndex: 9999, // ဗီဒီယိုရဲ့ ထိပ်ဆုံးမှာ ပေါ်နေစေရန်
+
+    zIndex: 9999,
   },
+
   fullVideoContainer: {
     flex: 1,
+
     backgroundColor: "#000",
+
     justifyContent: "center",
+
     alignItems: "center",
   },
+
   customMinimizeBtn: {
     position: "absolute",
+
     top: 50,
+
     left: 20,
+
     backgroundColor: "rgba(15, 23, 42, 0.6)",
+
     padding: 12,
+
     borderRadius: 50,
+
     borderWidth: 1,
+
     borderColor: "rgba(255, 255, 255, 0.2)",
+
     zIndex: 9999,
   },
 });
