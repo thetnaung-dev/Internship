@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { VideoView, useVideoPlayer } from "expo-video";
 import {
@@ -35,7 +36,6 @@ const DEFAULT_IMAGE =
 interface DetailsProps {
   propertyId: string;
   onBack: () => void;
-  navigation?: any;
 }
 const isVideoFile = (url: string) => {
   if (!url) return false;
@@ -51,11 +51,8 @@ const isVideoFile = (url: string) => {
   );
 };
 
-export default function Details({
-  propertyId,
-  onBack,
-  navigation,
-}: DetailsProps) {
+export default function Details({ propertyId, onBack }: DetailsProps) {
+  const router = useRouter();
   const { t, i18n } = useTranslation();
   const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
   const [property, setProperty] = useState<any>(null);
@@ -65,6 +62,7 @@ export default function Details({
   const [selectedFullImage, setSelectedFullImage] = useState<string | null>(
     null,
   );
+  const [conversationId, setConversationId] = useState<string | null>(null);
 
   const formatRelativeTime = (isoDate: string, isBurmese: boolean) => {
     const date = new Date(isoDate);
@@ -81,29 +79,39 @@ export default function Details({
   };
 
   useEffect(() => {
+    // Inside your Details.tsx useEffect
     async function fetchPropertyDetails() {
       if (!propertyId) return;
 
       try {
         setIsLoading(true);
 
+        // 1. Fetch the property AND the existing conversation in one go
         const { data, error } = await supabase
-
           .from("properties")
-
           .select(
-            `*, states_regions(name_en, name_mm), townships(name_en, name_mm), created_at`,
+            `
+        *, 
+        states_regions(name_en, name_mm), 
+        townships(name_en, name_mm), 
+        profiles(id, full_name),
+        conversations(id) 
+      `,
           )
-
           .eq("id", propertyId)
-
           .single();
 
         if (error) throw error;
 
         setProperty(data);
+
+        // 2. Extract the conversation ID if it exists
+        // If conversations is an array, take the first one
+        if (data.conversations && data.conversations.length > 0) {
+          setConversationId(data.conversations[0].id);
+        }
       } catch (err) {
-        console.error("Error fetching property details:", err);
+        console.error("Error fetching:", err);
       } finally {
         setIsLoading(false);
       }
@@ -280,8 +288,6 @@ export default function Details({
           )}
         </View>
 
-        {/* ── CONTENT BODY SECTION ── */}
-
         <View className="bg-white rounded-t-[32px] -mt-10 p-6 shadow-xl shadow-slate-200/50 min-h-[500px]">
           <View className="flex-row justify-between items-start mb-2">
             <View className="bg-amber-100 px-2.5 py-1 rounded-lg">
@@ -406,15 +412,17 @@ export default function Details({
         </View>
       </ScrollView>
 
-      {/* FIXED ACTION BOTTOM BAR */}
-
       <View className="px-6 py-4 bg-white border-t border-slate-100 flex-row items-center gap-4 shadow-2xl">
         <TouchableOpacity
           onPress={() =>
-            navigation.navigate("/chat", {
-              propertyId: property.id,
-              receiverId: property.user_id, // ADD THIS: The owner's ID
-              title: displayTitle,
+            router.push({
+              // 4. Use router.push instead of navigation.navigate
+              pathname: "/chat",
+              params: {
+                propertyId: property.id,
+                receiverId: property.user_id,
+                receiverName: property.profiles?.full_name || "Seller",
+              },
             })
           }
           className="flex-1 flex-row items-center justify-center bg-slate-100 py-4 rounded-xl gap-2 active:opacity-90"
@@ -438,8 +446,6 @@ export default function Details({
           </Text>
         </TouchableOpacity>
       </View>
-
-      {/* ── FULL SCREEN IMAGE MODAL ── */}
 
       <Modal
         visible={isModalVisible}
@@ -552,39 +558,26 @@ function VideoItem({
 const styles = StyleSheet.create({
   modalBackground: {
     flex: 1,
-
     backgroundColor: "rgba(0, 0, 0, 0.95)",
-
     justifyContent: "center",
-
     alignItems: "center",
   },
 
   closeButton: {
     position: "absolute",
-
     top: 50,
-
     right: 20,
-
     width: 44,
-
     height: 44,
-
     backgroundColor: "rgba(255, 255, 255, 0.2)",
-
     borderRadius: 22,
-
     justifyContent: "center",
-
     alignItems: "center",
-
     zIndex: 10,
   },
 
   fullImage: {
     width: SCREEN_WIDTH,
-
     height: SCREEN_HEIGHT * 0.8,
   },
 
@@ -624,41 +617,27 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     justifyContent: "center",
     alignItems: "center",
-
     borderWidth: 0.5,
-
     borderColor: "rgba(255, 255, 255, 0.3)",
-
     zIndex: 9999,
   },
 
   fullVideoContainer: {
     flex: 1,
-
     backgroundColor: "#000",
-
     justifyContent: "center",
-
     alignItems: "center",
   },
 
   customMinimizeBtn: {
     position: "absolute",
-
     top: 50,
-
     left: 20,
-
     backgroundColor: "rgba(15, 23, 42, 0.6)",
-
     padding: 12,
-
     borderRadius: 50,
-
     borderWidth: 1,
-
     borderColor: "rgba(255, 255, 255, 0.2)",
-
     zIndex: 9999,
   },
 });

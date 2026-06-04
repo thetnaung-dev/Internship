@@ -1,4 +1,4 @@
-import ChatList from "@/components/features/chat/chat_screen";
+import ChatList from "@/components/features/chat/chat_list";
 import { View } from "react-native";
 
 export default function ChatTab() {

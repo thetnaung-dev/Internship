@@ -29,11 +29,8 @@ import { useLanguageStore } from "@/store/useLanguageStore";
 
 export default function RootLayout() {
   const language = useLanguageStore((s) => s.language);
-
-  // ── INITIALIZE LANGUAGE STATE IMMEDIATELY ON BOOT ──────────────────
   useEffect(() => {
     if (i18n && typeof i18n.changeLanguage === "function") {
-      // Automatically fallback to Myanmar language ("mm") if no language is cached
       i18n.changeLanguage(language || "mm");
     }
   }, [language]);
@@ -43,6 +40,7 @@ export default function RootLayout() {
       <BottomSheetModalProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
+          <Stack.Screen name="chat" />
         </Stack>
       </BottomSheetModalProvider>
     </GestureHandlerRootView>

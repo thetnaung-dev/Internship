@@ -1,99 +1,147 @@
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { ChevronLeft, Send } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
   Text,
+  TextInput,
   TouchableOpacity,
+  View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function ChatList() {
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function ChatScreen() {
+  // Correctly extract params from navigation
+  const params = useLocalSearchParams();
+  const conversationId = params.conversationId as string;
+  const receiverName = params.receiverName as string;
+
+  const [messages, setMessages] = useState<any[]>([]);
+  const [text, setText] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const router = useRouter();
 
   useEffect(() => {
-    async function fetchData() {
+    console.log("ChatScreen params:", params); // Debug log to check params
+    async function init() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       setCurrentUser(user);
 
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+      if (!conversationId) return;
 
+      // Fetch messages
       const { data, error } = await supabase
-        .from("conversations")
-        .select(
-          `
-          id,
-          participant_1,
-          participant_2,
-          properties (title_en),
-          p1:profiles!conversations_participant_1_fkey (full_name, id),
-          p2:profiles!conversations_participant_2_fkey (full_name, id),
-          messages (content, created_at)
-        `,
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: true });
+
+      if (error) console.error("Error fetching:", error);
+      else setMessages(data || []);
+
+      // Real-time subscription
+      const channel = supabase
+        .channel(`chat:${conversationId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `conversation_id=eq.${conversationId}`,
+          },
+          (payload) => {
+            // Check to prevent duplicating the message you just sent
+            setMessages((prev) => {
+              if (prev.find((m) => m.id === payload.new.id)) return prev;
+              return [...prev, payload.new];
+            });
+          },
         )
-        .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
-        .order("created_at", { foreignTable: "messages", ascending: false });
+        .subscribe();
 
-      if (error) {
-        console.error("Supabase Error:", error);
-      } else {
-        setConversations(data || []);
-      }
-      setLoading(false);
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
+    init();
+  }, [conversationId]);
 
-    fetchData();
-  }, []);
+  const sendMessage = async () => {
+    if (!text.trim() || !conversationId || !currentUser) return;
 
-  if (loading) return <ActivityIndicator className="flex-1" />;
+    // Optimistically update UI or just rely on Realtime
+    const { error } = await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: currentUser.id,
+      content: text,
+    });
+
+    if (error) console.error("Insert Error:", error);
+    else setText("");
+  };
 
   return (
-    <FlatList
-      data={conversations}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => {
-        // Helper to extract profile data if it returns as an array or object
-        const getProfile = (data: any) =>
-          Array.isArray(data) ? data[0] : data;
-
-        const p1 = getProfile(item.p1);
-        const p2 = getProfile(item.p2);
-
-        // Determine who the "other" user is by comparing the participant IDs
-        const otherUser = item.participant_1 === currentUser?.id ? p2 : p1;
-
-        return (
-          <TouchableOpacity
-            className="p-4 border-b border-slate-100 bg-white"
-            onPress={() =>
-              router.push({
-                pathname: "/chat",
-                params: { conversationId: item.id },
-              })
-            }
-          >
-            <Text className="font-bold text-lg">
-              {item.properties?.title_en || "Chat"}
-            </Text>
-
-            <Text className="text-blue-600 font-medium text-sm mt-1">
-              Chatting with: {otherUser?.full_name || "Unknown"}
-            </Text>
-
-            <Text className="text-slate-500 text-sm mt-1" numberOfLines={1}>
-              {item.messages?.[0]?.content || "No messages yet"}
-            </Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "white" }} edges={["top"]}>
+      <StatusBar style="dark" />
+      <KeyboardAvoidingView
+        className="flex-1 bg-slate-50"
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+      >
+        <View className="flex-row items-center p-2 border-b border-slate-100 bg-white">
+          <TouchableOpacity onPress={() => router.back()} className="p-1">
+            <ChevronLeft color="#000" size={28} />
           </TouchableOpacity>
-        );
-      }}
-    />
+          <Text className="flex-1 text-center font-semibold text-slate-700 mr-8">
+            Chatting with {receiverName || "User"}
+          </Text>
+        </View>
+
+        <FlatList
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View
+              className={`p-3 m-2 rounded-lg max-w-[80%] ${
+                item.sender_id === currentUser?.id
+                  ? "bg-blue-600 self-end"
+                  : "bg-slate-300 self-start"
+              }`}
+            >
+              <Text
+                className={
+                  item.sender_id === currentUser?.id
+                    ? "text-white"
+                    : "text-slate-800"
+                }
+              >
+                {item.content}
+              </Text>
+            </View>
+          )}
+        />
+
+        <View className="p-4 bg-white flex-row items-center border-t border-slate-200">
+          <TextInput
+            className="flex-1 bg-slate-100 p-3 rounded-full mr-2"
+            placeholder="Type a message..."
+            value={text}
+            onChangeText={setText}
+          />
+          <TouchableOpacity
+            onPress={sendMessage}
+            className="bg-blue-600 p-3 rounded-full"
+          >
+            <Send color="white" size={20} />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
