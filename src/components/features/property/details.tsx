@@ -75,18 +75,15 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
     if (diffInSeconds < 86400)
       return `${Math.floor(diffInSeconds / 3600)} ${isBurmese ? "နာရီခန့်က" : "hours ago"}`;
 
-    return date.toLocaleDateString(); // တစ်ရက်ကျော်ရင် ရက်စွဲပြမယ်
+    return date.toLocaleDateString();
   };
 
   useEffect(() => {
-    // Inside your Details.tsx useEffect
     async function fetchPropertyDetails() {
       if (!propertyId) return;
 
       try {
         setIsLoading(true);
-
-        // 1. Fetch the property AND the existing conversation in one go
         const { data, error } = await supabase
           .from("properties")
           .select(
@@ -104,9 +101,6 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
         if (error) throw error;
 
         setProperty(data);
-
-        // 2. Extract the conversation ID if it exists
-        // If conversations is an array, take the first one
         if (data.conversations && data.conversations.length > 0) {
           setConversationId(data.conversations[0].id);
         }
@@ -210,8 +204,6 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
         showsVerticalScrollIndicator={false}
         className="flex-1 bg-slate-50"
       >
-        {/* ── IMAGE & VIDEO CAROUSEL SECTION ── */}
-
         <View className="relative h-80 w-full bg-slate-900">
           <ScrollView
             horizontal
@@ -253,16 +245,12 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             })}
           </ScrollView>
 
-          {/* BACK BUTTON */}
-
           <TouchableOpacity
             onPress={onBack}
             className="absolute top-4 left-4 w-10 h-10 items-center justify-center rounded-full bg-slate-900/40 backdrop-blur-md border border-white/20"
           >
             <ChevronLeft size={24} color="#ffffff" />
           </TouchableOpacity>
-
-          {/* DEAL TYPE TAG */}
 
           <View className="absolute top-4 right-4 bg-emerald-600 px-3 py-1.5 rounded-full shadow-sm shadow-black/20">
             <Text className="text-white text-xs font-black uppercase tracking-wider">
@@ -414,17 +402,50 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
 
       <View className="px-6 py-4 bg-white border-t border-slate-100 flex-row items-center gap-4 shadow-2xl">
         <TouchableOpacity
-          onPress={() =>
+          onPress={async () => {
+            if (conversationId) {
+              router.push({
+                pathname: "/chat",
+                params: {
+                  conversationId,
+                  receiverName: property.profiles?.full_name || "Seller",
+                },
+              });
+              return;
+            }
+            const {
+              data: { user },
+            } = await supabase.auth.getUser();
+
+            if (!user) {
+              // Handle unauthenticated user (e.g., redirect to login)
+              return;
+            }
+
+            const { data: newConv, error } = await supabase
+              .from("conversations")
+              .insert({
+                property_id: property.id,
+                participant_1: user.id,
+                participant_2: property.user_id,
+              })
+              .select("id")
+              .single();
+
+            if (error) {
+              console.error("Error creating conversation:", error);
+              return;
+            }
+
             router.push({
-              // 4. Use router.push instead of navigation.navigate
               pathname: "/chat",
               params: {
                 propertyId: property.id,
                 receiverId: property.user_id,
                 receiverName: property.profiles?.full_name || "Seller",
               },
-            })
-          }
+            });
+          }}
           className="flex-1 flex-row items-center justify-center bg-slate-100 py-4 rounded-xl gap-2 active:opacity-90"
         >
           <MessageCircle size={18} color="#334155" />
@@ -478,18 +499,14 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
 
 function VideoItem({
   videoUrl,
-
   isActive,
 }: {
   videoUrl: string;
-
   isActive: boolean;
 }) {
   const [isVideoFull, setIsVideoFull] = useState(false);
-
   const player = useVideoPlayer(videoUrl, (playerInstance) => {
     playerInstance.loop = true;
-
     playerInstance.muted = false;
   });
 
@@ -517,8 +534,6 @@ function VideoItem({
         <Maximize2 size={16} color="#ffffff" />
       </TouchableOpacity>
 
-      {/* ── FULL SCREEN VIDEO MODAL ── */}
-
       <Modal
         visible={isVideoFull}
         transparent={false}
@@ -534,8 +549,6 @@ function VideoItem({
             nativeControls={true}
             allowsFullscreen={false}
           />
-
-          {/* Minimize/Close Button */}
 
           <TouchableOpacity
             onPress={() => {

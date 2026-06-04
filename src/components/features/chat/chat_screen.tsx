@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
 import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ChevronLeft, Send } from "lucide-react-native";
@@ -15,7 +16,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ChatScreen() {
-  // Correctly extract params from navigation
   const params = useLocalSearchParams();
   const conversationId = params.conversationId as string;
   const receiverName = params.receiverName as string;
@@ -25,28 +25,31 @@ export default function ChatScreen() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    console.log("ChatScreen params:", params); // Debug log to check params
+    let isMounted = true;
+    let channel: any;
+
     async function init() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      if (!isMounted) return;
       setCurrentUser(user);
-
+      if (!user) return;
       if (!conversationId) return;
 
-      // Fetch messages
       const { data, error } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
 
-      if (error) console.error("Error fetching:", error);
-      else setMessages(data || []);
-
-      // Real-time subscription
-      const channel = supabase
-        .channel(`chat:${conversationId}`)
+      if (error) {
+        console.error("Error fetching:", error);
+        return;
+      }
+      setMessages(data || []);
+      channel = supabase.channel(`chat:${conversationId}`);
+      channel
         .on(
           "postgres_changes",
           {
@@ -55,35 +58,54 @@ export default function ChatScreen() {
             table: "messages",
             filter: `conversation_id=eq.${conversationId}`,
           },
-          (payload) => {
-            // Check to prevent duplicating the message you just sent
+          (payload: RealtimePostgresInsertPayload<any>) => {
             setMessages((prev) => {
               if (prev.find((m) => m.id === payload.new.id)) return prev;
               return [...prev, payload.new];
             });
           },
         )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
+        .subscribe((status: string) => {
+          console.log("Subscription status:", status);
+        });
     }
-    init();
-  }, [conversationId]);
 
+    init();
+
+    return () => {
+      isMounted = false;
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [conversationId]);
   const sendMessage = async () => {
+    // 1. Validation
     if (!text.trim() || !conversationId || !currentUser) return;
 
-    // Optimistically update UI or just rely on Realtime
-    const { error } = await supabase.from("messages").insert({
-      conversation_id: conversationId,
-      sender_id: currentUser.id,
-      content: text,
-    });
+    const messageContent = text; // Save the text to a variable
+    setText(""); // Clear input immediately for better UX
 
-    if (error) console.error("Insert Error:", error);
-    else setText("");
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: conversationId,
+        sender_id: currentUser.id,
+        content: messageContent,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Insert Error:", error);
+      setText(messageContent);
+    } else if (data) {
+      setMessages((prev) => [...prev, data]);
+    }
+  };
+  const formatMessageTime = (isoDate: string) => {
+    const date = new Date(isoDate);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
   return (
@@ -122,6 +144,16 @@ export default function ChatScreen() {
                 }
               >
                 {item.content}
+              </Text>
+
+              <Text
+                className={`text-[10px] mt-1 ${
+                  item.sender_id === currentUser?.id
+                    ? "text-blue-100"
+                    : "text-slate-500"
+                } ${item.sender_id === currentUser?.id ? "text-right" : "text-left"}`}
+              >
+                {formatMessageTime(item.created_at)}
               </Text>
             </View>
           )}
