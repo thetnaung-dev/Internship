@@ -20,6 +20,7 @@ import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
   Linking,
@@ -30,18 +31,36 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80";
+
 interface DetailsProps {
   propertyId: string;
   onBack: () => void;
 }
+
+const formatRelativeTime = (dateString: string, isBurmese: boolean) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return isBurmese ? "ခုနကတင်" : "Just now";
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60)
+    return isBurmese ? `${diffInMinutes} မိနစ်ခန့်က` : `${diffInMinutes}m ago`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24)
+    return isBurmese ? `${diffInHours} နာရီခန့်က` : `${diffInHours}h ago`;
+
+  return date.toLocaleDateString(isBurmese ? "my-MM" : "en-US");
+};
+
 const isVideoFile = (url: string) => {
   if (!url) return false;
-
   const cleanUrl = url.split(/[?#]/)[0].toLowerCase();
-
   return (
     cleanUrl.endsWith(".mp4") ||
     cleanUrl.endsWith(".mov") ||
@@ -62,48 +81,30 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
   const [selectedFullImage, setSelectedFullImage] = useState<string | null>(
     null,
   );
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [isNavigatingChat, setIsNavigatingChat] = useState(false);
 
-  const formatRelativeTime = (isoDate: string, isBurmese: boolean) => {
-    const date = new Date(isoDate);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    if (diffInSeconds < 60) return isBurmese ? "ယခုလေးတင်" : "Just now";
-    if (diffInSeconds < 3600)
-      return `${Math.floor(diffInSeconds / 60)} ${isBurmese ? "မိနစ်ခန့်က" : "mins ago"}`;
-
-    if (diffInSeconds < 86400)
-      return `${Math.floor(diffInSeconds / 3600)} ${isBurmese ? "နာရီခန့်က" : "hours ago"}`;
-
-    return date.toLocaleDateString();
-  };
+  const [isChatReady] = useState(true);
 
   useEffect(() => {
     async function fetchPropertyDetails() {
       if (!propertyId) return;
-
       try {
         setIsLoading(true);
         const { data, error } = await supabase
           .from("properties")
           .select(
             `
-        *, 
-        states_regions(name_en, name_mm), 
-        townships(name_en, name_mm), 
-        profiles(id, full_name),
-        conversations(id) 
-      `,
+            *, 
+            states_regions(name_en, name_mm), 
+            townships(name_en, name_mm), 
+            profiles(id, full_name)
+          `,
           )
           .eq("id", propertyId)
           .single();
 
         if (error) throw error;
-
         setProperty(data);
-        if (data.conversations && data.conversations.length > 0) {
-          setConversationId(data.conversations[0].id);
-        }
       } catch (err) {
         console.error("Error fetching:", err);
       } finally {
@@ -113,6 +114,79 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
 
     fetchPropertyDetails();
   }, [propertyId]);
+
+  const handleChatPress = async () => {
+    try {
+      setIsNavigatingChat(true);
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        Alert.alert(
+          isBurmese ? "အကောင့်ဝင်ရန်လိုအပ်သည်" : "Authentication Required",
+          isBurmese
+            ? "စာပို့ရန်အတွက် အရင်ဆုံးအကောင့်ဝင်ပေးပါ"
+            : "Please log in to contact the seller.",
+        );
+        return;
+      }
+
+      if (user.id === property.user_id) {
+        Alert.alert(
+          isBurmese ? "သတိပေးချက်" : "Notice",
+          isBurmese
+            ? "သင့်ကိုယ်ပိုင်ကြော်ငြာကို စာပို့၍မရပါ"
+            : "You cannot open a chat on your own property.",
+        );
+        return;
+      }
+
+      const { data: existing, error: findErr } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("property_id", property.id)
+        .eq("buyer_id", user.id)
+        .eq("seller_id", property.user_id)
+        .maybeSingle();
+
+      if (findErr) throw findErr;
+
+      let conversationId = existing?.id;
+
+      if (!conversationId) {
+        const { data: created, error: createErr } = await supabase
+          .from("conversations")
+          .insert({
+            property_id: property.id,
+            buyer_id: user.id,
+            seller_id: property.user_id,
+          })
+          .select("id")
+          .single();
+
+        if (createErr) throw createErr;
+        conversationId = created.id;
+
+        const title = property.title_en || property.title_mm || "Property";
+        await supabase.from("messages").insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          text: `Hi! I'm interested in: ${title}`,
+        });
+      }
+
+      router.push(`/chat/${conversationId}` as any);
+    } catch (error: any) {
+      console.error("Chat error:", error);
+      Alert.alert(
+        "Error",
+        error?.message || "Could not start conversation.",
+      );
+    } finally {
+      setIsNavigatingChat(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -130,7 +204,6 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             ? "ကြော်ငြာအချက်အလက် ရှာမတွေ့ပါ။"
             : "Property details not found."}
         </Text>
-
         <TouchableOpacity
           onPress={onBack}
           className="mt-4 bg-slate-900 px-6 py-3 rounded-xl"
@@ -145,56 +218,31 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
     isBurmese && property.title_mm
       ? property.title_mm
       : property.title_en || property.title_mm;
-
   const displayPrice =
     property.currency_unit === "lakhs"
       ? `${property.price} ${isBurmese ? "သိန်းကျပ်" : "Lakhs"}`
       : `$${property.price}`;
-
   const regionName = property.states_regions
     ? isBurmese && property.states_regions.name_mm
       ? property.states_regions.name_mm
       : property.states_regions.name_en
     : "";
-
   const townshipName = property.townships
     ? isBurmese && property.townships.name_mm
       ? property.townships.name_mm
       : property.townships.name_en
     : "";
-
   const displayLocation =
     townshipName && regionName
       ? `${townshipName}, ${regionName}`
       : "Yangon, Myanmar";
 
   let mediaDataset: string[] = [];
-
-  if (property.video_url) {
-    mediaDataset.push(property.video_url);
-  } else if (property.video) {
-    mediaDataset.push(property.video);
-  }
-
-  if (property.images && property.images.length > 0) {
+  if (property.video_url) mediaDataset.push(property.video_url);
+  else if (property.video) mediaDataset.push(property.video);
+  if (property.images && property.images.length > 0)
     mediaDataset = [...mediaDataset, ...property.images];
-  }
-
-  if (mediaDataset.length === 0) {
-    mediaDataset = [DEFAULT_IMAGE];
-  }
-
-  const handleImagePress = (url: string) => {
-    setSelectedFullImage(url);
-
-    setIsModalVisible(true);
-  };
-
-  const handleCallPress = (phoneNumber: string) => {
-    if (!phoneNumber) return;
-
-    Linking.openURL(`tel:${phoneNumber}`);
-  };
+  if (mediaDataset.length === 0) mediaDataset = [DEFAULT_IMAGE];
 
   return (
     <View className="flex-1 bg-white">
@@ -213,7 +261,6 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
               const slide = Math.round(
                 e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
               );
-
               if (slide !== activeImageIndex) setActiveImageIndex(slide);
             }}
             scrollEventThrottle={16}
@@ -228,12 +275,14 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
                   />
                 );
               }
-
               return (
                 <TouchableOpacity
                   key={idx}
                   activeOpacity={0.9}
-                  onPress={() => handleImagePress(mediaUrl)}
+                  onPress={() => {
+                    setSelectedFullImage(mediaUrl);
+                    setIsModalVisible(true);
+                  }}
                 >
                   <Image
                     source={{ uri: mediaUrl }}
@@ -262,8 +311,6 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             </Text>
           </View>
 
-          {/* CAROUSEL INDEX DOTS */}
-
           {mediaDataset.length > 1 && (
             <View className="absolute bottom-4 left-0 right-0 flex-row justify-center gap-1.5">
               {mediaDataset.map((_: any, idx: number) => (
@@ -288,7 +335,6 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
               <Text className="text-slate-400 font-mono text-xs">
                 PROP-{10000 + (property.ad_number || 1)}
               </Text>
-
               <View className="flex-row items-center gap-1 mt-1">
                 <Clock size={12} color="#94a3b8" />
                 <Text className="text-slate-400 text-[10px]">
@@ -301,14 +347,12 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           <Text className="text-slate-900 text-2xl font-black tracking-tight mb-2 leading-tight">
             {displayTitle}
           </Text>
-
           <Text className="text-emerald-600 text-2xl font-black mb-4">
             {displayPrice}
           </Text>
 
           <View className="flex-row items-center border-b border-slate-100 pb-5 mb-5">
             <MapPin size={18} color="#64748b" />
-
             <Text
               className="text-slate-500 font-semibold text-sm ml-1.5 flex-1"
               numberOfLines={2}
@@ -320,11 +364,9 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           <Text className="text-slate-800 font-bold text-base mb-3">
             {isBurmese ? "အချက်အလက်များ" : "Specifications"}
           </Text>
-
           <View className="flex-row flex-wrap gap-3 mb-6">
             <View style={styles.specBox}>
               <Bed size={20} color="#475569" />
-
               <Text style={styles.specVal}>
                 {property.bedrooms || 0} {isBurmese ? "ခန်း" : "Beds"}
               </Text>
@@ -332,7 +374,6 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
 
             <View style={styles.specBox}>
               <ShowerHead size={20} color="#475569" />
-
               <Text style={styles.specVal}>
                 {property.bathrooms || 0} {isBurmese ? "ခန်း" : "Baths"}
               </Text>
@@ -341,7 +382,6 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             {property.area_value && (
               <View style={styles.specBox}>
                 <Maximize2 size={18} color="#475569" />
-
                 <Text style={styles.specVal}>
                   {property.area_value}{" "}
                   {property.area_unit === "sqft"
@@ -358,7 +398,6 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             {property.width && property.length && (
               <View style={styles.specBox}>
                 <Compass size={18} color="#475569" />
-
                 <Text style={styles.specVal}>
                   {property.width}ft x {property.length}ft
                 </Text>
@@ -368,7 +407,6 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             {property.floor && (
               <View style={styles.specBox}>
                 <Layers size={18} color="#475569" />
-
                 <Text style={styles.specVal} numberOfLines={1}>
                   {t(property.floor)}
                 </Text>
@@ -379,18 +417,15 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           <Text className="text-slate-800 font-bold text-base mb-3">
             {isBurmese ? "ဆက်သွယ်ရန်" : "Contact Information"}
           </Text>
-
           <View className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex-row items-center justify-between">
             <View className="flex-row items-center gap-3">
               <View className="w-10 h-10 bg-slate-200 rounded-full items-center justify-center">
                 <Phone size={18} color="#334155" />
               </View>
-
               <View>
                 <Text className="text-slate-400 text-xs font-medium">
                   {isBurmese ? "ဖုန်းနံပါတ်" : "Phone Call Direct"}
                 </Text>
-
                 <Text className="text-slate-800 font-bold text-sm mt-0.5">
                   {property.search_value || property.phone}
                 </Text>
@@ -400,74 +435,64 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
         </View>
       </ScrollView>
 
+      {/* FOOTER ACTIONS BAR */}
       <View className="px-6 py-4 bg-white border-t border-slate-100 flex-row items-center gap-4 shadow-2xl">
         <TouchableOpacity
-          onPress={async () => {
-            if (conversationId) {
-              router.push({
-                pathname: "/chat",
-                params: {
-                  conversationId,
-                  receiverName: property.profiles?.full_name || "Seller",
-                },
-              });
-              return;
-            }
-            const {
-              data: { user },
-            } = await supabase.auth.getUser();
-
-            if (!user) {
-              // Handle unauthenticated user (e.g., redirect to login)
-              return;
-            }
-
-            const { data: newConv, error } = await supabase
-              .from("conversations")
-              .insert({
-                property_id: property.id,
-                participant_1: user.id,
-                participant_2: property.user_id,
-              })
-              .select("id")
-              .single();
-
-            if (error) {
-              console.error("Error creating conversation:", error);
-              return;
-            }
-
-            router.push({
-              pathname: "/chat",
-              params: {
-                propertyId: property.id,
-                receiverId: property.user_id,
-                receiverName: property.profiles?.full_name || "Seller",
-              },
-            });
+          onPress={handleChatPress}
+          disabled={isNavigatingChat}
+          style={{
+            flex: 1,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: isChatReady ? "#f1f5f9" : "#e2e8f0",
+            paddingVertical: 16,
+            borderRadius: 12,
+            gap: 8,
+            opacity: isNavigatingChat ? 0.6 : 1,
           }}
-          className="flex-1 flex-row items-center justify-center bg-slate-100 py-4 rounded-xl gap-2 active:opacity-90"
         >
-          <MessageCircle size={18} color="#334155" />
-          <Text className="text-slate-800 font-bold text-base">
-            {isBurmese ? "စာပို့ရန်" : "Chat"}
-          </Text>
+          {isNavigatingChat ? (
+            <ActivityIndicator size="small" color="#334155" />
+          ) : (
+            <>
+              <MessageCircle
+                size={18}
+                color={isChatReady ? "#334155" : "#94a3b8"}
+              />
+              <Text
+                style={{
+                  color: isChatReady ? "#334155" : "#94a3b8",
+                  fontWeight: "700",
+                  fontSize: 16,
+                }}
+              >
+                {isChatReady
+                  ? isBurmese
+                    ? "စာပို့ရန်"
+                    : "Chat"
+                  : isBurmese
+                    ? "ချိတ်ဆက်နေဆဲ..."
+                    : "Connecting..."}
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() =>
-            handleCallPress(property.search_value || property.phone)
+            Linking.openURL(`tel:${property.search_value || property.phone}`)
           }
           className="flex-row items-center bg-emerald-600 px-6 py-4 rounded-xl gap-2 active:opacity-90 shadow-md shadow-emerald-100"
         >
           <Phone size={18} color="#fff" />
-
           <Text className="text-white font-bold text-base">
             {isBurmese ? "ဖုန်းခေါ်ဆိုရန်" : "Call Now"}
           </Text>
         </TouchableOpacity>
       </View>
 
+      {/* FULLIMAGE MODAL */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -476,14 +501,12 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
       >
         <View style={styles.modalBackground}>
           <StatusBar style="light" />
-
           <TouchableOpacity
             style={styles.closeButton}
             onPress={() => setIsModalVisible(false)}
           >
             <X size={26} color="#ffffff" />
           </TouchableOpacity>
-
           {selectedFullImage && (
             <Image
               source={{ uri: selectedFullImage }}
@@ -519,13 +542,11 @@ function VideoItem({
   return (
     <View style={styles.videoWrapper}>
       <VideoView
-        key={isVideoFull ? "full" : "mini"}
         style={{ width: "100%", height: "100%" }}
         player={player}
         nativeControls={true}
         allowsFullscreen={false}
       />
-
       <TouchableOpacity
         onPress={() => setIsVideoFull(true)}
         activeOpacity={0.6}
@@ -542,18 +563,15 @@ function VideoItem({
       >
         <View style={styles.fullVideoContainer}>
           <StatusBar style="light" />
-
           <VideoView
             style={{ width: "100%", height: "100%" }}
             player={player}
             nativeControls={true}
             allowsFullscreen={false}
           />
-
           <TouchableOpacity
             onPress={() => {
               setIsVideoFull(false);
-
               setTimeout(() => {
                 player.play();
               }, 100);
@@ -575,7 +593,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   closeButton: {
     position: "absolute",
     top: 50,
@@ -588,12 +605,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     zIndex: 10,
   },
-
-  fullImage: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT * 0.8,
-  },
-
+  fullImage: { width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.8 },
   specBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -607,13 +619,7 @@ const styles = StyleSheet.create({
     minWidth: "47%",
     flexGrow: 1,
   },
-
-  specVal: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#334155",
-  },
-
+  specVal: { fontSize: 14, fontWeight: "700", color: "#334155" },
   videoWrapper: {
     width: SCREEN_WIDTH,
     height: 320,
@@ -634,14 +640,12 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.3)",
     zIndex: 9999,
   },
-
   fullVideoContainer: {
     flex: 1,
     backgroundColor: "#000",
     justifyContent: "center",
     alignItems: "center",
   },
-
   customMinimizeBtn: {
     position: "absolute",
     top: 50,

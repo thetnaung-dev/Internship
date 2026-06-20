@@ -1,10 +1,17 @@
-import ChatList from "@/components/features/chat/chat_list";
-import { View } from "react-native";
+import React from "react";
+import { StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function ChatTab() {
+import { ChatList } from "../../components/features/chat/chat_list";
+
+export default function TabChatScreen() {
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView style={styles.container}>
       <ChatList />
-    </View>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#fff" },
+});

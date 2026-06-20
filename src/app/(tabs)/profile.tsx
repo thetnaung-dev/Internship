@@ -21,6 +21,7 @@ import React, { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -33,6 +34,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [postCount, setPostCount] = useState(0);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   const { t } = useTranslation();
 
@@ -53,7 +55,7 @@ export default function ProfileScreen() {
     }
     const { data: profileData } = await supabase
       .from("profiles")
-      .select("full_name, email")
+      .select("full_name, email, avatar_url")
       .eq("id", user.id)
       .single();
     const { count } = await supabase
@@ -61,17 +63,28 @@ export default function ProfileScreen() {
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id);
     setProfile(profileData);
+    setAvatarError(false);
     setPostCount(count || 0);
     setLoading(false);
   };
 
+  // 🛠️ ပြင်ဆင်ထားသော Logout Function
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setShowLogoutDialog(false);
-    router.replace({
-      pathname: "/(auth)/login",
-      params: { logout: "success" },
-    });
+    try {
+      // ၁။ Supabase အကောင့်မှ ထွက်ခြင်း
+      await supabase.auth.signOut();
+
+
+    } catch (error) {
+      console.error("Error during complete logout:", error);
+    } finally {
+      // ၃။ UI Dialog ကို ပိတ်ပြီး Login ဝင်သည့် Page သို့ မောင်းထုတ်ခြင်း
+      setShowLogoutDialog(false);
+      router.replace({
+        pathname: "/(auth)/login",
+        params: { logout: "success" },
+      });
+    }
   };
 
   if (loading)
@@ -85,13 +98,21 @@ export default function ProfileScreen() {
     <SafeAreaView className="flex-1 bg-slate-50">
       <ScrollView showsVerticalScrollIndicator={false}>
         <View className="bg-amber-500 pt-8 pb-14 px-6 items-center rounded-b-[40px]">
-          <View className="w-24 h-24 bg-white rounded-full items-center justify-center border-4 border-amber-300">
-            <User size={50} color="#f59e0b" />
+          <View className="w-24 h-24 bg-white rounded-full items-center justify-center border-4 border-amber-300 overflow-hidden">
+            {profile?.avatar_url && !avatarError ? (
+              <Image
+                source={{ uri: profile.avatar_url }}
+                className="w-full h-full"
+                resizeMode="cover"
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              <User size={50} color="#f59e0b" />
+            )}
           </View>
           <Text className="text-white text-2xl font-extrabold mt-4">
             {profile?.full_name || t("profile.user")}
           </Text>
-          <Text className="text-amber-100 mt-1 text-sm">{profile?.email}</Text>
         </View>
 
         <View className="mx-6 -mt-10 bg-white rounded-2xl p-5 flex-row shadow-sm border border-slate-100">
@@ -121,7 +142,7 @@ export default function ProfileScreen() {
             <MenuRow
               icon={<User size={20} color="#64748b" />}
               title={t("profile.profileSettings")}
-              onPress={() => {}}
+              onPress={() => router.push("/edit-profile")}
             />
             <MenuRow
               icon={<MapPin size={20} color="#64748b" />}
