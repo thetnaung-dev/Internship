@@ -19,18 +19,14 @@ export default function TabsLayout() {
         tabBarActiveTintColor: "#0f172a",
         tabBarInactiveTintColor: "#94a3b8",
 
-        // Default tab bar style for other screens
         tabBarStyle: {
           backgroundColor: "#ffffff",
           borderTopWidth: 1,
           borderTopColor: "#f1f5f9",
-
           height: 70 + insets.bottom,
           paddingBottom: insets.bottom + 10,
           paddingTop: 10,
-
           paddingHorizontal: 10,
-
           position: "absolute",
           left: 0,
           right: 0,
@@ -59,7 +55,6 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* ✅ FIXED: Tab bar is hidden completely when this screen is active */}
       <Tabs.Screen
         name="create_post"
         options={{
@@ -72,7 +67,9 @@ export default function TabsLayout() {
         name="chat"
         options={{
           title: "Chat",
-          tabBarIcon: ({ color }) => <MessageSquare size={22} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <MessageSquare size={22} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
