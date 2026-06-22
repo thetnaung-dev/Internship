@@ -100,7 +100,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-primary-100">
       <StatusBar barStyle="dark-content" />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "padding"}
@@ -120,16 +120,16 @@ export default function LoginScreen() {
                 }}
                 className="w-24 h-24"
               />
-              <Text className="text-3xl font-bold text-slate-900 mt-5">
+              <Text className="text-3xl font-rubik-bold text-black-300 mt-5">
                 {t("login.title")}
               </Text>
-              <Text className="text-slate-500 mt-2 text-center">
+              <Text className="text-black-100 font-rubik mt-2 text-center">
                 {t("login.subtitle")}
               </Text>
             </View>
 
             <View>
-              <Text className="text-slate-700 font-medium mb-2">
+              <Text className="text-black-200 font-rubik-medium mb-2">
                 {t("login.email")}
               </Text>
               <TextInput
@@ -138,45 +138,43 @@ export default function LoginScreen() {
                 placeholder={t("login.emailPlaceholder")}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-800"
+                className="bg-white border border-primary-200 rounded-2xl px-4 py-4 text-black-300 font-rubik"
               />
-              <Text className="text-slate-700 font-medium mb-2 mt-5">
+              <Text className="text-black-200 font-rubik-medium mb-2 mt-5">
                 {t("login.password")}
               </Text>
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
-                // These props help prevent system-forced secure overlay keyboards
                 textContentType="oneTimeCode"
                 autoComplete="off"
                 placeholder={t("login.passwordPlaceholder")}
-                className="bg-white border border-slate-200 rounded-2xl px-4 py-4 text-slate-800"
+                className="bg-white border border-primary-200 rounded-2xl px-4 py-4 text-black-300 font-rubik"
               />
 
               <TouchableOpacity
                 onPress={handleLogin}
                 disabled={loading}
-                className="bg-amber-500 rounded-2xl py-4 items-center mt-8"
+                className="bg-primary-300 rounded-2xl py-4 items-center mt-8"
               >
                 {loading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text className="text-white font-bold text-base">
+                  <Text className="text-white font-rubik-bold text-base">
                     {t("login.signIn")}
                   </Text>
                 )}
               </TouchableOpacity>
 
               <View className="flex-row justify-center mt-6">
-                <Text className="text-slate-500">Don't have an account? </Text>
+                <Text className="text-black-100 font-rubik">{t("login.noAccount")} </Text>
                 <TouchableOpacity onPress={() => router.push("/register")}>
-                  <Text className="text-amber-500 font-bold">Register</Text>
+                  <Text className="text-primary-300 font-rubik-bold">{t("login.register")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Added spacer to ensure scrollable area pushes up content correctly */}
             <View style={{ height: 100 }} />
           </View>
         </ScrollView>
@@ -189,22 +187,22 @@ export default function LoginScreen() {
         <AlertDialogBackdrop />
         <AlertDialogContent className="p-6 rounded-3xl bg-white items-center">
           {infoDialog.isSuccess ? (
-            <CheckCircle size={40} color="green" />
+            <CheckCircle size={40} color="#22c55e" />
           ) : (
-            <AlertTriangle size={40} color="red" />
+            <AlertTriangle size={40} color="#F75555" />
           )}
           <AlertDialogHeader>
             <Heading>{infoDialog.title}</Heading>
           </AlertDialogHeader>
           <AlertDialogBody>
-            <Text className="text-center text-slate-500">
+            <Text className="text-center text-black-200 font-rubik">
               {infoDialog.message}
             </Text>
           </AlertDialogBody>
           <AlertDialogFooter>
             <Button
               onPress={() => setInfoDialog((p) => ({ ...p, visible: false }))}
-              className="bg-amber-500 w-full"
+              className="bg-primary-300 w-full"
             >
               <ButtonText>OK</ButtonText>
             </Button>

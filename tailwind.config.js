@@ -23,9 +23,9 @@ module.exports = {
         primary: {
           0: "rgb(var(--color-primary-0)/<alpha-value>)",
           50: "rgb(var(--color-primary-50)/<alpha-value>)",
-          100: "rgb(var(--color-primary-100)/<alpha-value>)",
-          200: "rgb(var(--color-primary-200)/<alpha-value>)",
-          300: "rgb(var(--color-primary-300)/<alpha-value>)",
+          100: "#dcfce7",
+          200: "#bbf7d0",
+          300: "#22c55e",
           400: "rgb(var(--color-primary-400)/<alpha-value>)",
           500: "rgb(var(--color-primary-500)/<alpha-value>)",
           600: "rgb(var(--color-primary-600)/<alpha-value>)",
@@ -174,6 +174,16 @@ module.exports = {
           info: "rgb(var(--color-indicator-info)/<alpha-value>)",
           error: "rgb(var(--color-indicator-error)/<alpha-value>)",
         },
+        accent: {
+          100: "#FBFBFD",
+        },
+        black: {
+          DEFAULT: "#000000",
+          100: "#8C8E98",
+          200: "#666876",
+          300: "#191D31",
+        },
+        danger: "#F75555",
       },
       fontFamily: {
         heading: undefined,
@@ -184,6 +194,12 @@ module.exports = {
         code: ["var(--font-source-code-pro)"],
         inter: ["var(--font-inter)"],
         "space-mono": ["var(--font-space-mono)"],
+        rubik: ["var(--font-plus-jakarta-sans)"],
+        "rubik-bold": ["var(--font-plus-jakarta-sans)"],
+        "rubik-extrabold": ["var(--font-plus-jakarta-sans)"],
+        "rubik-medium": ["var(--font-plus-jakarta-sans)"],
+        "rubik-semibold": ["var(--font-plus-jakarta-sans)"],
+        "rubik-light": ["var(--font-plus-jakarta-sans)"],
       },
       fontWeight: {
         extrablack: "950",

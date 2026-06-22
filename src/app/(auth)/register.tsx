@@ -19,7 +19,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// ── GLUESTACK ALERT DIALOG ──
 import {
   AlertDialog,
   AlertDialogBackdrop,
@@ -31,8 +30,6 @@ import {
 
 import { Button, ButtonText } from "@/components/features/ui/button/button";
 import { Heading } from "@/components/features/ui/heading/heading";
-
-// ✅ i18n
 import { useTranslation } from "react-i18next";
 
 export default function RegisterScreen() {
@@ -56,11 +53,7 @@ export default function RegisterScreen() {
   const [successDialog, setSuccessDialog] = useState(false);
 
   const openError = (title: string, message: string) => {
-    setErrorDialog({
-      visible: true,
-      title,
-      message,
-    });
+    setErrorDialog({ visible: true, title, message });
   };
 
   const handleRegister = async () => {
@@ -71,10 +64,7 @@ export default function RegisterScreen() {
       }
 
       if (password !== confirmPassword) {
-        openError(
-          t("register.errors.error"),
-          t("register.errors.passwordMismatch"),
-        );
+        openError(t("register.errors.error"), t("register.errors.passwordMismatch"));
         return;
       }
 
@@ -84,9 +74,7 @@ export default function RegisterScreen() {
         email,
         password,
         options: {
-          data: {
-            full_name: name,
-          },
+          data: { full_name: name },
         },
       });
 
@@ -109,14 +97,13 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
-      {/* HEADER */}
+    <SafeAreaView className="flex-1 bg-primary-100">
       <View className="px-4 py-4 flex-row items-center">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-full bg-white border border-slate-100 shadow-sm"
+          className="w-10 h-10 items-center justify-center rounded-full bg-white border border-primary-200"
         >
-          <ChevronLeft size={24} color="#334155" />
+          <ChevronLeft size={24} color="#22c55e" />
         </TouchableOpacity>
       </View>
 
@@ -125,118 +112,107 @@ export default function RegisterScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* TITLE */}
         <View className="mt-4 mb-8">
-          <Text className="text-3xl font-extrabold text-slate-800">
+          <Text className="text-3xl font-rubik-extrabold text-black-300">
             {t("register.title")}
           </Text>
-          <Text className="text-slate-500 mt-2 text-sm">
+          <Text className="text-black-100 font-rubik mt-2 text-sm">
             {t("register.subtitle")}
           </Text>
         </View>
 
-        {/* NAME */}
         <View className="mb-4">
-          <Text className="text-slate-600 font-semibold mb-2 text-sm">
+          <Text className="text-black-200 font-rubik-semibold mb-2 text-sm">
             {t("register.name")}
           </Text>
-          <View className="flex-row items-center bg-white border border-slate-200 rounded-xl px-4 py-3">
-            <User size={20} color="#94a3b8" />
+          <View className="flex-row items-center bg-white border border-primary-200 rounded-xl px-4 py-3">
+            <User size={20} color="#8C8E98" />
             <TextInput
               value={name}
               onChangeText={setName}
-              className="flex-1 ml-3"
+              className="flex-1 ml-3 font-rubik text-black-300"
               placeholder={t("register.namePlaceholder")}
             />
           </View>
         </View>
 
-        {/* EMAIL */}
         <View className="mb-4">
-          <Text className="text-slate-600 font-semibold mb-2 text-sm">
+          <Text className="text-black-200 font-rubik-semibold mb-2 text-sm">
             {t("register.email")}
           </Text>
-          <View className="flex-row items-center bg-white border border-slate-200 rounded-xl px-4 py-3">
-            <Mail size={20} color="#94a3b8" />
+          <View className="flex-row items-center bg-white border border-primary-200 rounded-xl px-4 py-3">
+            <Mail size={20} color="#8C8E98" />
             <TextInput
               value={email}
               onChangeText={setEmail}
-              className="flex-1 ml-3"
+              className="flex-1 ml-3 font-rubik text-black-300"
               placeholder={t("register.emailPlaceholder")}
             />
           </View>
         </View>
 
-        {/* PASSWORD */}
         <View className="mb-4">
-          <Text className="text-slate-600 font-semibold mb-2 text-sm">
+          <Text className="text-black-200 font-rubik-semibold mb-2 text-sm">
             {t("register.password")}
           </Text>
-          <View className="flex-row items-center bg-white border border-slate-200 rounded-xl px-4 py-3">
-            <Lock size={20} color="#94a3b8" />
+          <View className="flex-row items-center bg-white border border-primary-200 rounded-xl px-4 py-3">
+            <Lock size={20} color="#8C8E98" />
             <TextInput
               value={password}
               onChangeText={setPassword}
               secureTextEntry={!showPassword}
-              className="flex-1 ml-3"
+              className="flex-1 ml-3 font-rubik text-black-300"
               placeholder={t("register.passwordPlaceholder")}
             />
             <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={20} color="#666876" /> : <Eye size={20} color="#666876" />}
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* CONFIRM PASSWORD */}
         <View className="mb-4">
-          <Text className="text-slate-600 font-semibold mb-2 text-sm">
+          <Text className="text-black-200 font-rubik-semibold mb-2 text-sm">
             {t("register.confirmPassword")}
           </Text>
-          <View className="flex-row items-center bg-white border border-slate-200 rounded-xl px-4 py-3">
-            <Lock size={20} color="#94a3b8" />
+          <View className="flex-row items-center bg-white border border-primary-200 rounded-xl px-4 py-3">
+            <Lock size={20} color="#8C8E98" />
             <TextInput
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={!showConfirmPassword}
-              className="flex-1 ml-3"
+              className="flex-1 ml-3 font-rubik text-black-300"
               placeholder={t("register.passwordPlaceholder")}
             />
-            <TouchableOpacity
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
-              {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+              {showConfirmPassword ? <EyeOff size={20} color="#666876" /> : <Eye size={20} color="#666876" />}
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* BUTTON */}
         <TouchableOpacity
           onPress={handleRegister}
           disabled={loading}
-          className="bg-amber-500 py-4 rounded-xl items-center mt-6"
+          className="bg-primary-300 py-4 rounded-xl items-center mt-6"
         >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-white font-bold">{t("register.button")}</Text>
+            <Text className="text-white font-rubik-bold">{t("register.button")}</Text>
           )}
         </TouchableOpacity>
 
-        {/* LOGIN LINK */}
         <View className="flex-row justify-center items-center mt-6 mb-12">
-          <Text className="text-slate-500 text-sm">
+          <Text className="text-black-100 text-sm font-rubik">
             {t("register.haveAccount")}
           </Text>
-
           <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
-            <Text className="text-amber-500 font-bold text-sm ml-1">
+            <Text className="text-primary-300 font-rubik-bold text-sm ml-1">
               {t("register.login")}
             </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* SUCCESS DIALOG */}
       <AlertDialog
         isOpen={successDialog}
         onClose={() => setSuccessDialog(false)}
@@ -246,19 +222,17 @@ export default function RegisterScreen() {
           <AlertDialogHeader>
             <Heading>{t("register.successTitle")}</Heading>
           </AlertDialogHeader>
-
           <AlertDialogBody>
-            <Text className="text-center text-slate-500">
+            <Text className="text-center text-black-200 font-rubik">
               {t("register.successMessage")}
             </Text>
           </AlertDialogBody>
-
           <AlertDialogFooter>
             <Button
-              className="bg-amber-500 w-full"
+              className="bg-primary-300 w-full"
               onPress={() => {
                 setSuccessDialog(false);
-                router.replace("/(auth)/login");
+                router.replace(`/(auth)/otp?email=${encodeURIComponent(email)}`);
               }}
             >
               <ButtonText>OK</ButtonText>
@@ -267,7 +241,6 @@ export default function RegisterScreen() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ERROR DIALOG */}
       <AlertDialog
         isOpen={errorDialog.visible}
         onClose={() => setErrorDialog((p) => ({ ...p, visible: false }))}
@@ -277,16 +250,14 @@ export default function RegisterScreen() {
           <AlertDialogHeader>
             <Heading>{errorDialog.title}</Heading>
           </AlertDialogHeader>
-
           <AlertDialogBody>
-            <Text className="text-center text-slate-500">
+            <Text className="text-center text-black-200 font-rubik">
               {errorDialog.message}
             </Text>
           </AlertDialogBody>
-
           <AlertDialogFooter>
             <Button
-              className="bg-amber-500 w-full"
+              className="bg-primary-300 w-full"
               onPress={() => setErrorDialog((p) => ({ ...p, visible: false }))}
             >
               <ButtonText>OK</ButtonText>

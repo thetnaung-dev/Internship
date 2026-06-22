@@ -1,48 +1,99 @@
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
+import { Home } from "lucide-react-native";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Text, TouchableOpacity, View } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withTiming,
+} from "react-native-reanimated";
 
 export default function OnboardingScreen() {
   const { t } = useTranslation();
 
+  const iconScale = useSharedValue(0);
+  const iconOpacity = useSharedValue(0);
+  const titleOffset = useSharedValue(40);
+  const titleOpacity = useSharedValue(0);
+  const subtitleOffset = useSharedValue(40);
+  const subtitleOpacity = useSharedValue(0);
+  const buttonOffset = useSharedValue(40);
+  const buttonOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    iconScale.value = withDelay(200, withTiming(1, { duration: 700, easing: Easing.out(Easing.back(1.5)) }));
+    iconOpacity.value = withDelay(200, withTiming(1, { duration: 500 }));
+    titleOpacity.value = withDelay(700, withTiming(1, { duration: 600 }));
+    titleOffset.value = withDelay(700, withTiming(0, { duration: 600, easing: Easing.out(Easing.cubic) }));
+    subtitleOpacity.value = withDelay(1100, withTiming(1, { duration: 600 }));
+    subtitleOffset.value = withDelay(1100, withTiming(0, { duration: 600, easing: Easing.out(Easing.cubic) }));
+    buttonOpacity.value = withDelay(1500, withTiming(1, { duration: 600 }));
+    buttonOffset.value = withDelay(1500, withTiming(0, { duration: 600, easing: Easing.out(Easing.cubic) }));
+  }, []);
+
+  const iconStyle = useAnimatedStyle(() => ({
+    opacity: iconOpacity.value,
+    transform: [{ scale: iconScale.value }],
+  }));
+
+  const titleStyle = useAnimatedStyle(() => ({
+    opacity: titleOpacity.value,
+    transform: [{ translateY: titleOffset.value }],
+  }));
+
+  const subtitleStyle = useAnimatedStyle(() => ({
+    opacity: subtitleOpacity.value,
+    transform: [{ translateY: subtitleOffset.value }],
+  }));
+
+  const buttonStyle = useAnimatedStyle(() => ({
+    opacity: buttonOpacity.value,
+    transform: [{ translateY: buttonOffset.value }],
+  }));
+
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <View className="flex-1 bg-white">
-        <StatusBar style="light" />
+    <SafeAreaView className="flex-1 bg-primary-100">
+      <StatusBar style="dark" />
 
-        {/* Structural Hero Banner Section */}
-        <View className="flex-[6] bg-slate-900 justify-end px-6 pb-16">
-          <View className="bg-amber-500 self-start px-3 py-1 rounded-full mb-4">
-            <Text className="text-xs font-bold text-slate-900 uppercase tracking-widest">
-              Premium
-            </Text>
+      <View className="flex-1 justify-center px-8">
+        <Animated.View className="items-center mb-10" style={iconStyle}>
+          <View className="w-32 h-32 bg-primary-200 rounded-full items-center justify-center">
+            <View className="w-24 h-24 bg-white rounded-full items-center justify-center shadow-lg shadow-primary-300/20">
+              <Home size={48} color="#22c55e" />
+            </View>
           </View>
+        </Animated.View>
 
-          <Text className="text-white text-4xl font-black tracking-tight mb-4">
+        <Animated.View style={titleStyle}>
+          <Text className="text-4xl font-rubik-black text-black-300 text-center leading-tight mb-4">
             {t("findDreamHome")}
           </Text>
+        </Animated.View>
 
-          <Text className="text-slate-300 text-base leading-6 font-medium">
+        <Animated.View style={subtitleStyle}>
+          <Text className="text-base font-rubik text-black-100 text-center leading-relaxed">
             {t("onboardingSubtitle")}
           </Text>
-        </View>
+        </Animated.View>
+      </View>
 
-        {/* Bottom Functional Interaction Wrapper */}
-        <View className="flex-[3] justify-center px-6 bg-slate-50">
+      <View className="px-8 pb-16">
+        <Animated.View style={buttonStyle}>
           <TouchableOpacity
-            // Fixed relative navigation path error to absolute format
             onPress={() => router.replace("/(tabs)")}
-            className="w-full bg-slate-900 py-5 rounded-2xl active:opacity-90 shadow-lg"
+            className="w-full bg-primary-300 py-5 rounded-2xl active:opacity-80 shadow-xl shadow-primary-300/40"
           >
-            <Text className="text-center text-white text-lg font-bold">
+            <Text className="text-center text-white text-lg font-rubik-bold">
               {t("getStarted")}
             </Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
       </View>
-    </GestureHandlerRootView>
+    </SafeAreaView>
   );
 }

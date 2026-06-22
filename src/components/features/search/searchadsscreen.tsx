@@ -1,116 +1,152 @@
-// ── components/AdsSearchForm.tsx ─────────────────────────────────
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "expo-router";
 import { ChevronDown } from "lucide-react-native";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+interface Property {
+  id: string;
+  title_en: string;
+  title_mm: string;
+  price: number;
+  currency_unit: string;
+  deal_type: string;
+  images: string[];
+  ad_number: number;
+  phone: string;
+  search_value: string;
+}
 
 export default function AdsSearchForm() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const router = useRouter();
+  const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
+
   const [adsSearchMethod, setAdsSearchMethod] = useState("id");
   const [searchValue, setSearchValue] = useState("");
 
-  // DROPDOWN SELECTION STATE
-  const [dropdowns, setDropdowns] = useState({
-    stateRegion: "",
-    township: "",
-  });
+  const [results, setResults] = useState<Property[] | null>(null);
+  const [searching, setSearching] = useState(false);
 
-  const handleSelectDropdown = (key: keyof typeof dropdowns, value: string) => {
-    setDropdowns((prev) => ({ ...prev, [key]: value }));
+  const handleAdsSearchSubmit = async () => {
+    if (!searchValue.trim()) return;
+    setSearching(true);
+    setResults(null);
+    try {
+      let query = supabase.from("properties").select("*").order("created_at", { ascending: false });
+
+      if (adsSearchMethod === "id") {
+        const num = parseInt(searchValue);
+        if (!isNaN(num)) query = query.eq("ad_number", num);
+        else return;
+      } else {
+        query = query.or(`phone.ilike.%${searchValue}%,search_value.ilike.%${searchValue}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setResults(data || []);
+    } catch (err) {
+      console.error("Ads search error:", err);
+    } finally {
+      setSearching(false);
+    }
   };
 
-  const handleAdsSearchSubmit = () => {
-    const payload = {
-      method: adsSearchMethod,
-      queryValue: searchValue,
-      ...dropdowns,
-    };
-    console.log("Submitting Ads Search Lookup: ", payload);
+  const handleBackToForm = () => {
+    setResults(null);
+    setSearchValue("");
   };
+
+  if (results !== null) {
+    return (
+      <View className="flex-1">
+        <TouchableOpacity onPress={handleBackToForm} className="mb-4">
+          <Text className="text-primary-300 font-rubik-bold">{t("adsFilter.backToSearch") || "Back to Search"}</Text>
+        </TouchableOpacity>
+        <Text className="text-black-300 font-rubik-bold text-lg mb-3">
+          {results.length} {results.length === 1 ? "result" : "results"} found
+        </Text>
+        {results.length === 0 ? (
+          <View className="py-12 items-center">
+            <Text className="text-black-100 font-rubik">{t("adsFilter.noResults") || "No ads found"}</Text>
+          </View>
+        ) : (
+          <View style={{ gap: 12, paddingBottom: 24 }}>
+            {results.map((item) => {
+              const title = isBurmese && item.title_mm ? item.title_mm : item.title_en;
+              const price = item.currency_unit === "lakhs" ? `${item.price} Lakhs` : `$${item.price}`;
+              const image = item.images?.[0];
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  onPress={() => router.push(`/detail?id=${item.id}` as any)}
+                  className="bg-white rounded-2xl overflow-hidden border border-primary-200"
+                >
+                  {image && (
+                    <Image source={{ uri: image }} className="w-full h-40" resizeMode="cover" />
+                  )}
+                  <View className="p-4">
+                    <Text className="text-black-300 font-rubik-bold text-base" numberOfLines={1}>{title}</Text>
+                    <Text className="text-primary-300 font-rubik-bold text-lg mt-1">{price}</Text>
+                    <Text className="text-black-100 font-rubik text-xs mt-1">Ad #{item.ad_number}</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+      </View>
+    );
+  }
 
   return (
     <View className="gap-5">
-      {/* LINE 1: SELECTION OPTIONS FOR ADS SEARCH */}
       <View className="flex-row gap-6 items-center py-1">
-        <TouchableOpacity
-          onPress={() => setAdsSearchMethod("id")}
-          className="flex-row items-center gap-2"
-        >
-          <View
-            className={`w-5 h-5 rounded-full border-2 items-center justify-center ${adsSearchMethod === "id" ? "border-slate-600" : "border-slate-600"}`}
-          >
-            {adsSearchMethod === "id" && (
-              <View className="w-2.5 h-2.5 bg-slate-950 rounded-full" />
-            )}
+        <TouchableOpacity onPress={() => setAdsSearchMethod("id")} className="flex-row items-center gap-2">
+          <View className={`w-5 h-5 rounded-full border-2 items-center justify-center ${adsSearchMethod === "id" ? "border-primary-300" : "border-primary-200"}`}>
+            {adsSearchMethod === "id" && <View className="w-2.5 h-2.5 bg-primary-300 rounded-full" />}
           </View>
-          <Text className="text-slate-800 font-bold text-sm">
-            {t("adsFilter.byIdNumber")}
-          </Text>
+          <Text className="text-black-300 font-rubik-bold text-sm">{t("adsFilter.byIdNumber")}</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => setAdsSearchMethod("phone")}
-          className="flex-row items-center gap-2"
-        >
-          <View
-            className={`w-5 h-5 rounded-full border-2 items-center justify-center ${adsSearchMethod === "phone" ? "border-slate-600" : "border-slate-600"}`}
-          >
-            {adsSearchMethod === "phone" && (
-              <View className="w-2.5 h-2.5 bg-slate-950 rounded-full" />
-            )}
+        <TouchableOpacity onPress={() => setAdsSearchMethod("phone")} className="flex-row items-center gap-2">
+          <View className={`w-5 h-5 rounded-full border-2 items-center justify-center ${adsSearchMethod === "phone" ? "border-primary-300" : "border-primary-200"}`}>
+            {adsSearchMethod === "phone" && <View className="w-2.5 h-2.5 bg-primary-300 rounded-full" />}
           </View>
-          <Text className="text-slate-800 font-bold text-sm">
-            {t("adsFilter.byPhoneNumber")}
-          </Text>
+          <Text className="text-black-300 font-rubik-bold text-sm">{t("adsFilter.byPhoneNumber")}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* LINE 2: PLAIN TEXT BOX INPUT CODE */}
-      <View className="bg-white border border-slate-200 rounded-xl px-4 py-3.5 shadow-sm shadow-slate-100">
+      <View className="bg-white border border-primary-200 rounded-xl px-4 py-3.5">
         <TextInput
           value={searchValue}
           onChangeText={setSearchValue}
           placeholder={t("adsFilter.placeholder")}
-          keyboardType="numeric"
-          className="w-full text-slate-800 font-medium text-base text-left"
-          placeholderTextColor="#94a3b8"
+          keyboardType={adsSearchMethod === "id" ? "numeric" : "default"}
+          className="w-full text-black-300 font-rubik-medium text-base text-left"
+          placeholderTextColor="#8C8E98"
         />
       </View>
 
-      {/* LINE 3: REGIONAL SCOPE FILTER DROP-DOWNS */}
-      <TouchableOpacity
-        onPress={() => handleSelectDropdown("stateRegion", "Mandalay")}
-        className="bg-white border border-slate-200 rounded-xl px-4 py-3.5 shadow-sm flex-row justify-between items-center"
-      >
-        <Text
-          className={`font-semibold text-base ${dropdowns.stateRegion ? "text-slate-800" : "text-slate-400"}`}
-        >
-          {dropdowns.stateRegion || t("adsFilter.stateRegion")}
-        </Text>
-        <ChevronDown size={20} color="#64748b" />
-      </TouchableOpacity>
-
-      {/* LINE 4: TOWNSHIP SCOPE FILTER DROP-DOWNS */}
-      <TouchableOpacity
-        onPress={() => handleSelectDropdown("township", "Chanayethazan")}
-        className="bg-white border border-slate-200 rounded-xl px-4 py-3.5 shadow-sm flex-row justify-between items-center"
-      >
-        <Text
-          className={`font-semibold text-base ${dropdowns.township ? "text-slate-800" : "text-slate-400"}`}
-        >
-          {dropdowns.township || t("adsFilter.township")}
-        </Text>
-        <ChevronDown size={20} color="#64748b" />
-      </TouchableOpacity>
-
-      {/* BOTTOM FORM MASTER ACTION SUBMIT BUTTON */}
       <TouchableOpacity
         onPress={handleAdsSearchSubmit}
-        className="bg-slate-950 w-full py-4 rounded-xl items-center justify-center shadow-md active:opacity-90 mt-2"
+        disabled={searching || !searchValue.trim()}
+        className="bg-primary-300 w-full py-4 rounded-xl items-center justify-center mt-2"
       >
-        <Text className="text-white font-bold text-lg">
-          {t("adsFilter.searchButton")}
-        </Text>
+        {searching ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text className="text-white font-rubik-bold text-lg">{t("adsFilter.searchButton")}</Text>
+        )}
       </TouchableOpacity>
     </View>
   );

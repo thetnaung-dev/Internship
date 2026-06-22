@@ -42,25 +42,24 @@ export default function SearchScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-primary-100">
       <StatusBar style="dark" />
-      <View className="bg-amber-500 px-4 py-4 flex-row items-center shadow-sm">
+      <View className="bg-white px-4 py-4 flex-row items-center border-b border-primary-200">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-full bg-slate-50"
+          className="w-10 h-10 items-center justify-center rounded-full bg-primary-100"
         >
-          <ChevronLeft size={28} color="#334155" />
+          <ChevronLeft size={28} color="#22c55e" />
         </TouchableOpacity>
-        <Text className="text-slate-800 text-lg font-bold ml-2 flex-1 text-center mr-10">
+        <Text className="text-black-300 text-lg font-rubik-bold ml-2 flex-1 text-center mr-10">
           {t("findyourDreamProperty", {
             defaultValue: "သင့်အိမ်မက်ကို ရှာဖွေပါ",
           })}
         </Text>
       </View>
-      {/* FIXED SLIDING CONTROLLER HEADERS */}
-      <View className="bg-white border-b border-slate-100 pt-2 shadow-sm shadow-slate-100">
+      <View className="bg-white border-b border-primary-200 pt-2">
         <View className="px-6 mb-4">
-          <View className="flex-row w-full bg-slate-100 p-1 rounded-full relative">
+          <View className="flex-row w-full bg-primary-100 p-1 rounded-full relative">
             <Animated.View
               style={{
                 width: SEGMENT_WIDTH,
@@ -79,8 +78,8 @@ export default function SearchScreen() {
                   className="flex-1 py-3 rounded-full items-center justify-center z-10"
                 >
                   <Text
-                    className={`font-bold text-sm text-center duration-150 ${
-                      isActive ? "text-slate-900" : "text-slate-500"
+                    className={`font-rubik-bold text-sm text-center duration-150 ${
+                      isActive ? "text-black-300" : "text-black-100"
                     }`}
                   >
                     {cat.label}

@@ -1,27 +1,35 @@
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import {
+  CheckSquare,
   ChevronLeft,
+  Copy,
+  Edit3,
   FileText,
   ImageIcon,
+  MessageSquareReply,
   Paperclip,
+  Pin,
   Send,
+  Square,
+  Trash2,
   Video,
   X,
 } from "lucide-react-native";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActionSheetIOS,
   ActivityIndicator,
-  Alert,
   FlatList,
   Image,
   Keyboard,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -29,6 +37,9 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { Button, ButtonText } from "@/components/features/ui/button/button";
+import { Heading } from "@/components/features/ui/heading/heading";
 
 const MAX_FILE_SIZE = 300 * 1024 * 1024;
 
@@ -39,16 +50,64 @@ interface MessageAttachment {
   size: number;
 }
 
+interface PendingAttachment {
+  uri: string;
+  name: string;
+  type: string;
+  size: number;
+}
+
 interface Message {
   id: string;
   sender_id: string;
   text: string;
   created_at: string;
   attachment?: MessageAttachment | null;
+  reply_to_id?: string | null;
+  pinned_by_buyer?: boolean;
+  pinned_by_seller?: boolean;
+  read_at?: string | null;
 }
 
 interface ChatRoomScreenProps {
   channelId: string;
+}
+
+interface DateSeparator {
+  id: string;
+  type: "date";
+  label: string;
+}
+
+type ChatListItem = Message | DateSeparator;
+
+function formatDateLabel(dateStr: string): string {
+  const date = new Date(dateStr + "T00:00:00");
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  if (dateStr === todayStr) return "Today";
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (dateStr === yesterday.toISOString().split("T")[0]) return "Yesterday";
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric",
+  });
+}
+
+function buildMessageList(messages: Message[]): ChatListItem[] {
+  const items: ChatListItem[] = [];
+  let lastDate: string | null = null;
+  for (const msg of messages) {
+    const msgDate = msg.created_at.split("T")[0];
+    if (msgDate !== lastDate) {
+      items.push({ id: `date-${msgDate}`, type: "date", label: formatDateLabel(msgDate) });
+      lastDate = msgDate;
+    }
+    items.push(msg);
+  }
+  return items;
 }
 
 function formatFileSize(bytes: number): string {
@@ -75,12 +134,24 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const [showPicker, setShowPicker] = useState(false);
-  const [pendingAttachment, setPendingAttachment] = useState<{
-    uri: string;
-    name: string;
-    type: string;
-    size: number;
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [pinDialog, setPinDialog] = useState<{
+    message: Message;
+    pinForOther: boolean;
   } | null>(null);
+  const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
+  const [isBuyer, setIsBuyer] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Message | null>(null);
+  const [showUnpinDialog, setShowUnpinDialog] = useState(false);
+  const [alertDialog, setAlertDialog] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
 
   useEffect(() => {
     const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
@@ -115,9 +186,13 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
 
         if (convErr) throw convErr;
 
+        const userIsBuyer = conv.buyer_id === user.id;
+        setIsBuyer(userIsBuyer);
+
+        const field = userIsBuyer ? "buyer_unread_count" : "seller_unread_count";
         await supabase
           .from("conversations")
-          .update({ unread: false })
+          .update({ [field]: 0 })
           .eq("id", channelId);
 
         const otherId = conv.buyer_id === user.id ? conv.seller_id : conv.buyer_id;
@@ -137,6 +212,34 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
 
         if (msgErr) throw msgErr;
         if (mounted) setMessages(msgs || []);
+
+        const otherMsgs = (msgs || []).filter(
+          (m) => m.sender_id !== user.id && !m.read_at,
+        );
+        if (otherMsgs.length > 0) {
+          const ids = otherMsgs.map((m) => m.id);
+          await supabase
+            .from("messages")
+            .update({ read_at: new Date().toISOString() })
+            .in("id", ids);
+          if (mounted) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                ids.includes(m.id) ? { ...m, read_at: new Date().toISOString() } : m,
+              ),
+            );
+          }
+        }
+
+        const pinColumn = conv.buyer_id === user.id ? "pinned_by_buyer" : "pinned_by_seller";
+        const { data: pinned } = await supabase
+          .from("messages")
+          .select("*")
+          .eq("conversation_id", channelId)
+          .eq(pinColumn, true)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (mounted) setPinnedMessages(pinned || []);
       } catch (err) {
         console.error("Error loading chat:", err);
       } finally {
@@ -172,6 +275,21 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
           });
         },
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${channelId}`,
+        },
+        (payload) => {
+          const updated = payload.new as Message;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m)),
+          );
+        },
+      )
       .subscribe();
 
     return () => {
@@ -185,49 +303,50 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
     }
   }, [messages.length]);
 
-  const pickImage = async () => {
+  const pickImages = async () => {
     setShowPicker(false);
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images", "videos"],
       quality: 0.8,
+      allowsMultipleSelection: true,
     });
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      if (asset.fileSize && asset.fileSize > MAX_FILE_SIZE) {
-        Alert.alert("File too large", "Maximum file size is 300 MB.");
-        return;
-      }
-      setPendingAttachment({
-        uri: asset.uri,
-        name: asset.fileName || `file.${asset.uri.split(".").pop() || "jpg"}`,
-        type: asset.mimeType || "image/jpeg",
-        size: asset.fileSize || 0,
-      });
+    if (result.canceled || !result.assets.length) return;
+    const oversized = result.assets.find((a) => a.fileSize && a.fileSize > MAX_FILE_SIZE);
+    if (oversized) {
+      setAlertDialog({ title: "File too large", message: "Maximum file size is 300 MB." });
+      return;
     }
+    const mapped: PendingAttachment[] = result.assets.map((asset) => ({
+      uri: asset.uri,
+      name: asset.fileName || `file.${asset.uri.split(".").pop() || "jpg"}`,
+      type: asset.mimeType || "image/jpeg",
+      size: asset.fileSize || 0,
+    }));
+    setPendingAttachments((prev) => [...prev, ...mapped]);
   };
 
-  const pickDocument = async () => {
+  const pickFiles = async () => {
     setShowPicker(false);
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
         copyToCacheDirectory: true,
+        multiple: true,
       });
-      if (!result.canceled && result.assets[0]) {
-        const asset = result.assets[0];
-        if (asset.size && asset.size > MAX_FILE_SIZE) {
-          Alert.alert("File too large", "Maximum file size is 300 MB.");
-          return;
-        }
-        setPendingAttachment({
-          uri: asset.uri,
-          name: asset.name,
-          type: asset.mimeType || "application/octet-stream",
-          size: asset.size || 0,
-        });
+      if (result.canceled || !result.assets.length) return;
+      const oversized = result.assets.find((a) => a.size && a.size > MAX_FILE_SIZE);
+      if (oversized) {
+        setAlertDialog({ title: "File too large", message: "Maximum file size is 300 MB." });
+        return;
       }
+      const mapped: PendingAttachment[] = result.assets.map((asset) => ({
+        uri: asset.uri,
+        name: asset.name,
+        type: asset.mimeType || "application/octet-stream",
+        size: asset.size || 0,
+      }));
+      setPendingAttachments((prev) => [...prev, ...mapped]);
     } catch (err) {
-      console.error("Error picking document:", err);
+      console.error("Error picking files:", err);
     }
   };
 
@@ -235,13 +354,13 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
     if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ["Cancel", "Photo Library", "Camera", "Document"],
+          options: ["Cancel", "Photo Library", "Files", "Camera"],
           cancelButtonIndex: 0,
         },
         (index) => {
-          if (index === 1) pickImage();
-          else if (index === 2) takePhoto();
-          else if (index === 3) pickDocument();
+          if (index === 1) pickImages();
+          else if (index === 2) pickFiles();
+          else if (index === 3) takePhoto();
         },
       );
     } else {
@@ -254,39 +373,131 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
     const result = await ImagePicker.launchCameraAsync({
       quality: 0.8,
     });
-    if (!result.canceled && result.assets[0]) {
-      const asset = result.assets[0];
-      if (asset.fileSize && asset.fileSize > MAX_FILE_SIZE) {
-        Alert.alert("File too large", "Maximum file size is 300 MB.");
-        return;
-      }
-      setPendingAttachment({
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    if (asset.fileSize && asset.fileSize > MAX_FILE_SIZE) {
+      setAlertDialog({ title: "File too large", message: "Maximum file size is 300 MB." });
+      return;
+    }
+    setPendingAttachments((prev) => [
+      ...prev,
+      {
         uri: asset.uri,
         name: asset.fileName || `photo.${asset.uri.split(".").pop() || "jpg"}`,
         type: asset.mimeType || "image/jpeg",
         size: asset.fileSize || 0,
-      });
+      },
+    ]);
+  };
+
+  const removeAttachment = (index: number) =>
+    setPendingAttachments((prev) => prev.filter((_, i) => i !== index));
+
+  const handleReply = (msg: Message) => {
+    setSelectedMessage(null);
+    setReplyTo(msg);
+  };
+
+  const handleCopy = async (msg: Message) => {
+    setSelectedMessage(null);
+    if (msg.text) {
+      await Clipboard.setStringAsync(msg.text);
     }
   };
 
-  const removeAttachment = () => setPendingAttachment(null);
+  const handlePin = (msg: Message) => {
+    setSelectedMessage(null);
+    setPinDialog({ message: msg, pinForOther: false });
+  };
 
-  const uploadAttachment = async (): Promise<MessageAttachment> => {
-    if (!pendingAttachment || !userId) throw new Error("No attachment");
+  const handlePinConfirm = async () => {
+    if (!pinDialog || !userId) return;
+    const { message, pinForOther } = pinDialog;
+    if (isBuyer) {
+      const updates: Record<string, boolean> = { pinned_by_buyer: true };
+      if (pinForOther) updates.pinned_by_seller = true;
+      await supabase.from("messages").update(updates).eq("id", message.id);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === message.id ? { ...m, ...updates } : m)),
+      );
+    } else {
+      const updates: Record<string, boolean> = { pinned_by_seller: true };
+      if (pinForOther) updates.pinned_by_buyer = true;
+      await supabase.from("messages").update(updates).eq("id", message.id);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === message.id ? { ...m, ...updates } : m)),
+      );
+    }
+    const pinColumn = isBuyer ? "pinned_by_buyer" : "pinned_by_seller";
+    const { data: pinned } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", channelId)
+      .eq(pinColumn, true)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    setPinnedMessages(pinned || []);
+    setPinDialog(null);
+  };
 
-    const ext = pendingAttachment.uri.split(".").pop()?.toLowerCase() || "bin";
+  const handleUnpin = async () => {
+    if (!userId) return;
+    const pinColumn = isBuyer ? "pinned_by_buyer" : "pinned_by_seller";
+    const msg = pinnedMessages[0];
+    if (msg) {
+      await supabase
+        .from("messages")
+        .update({ [pinColumn]: false })
+        .eq("id", msg.id);
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? { ...m, [pinColumn]: false } : m)),
+      );
+    }
+    setPinnedMessages([]);
+    setPinDialog(null);
+  };
+
+  const handleStartEdit = (msg: Message) => {
+    setSelectedMessage(null);
+    setEditingMessage(msg);
+    setInput(msg.text);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setInput("");
+  };
+
+  const handleDelete = (msg: Message) => {
+    setSelectedMessage(null);
+    setDeleteTarget(msg);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await supabase.from("messages").delete().eq("id", deleteTarget.id);
+    setMessages((prev) => prev.filter((m) => m.id !== deleteTarget.id));
+    setDeleteTarget(null);
+  };
+
+  const uploadSingleAttachment = async (
+    att: PendingAttachment,
+  ): Promise<MessageAttachment> => {
+    if (!userId) throw new Error("No user");
+
+    const ext = att.uri.split(".").pop()?.toLowerCase() || "bin";
     const timestamp = Date.now();
-    const fileName = `${userId}_${timestamp}.${ext}`;
+    const fileName = `${userId}_${timestamp}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
     const filePath = `${channelId}/${fileName}`;
 
-    const file = new FileSystem.File(pendingAttachment.uri);
+    const file = new FileSystem.File(att.uri);
     const arrayBuffer = await file.arrayBuffer();
 
     const { data, error } = await supabase.storage
       .from("chat-media")
       .upload(filePath, arrayBuffer, {
         upsert: false,
-        contentType: pendingAttachment.type,
+        contentType: att.type,
       });
 
     if (error) throw error;
@@ -297,75 +508,129 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
 
     return {
       url: urlData.publicUrl,
-      type: pendingAttachment.type,
-      name: pendingAttachment.name,
-      size: pendingAttachment.size,
+      type: att.type,
+      name: att.name,
+      size: att.size,
     };
   };
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if ((!text && !pendingAttachment) || !userId || sending) return;
+    const attachmentsToSend = pendingAttachments;
+    if ((!text && !attachmentsToSend.length) || !userId || sending) return;
 
     setSending(true);
     const textToSend = text;
-    const attachmentToSend = pendingAttachment;
+    const replyToMsg = replyTo;
+    const editingMsg = editingMessage;
     setInput("");
-    setPendingAttachment(null);
+    setPendingAttachments([]);
+    setReplyTo(null);
 
     try {
-      let attachmentData: MessageAttachment | null = null;
-      if (attachmentToSend) {
-        attachmentData = await uploadAttachment();
+      if (editingMsg) {
+        await supabase
+          .from("messages")
+          .update({ text: textToSend || "" })
+          .eq("id", editingMsg.id);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === editingMsg.id ? { ...m, text: textToSend || "" } : m,
+          ),
+        );
+        setEditingMessage(null);
+        return;
       }
 
-      const { error } = await supabase.from("messages").insert({
-        conversation_id: channelId,
-        sender_id: userId,
-        text: textToSend || "",
-        attachment: attachmentData,
-      });
-      if (error) throw error;
+      if (attachmentsToSend.length > 0) {
+        const textUsedForFirst = textToSend || "";
+        for (let i = 0; i < attachmentsToSend.length; i++) {
+          const attachmentData = await uploadSingleAttachment(attachmentsToSend[i]);
+          const { error } = await supabase.from("messages").insert({
+            conversation_id: channelId,
+            sender_id: userId,
+            text: i === 0 ? textUsedForFirst : "",
+            attachment: attachmentData,
+            reply_to_id: replyToMsg?.id || null,
+          });
+          if (error) throw error;
+        }
+      } else if (textToSend) {
+        const { error } = await supabase.from("messages").insert({
+          conversation_id: channelId,
+          sender_id: userId,
+          text: textToSend,
+          attachment: null,
+          reply_to_id: replyToMsg?.id || null,
+        });
+        if (error) throw error;
+      }
     } catch (err) {
       console.error("Error sending message:", err);
-      Alert.alert("Error", "Failed to send message. Please try again.");
+      setAlertDialog({ title: "Error", message: "Failed to send message. Please try again." });
       setInput(textToSend);
+      if (replyToMsg) setReplyTo(replyToMsg);
+      setPendingAttachments(attachmentsToSend);
     } finally {
       setSending(false);
     }
-  }, [input, userId, channelId, sending, pendingAttachment]);
+  }, [input, userId, channelId, sending, pendingAttachments, replyTo, editingMessage]);
+
+  const lastSentMsgId = useMemo(() => {
+    const sent = messages.filter((m) => m.sender_id === userId);
+    return sent.length > 0 ? sent[sent.length - 1].id : null;
+  }, [messages, userId]);
+
+  const handleScroll = (event: any) => {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const distanceFromBottom =
+      contentSize.height - contentOffset.y - layoutMeasurement.height;
+    setIsAtBottom(distanceFromBottom < 50);
+  };
+
+  const scrollToEnd = () => {
+    flatListRef.current?.scrollToEnd({ animated: true });
+  };
+
+  const openImagePreview = (url: string) => {
+    setPreviewImageUri(url);
+  };
 
   const renderAttachment = (att: MessageAttachment) => {
     const iconType = getFileIcon(att.type);
 
     if (iconType === "image") {
       return (
-        <Image
-          source={{ uri: att.url }}
-          style={styles.attachmentImage}
-          resizeMode="cover"
-        />
-      );
-    }
-
-    if (iconType === "video") {
-      return (
-        <View style={styles.attachmentVideo}>
+        <TouchableOpacity onPress={() => openImagePreview(att.url)}>
           <Image
             source={{ uri: att.url }}
             style={styles.attachmentImage}
             resizeMode="cover"
           />
-          <View style={styles.videoOverlay}>
-            <Video size={32} color="#fff" />
+        </TouchableOpacity>
+      );
+    }
+
+    if (iconType === "video") {
+      return (
+        <TouchableOpacity onPress={() => openImagePreview(att.url)}>
+          <View style={styles.attachmentVideo}>
+            <Image
+              source={{ uri: att.url }}
+              style={styles.attachmentImage}
+              resizeMode="cover"
+            />
+            <View style={styles.videoOverlay}>
+              <Video size={32} color="#fff" />
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
       );
     }
 
     return (
       <View style={styles.attachmentFile}>
-        <FileText size={28} color="#64748b" />
+        <FileText size={28} color="#666876" />
         <Text style={styles.attachmentFileName} numberOfLines={1}>
           {att.name}
         </Text>
@@ -377,7 +642,7 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#f59e0b" />
+        <ActivityIndicator size="large" color="#22c55e" />
       </View>
     );
   }
@@ -395,69 +660,184 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
         </View>
       </View>
 
+      {pinnedMessages.length > 0 && pinnedMessages[0] && (
+        <View style={styles.pinnedBanner}>
+          <Pin size={14} color="#22c55e" />
+          <Text style={styles.pinnedBannerText} numberOfLines={1}>
+            {pinnedMessages[0].text || (pinnedMessages[0].attachment ? "Attachment" : "")}
+          </Text>
+          <TouchableOpacity
+            onPress={() => setShowUnpinDialog(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <CheckSquare size={16} color="#22c55e" />
+          </TouchableOpacity>
+        </View>
+      )}
+
       <FlatList
         ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
+        data={buildMessageList(messages)}
+        keyExtractor={(item) => ("type" in item ? item.id : item.id)}
         contentContainerStyle={styles.messageList}
         style={styles.flex}
-        onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: false })
-        }
+        onContentSizeChange={() => {
+          if (isAtBottom) {
+            flatListRef.current?.scrollToEnd({ animated: false });
+          }
+        }}
+        onScroll={handleScroll}
+        scrollEventThrottle={100}
         renderItem={({ item }) => {
+          if ("type" in item) {
+            return (
+              <View style={styles.dateSeparator}>
+                <Text style={styles.dateSeparatorText}>{item.label}</Text>
+              </View>
+            );
+          }
           const isMine = item.sender_id === userId;
+          const isPinned = isBuyer ? item.pinned_by_buyer : item.pinned_by_seller;
+          const replyMsg = item.reply_to_id
+            ? messages.find((m) => m.id === item.reply_to_id)
+            : null;
           return (
-            <View
-              style={[
-                styles.messageBubble,
-                isMine ? styles.myMessage : styles.theirMessage,
-              ]}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => setSelectedMessage(item)}
+              onLongPress={() => setSelectedMessage(item)}
+              delayLongPress={300}
             >
-              {item.attachment && renderAttachment(item.attachment)}
-              {item.text ? (
-                <Text
-                  style={[
-                    styles.messageText,
-                    isMine ? styles.myMessageText : styles.theirMessageText,
-                    item.attachment ? { marginTop: 6 } : undefined,
-                  ]}
-                >
-                  {item.text}
-                </Text>
-              ) : null}
-              <Text
+              {isPinned && (
+                <View style={[styles.pinBadge, isMine ? styles.pinBadgeMine : styles.pinBadgeOther]}>
+                  <Pin size={10} color={isMine ? "#fff" : "#22c55e"} />
+                  <Text style={[styles.pinBadgeText, isMine ? { color: "rgba(255,255,255,0.7)" } : { color: "#22c55e" }]}>Pinned</Text>
+                </View>
+              )}
+              <View
                 style={[
-                  styles.messageTime,
-                  isMine ? styles.myMessageTime : styles.theirMessageTime,
+                  styles.messageBubble,
+                  isMine ? styles.myMessage : styles.theirMessage,
+                  isPinned && (isMine ? styles.myMessagePinned : styles.theirMessagePinned),
                 ]}
               >
-                {new Date(item.created_at).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </Text>
-            </View>
+                {replyMsg && (
+                  <View style={[styles.replyPreview, isMine ? styles.replyPreviewMine : styles.replyPreviewOther]}>
+                    <View style={styles.replyIndicator} />
+                    <View style={styles.replyContent}>
+                      <Text style={[styles.replyName, isMine ? { color: "rgba(255,255,255,0.8)" } : { color: "#22c55e" }]} numberOfLines={1}>
+                        {replyMsg.sender_id === userId ? "You" : otherName}
+                      </Text>
+                      <Text style={[styles.replyText, isMine ? { color: "rgba(255,255,255,0.6)" } : { color: "#666876" }]} numberOfLines={1}>
+                        {replyMsg.text || (replyMsg.attachment?.type?.startsWith("image/") ? "Photo" : replyMsg.attachment?.type?.startsWith("video/") ? "Video" : replyMsg.attachment ? "Attachment" : "")}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+                {item.attachment && renderAttachment(item.attachment)}
+                <View style={styles.textTimeRow}>
+                  {item.text ? (
+                    <Text
+                      style={[
+                        styles.messageText,
+                        isMine ? styles.myMessageText : styles.theirMessageText,
+                        item.attachment ? { marginTop: 6 } : undefined,
+                        { flexShrink: 1 },
+                      ]}
+                    >
+                      {item.text}
+                    </Text>
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.messageTime,
+                      isMine ? styles.myMessageTime : styles.theirMessageTime,
+                    ]}
+                  >
+                    {new Date(item.created_at).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </Text>
+                </View>
+              </View>
+              {isMine && item.id === lastSentMsgId && (
+                <Text style={[styles.readStatusBelow, item.read_at ? styles.readStatusRead : styles.readStatusSent]}>
+                  {item.read_at ? "Seen" : "Sent"}
+                </Text>
+              )}
+            </TouchableOpacity>
           );
         }}
       />
 
-      {pendingAttachment && (
-        <View style={styles.attachmentPreview}>
-          <Image
-            source={{ uri: pendingAttachment.uri }}
-            style={styles.attachmentPreviewImage}
-            resizeMode="cover"
-          />
-          <View style={styles.attachmentPreviewInfo}>
-            <Text style={styles.attachmentPreviewName} numberOfLines={1}>
-              {pendingAttachment.name}
+      {!isAtBottom && messages.length > 0 && (
+        <TouchableOpacity
+          onPress={scrollToEnd}
+          activeOpacity={0.8}
+          style={styles.scrollToBottom}
+        >
+          <ChevronLeft size={20} color="#22c55e" style={{ transform: [{ rotate: "90deg" }] }} />
+        </TouchableOpacity>
+      )}
+
+      {pendingAttachments.length > 0 && (
+        <View style={styles.attachmentBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.attachmentBarContent}
+          >
+            {pendingAttachments.map((att, index) => (
+              <View key={index} style={styles.attachmentPreview}>
+                <Image
+                  source={{ uri: att.uri }}
+                  style={styles.attachmentPreviewImage}
+                  resizeMode="cover"
+                />
+                <Text style={styles.attachmentPreviewName} numberOfLines={1}>
+                  {att.name}
+                </Text>
+                <Text style={styles.attachmentPreviewSize}>
+                  {formatFileSize(att.size)}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => removeAttachment(index)}
+                  style={styles.removeButton}
+                >
+                  <X size={14} color="#ef4444" />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {replyTo && (
+        <View style={styles.replyBar}>
+          <View style={styles.replyBarLine} />
+          <View style={styles.replyBarContent}>
+            <Text style={styles.replyBarLabel} numberOfLines={1}>
+              Reply to {replyTo.sender_id === userId ? "yourself" : otherName}
             </Text>
-            <Text style={styles.attachmentPreviewSize}>
-              {formatFileSize(pendingAttachment.size)}
+            <Text style={styles.replyBarText} numberOfLines={1}>
+              {replyTo.text || (replyTo.attachment?.type?.startsWith("image/") ? "Photo" : replyTo.attachment?.type?.startsWith("video/") ? "Video" : "Attachment")}
             </Text>
           </View>
-          <TouchableOpacity onPress={removeAttachment} style={styles.removeButton}>
-            <X size={18} color="#ef4444" />
+          <TouchableOpacity onPress={() => setReplyTo(null)} style={styles.replyBarClose}>
+            <X size={16} color="#8C8E98" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {editingMessage && (
+        <View style={styles.replyBar}>
+          <View style={[styles.replyBarLine, { backgroundColor: "#22c55e" }]} />
+          <View style={styles.replyBarContent}>
+            <Text style={[styles.replyBarLabel, { color: "#22c55e" }]}>Editing message</Text>
+          </View>
+          <TouchableOpacity onPress={handleCancelEdit} style={styles.replyBarClose}>
+            <X size={16} color="#8C8E98" />
           </TouchableOpacity>
         </View>
       )}
@@ -472,29 +852,37 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
         ]}
       >
         <TouchableOpacity onPress={openPicker} style={styles.attachButton}>
-          <Paperclip size={22} color="#64748b" />
+            <Paperclip size={22} color="#666876" />
         </TouchableOpacity>
         <TextInput
           value={input}
           onChangeText={setInput}
-          placeholder="Type a message..."
-          placeholderTextColor="#94a3b8"
+          placeholder={editingMessage ? "Edit message..." : "Type a message..."}
+          placeholderTextColor="#8C8E98"
           style={styles.input}
           multiline
           maxLength={2000}
         />
         <TouchableOpacity
           onPress={handleSend}
-          disabled={(!input.trim() && !pendingAttachment) || sending}
+          disabled={
+            editingMessage
+              ? !input.trim()
+              : (!input.trim() && pendingAttachments.length === 0) || sending
+          }
           style={[
             styles.sendButton,
-            (!input.trim() && !pendingAttachment) && styles.sendButtonDisabled,
+            editingMessage
+              ? { backgroundColor: "#22c55e" }
+              : (!input.trim() && pendingAttachments.length === 0) && styles.sendButtonDisabled,
           ]}
         >
           {sending ? (
             <ActivityIndicator size="small" color="#fff" />
+          ) : editingMessage ? (
+            <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}>✓</Text>
           ) : (
-            <Send size={20} color={(!input.trim() && !pendingAttachment) ? "#cbd5e1" : "#fff"} />
+            <Send size={20} color={(!input.trim() && pendingAttachments.length === 0) ? "#bbf7d0" : "#fff"} />
           )}
         </TouchableOpacity>
       </View>
@@ -512,29 +900,248 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
         >
           <View style={styles.modalSheet}>
             <Text style={styles.modalTitle}>Attach File</Text>
-            <TouchableOpacity style={styles.modalOption} onPress={pickImage}>
-              <ImageIcon size={22} color="#f59e0b" />
+            <TouchableOpacity style={styles.modalOption} onPress={pickImages}>
+              <ImageIcon size={22} color="#22c55e" />
               <Text style={styles.modalOptionText}>Photo Library</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalOption} onPress={takePhoto}>
-              <Camera size={22} color="#f59e0b" />
-              <Text style={styles.modalOptionText}>Camera</Text>
+            <TouchableOpacity style={styles.modalOption} onPress={pickFiles}>
+              <FileText size={22} color="#22c55e" />
+              <Text style={styles.modalOptionText}>Files</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.modalOption} onPress={pickDocument}>
-              <FileText size={22} color="#f59e0b" />
-              <Text style={styles.modalOptionText}>Document</Text>
+            <TouchableOpacity style={styles.modalOption} onPress={takePhoto}>
+              <Camera size={22} color="#22c55e" />
+              <Text style={styles.modalOptionText}>Camera</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.modalOption, { borderBottomWidth: 0 }]}
               onPress={() => setShowPicker(false)}
             >
-              <Text style={[styles.modalOptionText, { color: "#94a3b8" }]}>
+              <Text style={[styles.modalOptionText, { color: "#8C8E98" }]}>
                 Cancel
               </Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <Modal
+        visible={!!selectedMessage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedMessage(null)}
+      >
+        <TouchableOpacity
+          style={styles.menuBackdrop}
+          activeOpacity={1}
+          onPress={() => setSelectedMessage(null)}
+        >
+          <View style={styles.menuCard}>
+            <TouchableOpacity
+              style={styles.menuOption}
+              onPress={() => selectedMessage && handleReply(selectedMessage)}
+            >
+              <MessageSquareReply size={18} color="#191D31" />
+              <Text style={styles.menuOptionText}>Reply</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuOption}
+              onPress={() => selectedMessage && handleCopy(selectedMessage)}
+            >
+              <Copy size={18} color="#191D31" />
+              <Text style={styles.menuOptionText}>Copy</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuOption}
+              onPress={() => selectedMessage && handlePin(selectedMessage)}
+            >
+              <Pin size={18} color="#191D31" />
+              <Text style={styles.menuOptionText}>Pin</Text>
+            </TouchableOpacity>
+            {selectedMessage?.sender_id === userId && (
+              <>
+                <TouchableOpacity
+                  style={styles.menuOption}
+                  onPress={() => selectedMessage && handleStartEdit(selectedMessage)}
+                >
+                  <Edit3 size={18} color="#191D31" />
+                  <Text style={styles.menuOptionText}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.menuOption}
+                  onPress={() => selectedMessage && handleDelete(selectedMessage)}
+                >
+                  <Trash2 size={18} color="#ef4444" />
+                  <Text style={[styles.menuOptionText, { color: "#ef4444" }]}>Delete</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={!!pinDialog}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPinDialog(null)}
+      >
+        <TouchableOpacity
+          style={styles.dialogBackdrop}
+          activeOpacity={1}
+          onPress={() => setPinDialog(null)}
+        >
+          <View style={styles.dialogCard}>
+            <Text style={styles.dialogTitle}>Pin Message</Text>
+            <View style={styles.dialogBody}>
+              <TouchableOpacity
+                style={styles.checkboxRow}
+                onPress={() =>
+                  setPinDialog((prev) =>
+                    prev ? { ...prev, pinForOther: !prev.pinForOther } : null,
+                  )
+                }
+              >
+                {pinDialog?.pinForOther ? (
+                  <CheckSquare size={20} color="#22c55e" />
+                ) : (
+                  <Square size={20} color="#8C8E98" />
+                )}
+                <Text style={styles.checkboxLabel}>
+                  Also pin for {otherName}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.dialogFooter}>
+              <TouchableOpacity
+                style={styles.dialogButton}
+                onPress={() => setPinDialog(null)}
+              >
+                <Text style={styles.dialogButtonCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dialogButton, styles.dialogButtonPrimary]}
+                onPress={handlePinConfirm}
+              >
+                <Text style={styles.dialogButtonConfirm}>Pin</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <AlertDialog
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        useRNModal={true}
+      >
+        <AlertDialog.Backdrop />
+        <AlertDialog.Content className="p-6 rounded-3xl bg-white w-5/6 items-center shadow-xl">
+          <AlertDialog.Header>
+            <Heading>Delete Message</Heading>
+          </AlertDialog.Header>
+          <AlertDialog.Body>
+            <Text className="text-center text-slate-500">
+              Are you sure you want to delete this message?
+            </Text>
+          </AlertDialog.Body>
+          <AlertDialog.Footer className="w-full flex-row gap-2">
+            <Button
+              onPress={() => setDeleteTarget(null)}
+              className="flex-1"
+            >
+              <ButtonText>Cancel</ButtonText>
+            </Button>
+            <Button
+              onPress={confirmDelete}
+              className="bg-red-500 flex-1"
+            >
+              <ButtonText>Delete</ButtonText>
+            </Button>
+          </AlertDialog.Footer>
+        </AlertDialog.Content>
+      </AlertDialog>
+
+      <AlertDialog
+        isOpen={showUnpinDialog}
+        onClose={() => setShowUnpinDialog(false)}
+        useRNModal={true}
+      >
+        <AlertDialog.Backdrop />
+        <AlertDialog.Content className="p-6 rounded-3xl bg-white w-5/6 items-center shadow-xl">
+          <AlertDialog.Header>
+            <Heading>Unpin Message</Heading>
+          </AlertDialog.Header>
+          <AlertDialog.Body>
+            <Text className="text-center text-slate-500">
+              Are you sure you want to unpin this message?
+            </Text>
+          </AlertDialog.Body>
+          <AlertDialog.Footer className="w-full flex-row gap-2">
+            <Button
+              onPress={() => setShowUnpinDialog(false)}
+              className="flex-1"
+            >
+              <ButtonText>Cancel</ButtonText>
+            </Button>
+            <Button
+              onPress={() => {
+                setShowUnpinDialog(false);
+                handleUnpin();
+              }}
+              className="bg-red-500 flex-1"
+            >
+              <ButtonText>Unpin</ButtonText>
+            </Button>
+          </AlertDialog.Footer>
+        </AlertDialog.Content>
+      </AlertDialog>
+
+      <Modal
+        visible={!!previewImageUri}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPreviewImageUri(null)}
+      >
+        <TouchableOpacity
+          style={styles.imagePreviewOverlay}
+          activeOpacity={1}
+          onPress={() => setPreviewImageUri(null)}
+        >
+          {previewImageUri && (
+            <Image
+              source={{ uri: previewImageUri }}
+              style={styles.imagePreviewFull}
+              resizeMode="contain"
+            />
+          )}
+        </TouchableOpacity>
+      </Modal>
+
+      <AlertDialog
+        isOpen={!!alertDialog}
+        onClose={() => setAlertDialog(null)}
+        useRNModal={true}
+      >
+        <AlertDialog.Backdrop />
+        <AlertDialog.Content className="p-6 rounded-3xl bg-white w-5/6 items-center shadow-xl">
+          <AlertDialog.Header>
+            <Heading>{alertDialog?.title || ""}</Heading>
+          </AlertDialog.Header>
+          <AlertDialog.Body>
+            <Text className="text-center text-slate-500">
+              {alertDialog?.message || ""}
+            </Text>
+          </AlertDialog.Body>
+          <AlertDialog.Footer className="w-full flex-row justify-center">
+            <Button
+              onPress={() => setAlertDialog(null)}
+              className="flex-1"
+            >
+              <ButtonText>OK</ButtonText>
+            </Button>
+          </AlertDialog.Footer>
+        </AlertDialog.Content>
+      </AlertDialog>
     </View>
   );
 }
@@ -557,7 +1164,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     paddingHorizontal: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e2e8f0",
+      borderBottomColor: "#bbf7d0",
     backgroundColor: "#fff",
   },
   headerLeft: {
@@ -570,7 +1177,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#0f172a",
+      color: "#191D31",
   },
   centerContainer: {
     flex: 1,
@@ -591,7 +1198,7 @@ const styles = StyleSheet.create({
   },
   myMessage: {
     alignSelf: "flex-end",
-    backgroundColor: "#f59e0b",
+      backgroundColor: "#22c55e",
     borderBottomRightRadius: 4,
   },
   theirMessage: {
@@ -599,7 +1206,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderBottomLeftRadius: 4,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: "#e2e8f0",
+      borderColor: "#bbf7d0",
   },
   messageText: {
     fontSize: 15,
@@ -609,18 +1216,37 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
   theirMessageText: {
-    color: "#0f172a",
+      color: "#191D31",
   },
   messageTime: {
     fontSize: 10,
-    marginTop: 4,
+    marginLeft: "auto",
+    paddingLeft: 4,
     alignSelf: "flex-end",
   },
   myMessageTime: {
     color: "rgba(255,255,255,0.7)",
   },
   theirMessageTime: {
-    color: "#94a3b8",
+      color: "#8C8E98",
+  },
+  textTimeRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
+  readStatusSent: {
+    fontSize: 11,
+      color: "#8C8E98",
+  },
+  readStatusRead: {
+    fontSize: 11,
+      color: "#22c55e",
+  },
+  readStatusBelow: {
+    alignSelf: "flex-end",
+    marginTop: 2,
+    marginBottom: 4,
+    marginRight: 4,
   },
   attachmentImage: {
     width: 200,
@@ -641,7 +1267,7 @@ const styles = StyleSheet.create({
   attachmentFile: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f1f5f9",
+      backgroundColor: "#dcfce7",
     borderRadius: 10,
     padding: 10,
     gap: 8,
@@ -649,49 +1275,58 @@ const styles = StyleSheet.create({
   attachmentFileName: {
     flex: 1,
     fontSize: 13,
-    color: "#0f172a",
+      color: "#191D31",
     fontWeight: "600",
   },
   attachmentFileSize: {
     fontSize: 11,
-    color: "#94a3b8",
+      color: "#8C8E98",
+  },
+  attachmentBar: {
+    paddingVertical: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: "#bbf7d0",
+    backgroundColor: "#fff",
+  },
+  attachmentBarContent: {
+    paddingHorizontal: 12,
+    gap: 8,
   },
   attachmentPreview: {
-    flexDirection: "row",
+    width: 100,
     alignItems: "center",
-    marginHorizontal: 10,
-    marginBottom: 4,
-    padding: 8,
-    backgroundColor: "#f1f5f9",
-    borderRadius: 12,
+    padding: 6,
+      backgroundColor: "#dcfce7",
+    borderRadius: 10,
+    position: "relative",
   },
   attachmentPreviewImage: {
-    width: 40,
-    height: 40,
+    width: 60,
+    height: 60,
     borderRadius: 8,
   },
-  attachmentPreviewInfo: {
-    flex: 1,
-    marginLeft: 10,
-  },
   attachmentPreviewName: {
-    fontSize: 13,
+    fontSize: 10,
     fontWeight: "600",
-    color: "#0f172a",
+      color: "#191D31",
+    marginTop: 4,
+    maxWidth: 90,
   },
   attachmentPreviewSize: {
-    fontSize: 11,
-    color: "#94a3b8",
+    fontSize: 9,
+      color: "#8C8E98",
     marginTop: 2,
   },
   removeButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    position: "absolute",
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: "#fee2e2",
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 8,
   },
   inputBar: {
     flexDirection: "row",
@@ -699,39 +1334,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#e2e8f0",
+      borderTopColor: "#bbf7d0",
     backgroundColor: "#fff",
   },
   attachButton: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: "#f1f5f9",
+      backgroundColor: "#dcfce7",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 8,
   },
   input: {
     flex: 1,
-    backgroundColor: "#f1f5f9",
+      backgroundColor: "#dcfce7",
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 15,
     maxHeight: 100,
-    color: "#0f172a",
+      color: "#191D31",
   },
   sendButton: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: "#f59e0b",
+      backgroundColor: "#22c55e",
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
   },
   sendButtonDisabled: {
-    backgroundColor: "#f1f5f9",
+      backgroundColor: "#dcfce7",
   },
   modalBackdrop: {
     flex: 1,
@@ -749,7 +1384,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 17,
     fontWeight: "700",
-    color: "#0f172a",
+      color: "#191D31",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -758,12 +1393,255 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#f1f5f9",
+      borderBottomColor: "#dcfce7",
     gap: 12,
   },
   modalOptionText: {
     fontSize: 16,
-    color: "#0f172a",
+      color: "#191D31",
     fontWeight: "500",
+  },
+  pinBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    marginBottom: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+  },
+  pinBadgeMine: {
+    alignSelf: "flex-end",
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  pinBadgeOther: {
+    backgroundColor: "#eff6ff",
+  },
+  pinBadgeText: {
+    fontSize: 9,
+    fontWeight: "600",
+  },
+  myMessagePinned: {
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  theirMessagePinned: {
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  replyPreview: {
+    flexDirection: "row",
+    marginBottom: 4,
+    paddingBottom: 4,
+  },
+  replyPreviewMine: {},
+  replyPreviewOther: {},
+  replyIndicator: {
+    width: 2,
+      backgroundColor: "#22c55e",
+    borderRadius: 2,
+    marginRight: 8,
+  },
+  replyContent: {
+    flex: 1,
+  },
+  replyName: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  replyText: {
+    fontSize: 13,
+    marginTop: 1,
+  },
+  replyBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#fff",
+    borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: "#bbf7d0",
+  },
+  replyBarLine: {
+    width: 3,
+    height: 32,
+      backgroundColor: "#22c55e",
+    borderRadius: 2,
+    marginRight: 10,
+  },
+  replyBarContent: {
+    flex: 1,
+  },
+  replyBarLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+      color: "#22c55e",
+  },
+  replyBarText: {
+    fontSize: 13,
+      color: "#666876",
+    marginTop: 2,
+  },
+  replyBarClose: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+      backgroundColor: "#dcfce7",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  menuBackdrop: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  menuCard: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    minWidth: 200,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  menuOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  menuOptionText: {
+    fontSize: 15,
+      color: "#191D31",
+    fontWeight: "500",
+  },
+  pinnedBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: "#eff6ff",
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#bfdbfe",
+    gap: 8,
+  },
+  pinnedBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#1e40af",
+    fontWeight: "500",
+  },
+  dialogBackdrop: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  dialogCard: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    width: "82%",
+    maxWidth: 340,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  dialogTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+      color: "#191D31",
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  dialogBody: {
+    marginBottom: 20,
+  },
+  checkboxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 6,
+  },
+  checkboxLabel: {
+    fontSize: 14,
+      color: "#191D31",
+    fontWeight: "500",
+    flex: 1,
+  },
+  dialogFooter: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+  dialogButton: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  dialogButtonPrimary: {
+      backgroundColor: "#22c55e",
+  },
+  dialogButtonCancel: {
+    fontSize: 15,
+      color: "#666876",
+    fontWeight: "600",
+  },
+  dialogButtonConfirm: {
+    fontSize: 15,
+    color: "#fff",
+    fontWeight: "600",
+  },
+  dateSeparator: {
+    alignItems: "center",
+    marginVertical: 12,
+  },
+  dateSeparatorText: {
+    fontSize: 12,
+    fontWeight: "600",
+      color: "#666876",
+      backgroundColor: "#bbf7d0",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  scrollToBottom: {
+    position: "absolute",
+    right: 16,
+    bottom: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    borderWidth: StyleSheet.hairlineWidth,
+      borderColor: "#bbf7d0",
+  },
+  imagePreviewOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imagePreviewFull: {
+    width: "100%",
+    height: "100%",
   },
 });

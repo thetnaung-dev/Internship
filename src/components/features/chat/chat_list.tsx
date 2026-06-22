@@ -7,6 +7,7 @@ import {
   Pin,
   Trash2,
   MailOpen,
+  Search,
 } from "lucide-react-native";
 import React, { useCallback, useRef, useState } from "react";
 import {
@@ -16,6 +17,7 @@ import {
   Image,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -27,6 +29,7 @@ import { Heading } from "@/components/features/ui/heading/heading";
 interface MessageSummary {
   text: string;
   created_at: string;
+  attachment?: { type: string } | null;
 }
 
 interface Conversation {
@@ -38,7 +41,9 @@ interface Conversation {
   muted: boolean;
   archived: boolean;
   pinned: boolean;
-  unread: boolean;
+  buyer_unread_count: number;
+  seller_unread_count: number;
+  unreadCount: number;
   messages?: MessageSummary[];
   other_user?: { full_name: string; avatar_url?: string | null };
 }
@@ -87,6 +92,7 @@ export function ChatList() {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
   useFocusEffect(
@@ -111,8 +117,8 @@ export function ChatList() {
         .from("conversations")
         .select(
           `id, buyer_id, seller_id, created_at, updated_at,
-          muted, archived, pinned, unread,
-          messages:messages!messages_conversation_id_fkey(text, created_at)`,
+          muted, archived, pinned, buyer_unread_count, seller_unread_count,
+           messages:messages!messages_conversation_id_fkey(text, created_at, attachment)`,
         )
         .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
         .order("updated_at", { ascending: false });
@@ -140,7 +146,8 @@ export function ChatList() {
           .select("full_name, avatar_url")
           .eq("id", otherId)
           .single();
-        return { ...c, other_user: profile || { full_name: "Unknown" } };
+        const unreadCount = c.buyer_id === uid ? (c.buyer_unread_count || 0) : (c.seller_unread_count || 0);
+        return { ...c, unreadCount, other_user: profile || { full_name: "Unknown" } };
       }),
     );
   };
@@ -149,6 +156,20 @@ export function ChatList() {
     await supabase.from("conversations").update({ [field]: value }).eq("id", id);
     setConversations((prev) =>
       prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)),
+    );
+  };
+
+  const markAsRead = async (id: string, wasUnread: boolean) => {
+    if (!userId) return;
+    const field = userId === conversations.find(c => c.id === id)?.buyer_id
+      ? "buyer_unread_count"
+      : "seller_unread_count";
+    const value = wasUnread ? 0 : 1;
+    await supabase.from("conversations").update({ [field]: value }).eq("id", id);
+    setConversations((prev) =>
+      prev.map((c) =>
+        c.id === id ? { ...c, [field]: value, unreadCount: value } : c,
+      ),
     );
   };
 
@@ -167,7 +188,7 @@ export function ChatList() {
         <ActionButton
           icon={<BellOff size={20} color={iconColor} />}
           label={item.muted ? "Unmute" : "Mute"}
-          color="#f59e0b"
+          color="#22c55e"
           onPress={() => {
             closeSwipeable(item.id);
             updateField(item.id, "muted", !item.muted);
@@ -185,7 +206,7 @@ export function ChatList() {
         <ActionButton
           icon={<Archive size={20} color={iconColor} />}
           label={item.archived ? "Unarchive" : "Archive"}
-          color="#64748b"
+          color="#666876"
           onPress={() => {
             closeSwipeable(item.id);
             updateField(item.id, "archived", !item.archived);
@@ -205,17 +226,17 @@ export function ChatList() {
       <View style={[styles.actionsContainer, { flexDirection: "row-reverse" }]}>
         <ActionButton
           icon={<MailOpen size={20} color={iconColor} />}
-          label={item.unread ? "Read" : "Unread"}
-          color="#3b82f6"
+          label={item.unreadCount > 0 ? "Read" : "Unread"}
+          color="#22c55e"
           onPress={() => {
             closeSwipeable(item.id);
-            updateField(item.id, "unread", !item.unread);
+            markAsRead(item.id, item.unreadCount > 0);
           }}
         />
         <ActionButton
           icon={<Pin size={20} color={iconColor} />}
           label={item.pinned ? "Unpin" : "Pin"}
-          color="#8b5cf6"
+          color="#22c55e"
           onPress={() => {
             closeSwipeable(item.id);
             updateField(item.id, "pinned", !item.pinned);
@@ -225,10 +246,19 @@ export function ChatList() {
     );
   };
 
+  const filteredConversations = searchQuery.trim()
+    ? conversations.filter((c) => {
+        const name = (c.other_user?.full_name || "").toLowerCase();
+        const lastMsg = (Array.isArray(c.messages) && c.messages[c.messages.length - 1]?.text || "").toLowerCase();
+        const q = searchQuery.toLowerCase();
+        return name.includes(q) || lastMsg.includes(q);
+      })
+    : conversations;
+
   if (!userId) {
     return (
       <View style={styles.centerContainer}>
-        <MessageCircle size={48} color="#cbd5e1" />
+        <MessageCircle size={48} color="#bbf7d0" />
         <Text style={styles.emptyText}>Sign in to see your conversations.</Text>
       </View>
     );
@@ -237,7 +267,7 @@ export function ChatList() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#f59e0b" />
+        <ActivityIndicator size="large" color="#22c55e" />
       </View>
     );
   }
@@ -247,17 +277,33 @@ export function ChatList() {
       <View style={styles.headerBar}>
         <Text style={styles.headerTitle}>Messages</Text>
       </View>
+      <View style={styles.searchBar}>
+        <Search size={16} color="#8C8E98" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search conversations..."
+          placeholderTextColor="#8C8E98"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </View>
       <FlatList
-        data={conversations}
+        data={filteredConversations}
         keyExtractor={(item) => item.id}
         contentContainerStyle={conversations.length === 0 ? styles.emptyList : undefined}
         ListEmptyComponent={
           <View style={styles.centerContainer}>
-            <MessageCircle size={48} color="#cbd5e1" />
-            <Text style={styles.emptyText}>No conversations yet.</Text>
-            <Text style={styles.emptySubtext}>
-              Tap "Chat" on a property to start one.
+            <MessageCircle size={48}           color="#bbf7d0" />
+            <Text style={styles.emptyText}>
+              {searchQuery.trim() ? "No conversations match your search." : "No conversations yet."}
             </Text>
+            {!searchQuery.trim() && (
+              <Text style={styles.emptySubtext}>
+                Tap "Chat" on a property to start one.
+              </Text>
+            )}
           </View>
         }
         renderItem={({ item }) => {
@@ -277,7 +323,7 @@ export function ChatList() {
               <TouchableOpacity
                 style={[
                   styles.conversationItem,
-                  item.unread && styles.unreadItem,
+                  item.unreadCount > 0 && styles.unreadItem,
                 ]}
                 onPress={() => router.push(`/chat/${item.id}` as any)}
               >
@@ -297,22 +343,31 @@ export function ChatList() {
                   )}
                 </View>
                 <View style={styles.conversationContent}>
-                  <View style={styles.conversationTop}>
-                    <Text
-                      style={[
-                        styles.otherName,
-                        item.unread && styles.unreadText,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {item.other_user?.full_name || "Unknown"}
-                    </Text>
-                    <Text style={styles.timeText}>
-                      {formatTime(lastMsg ? lastMsg.created_at : item.created_at)}
-                    </Text>
-                  </View>
+                    <View style={styles.conversationTop}>
+                      <Text
+                        style={[
+                          styles.otherName,
+                          item.unreadCount > 0 && styles.unreadText,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {item.other_user?.full_name || "Unknown"}
+                      </Text>
+                      <View style={styles.timeRow}>
+                        <Text style={styles.timeText}>
+                          {formatTime(lastMsg ? lastMsg.created_at : item.created_at)}
+                        </Text>
+                        {item.unreadCount > 0 && (
+                          <View style={styles.unreadBadge}>
+                            <Text style={styles.unreadBadgeText}>
+                              {item.unreadCount > 99 ? "99+" : item.unreadCount}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
                   <Text style={styles.lastMessage} numberOfLines={1}>
-                    {lastMsg?.text || "No messages yet"}
+                    {lastMsg?.text || (lastMsg?.attachment?.type?.startsWith("image/") ? "Photo" : lastMsg?.attachment?.type?.startsWith("video/") ? "Video" : "No messages yet")}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -332,7 +387,7 @@ export function ChatList() {
             <Heading>Delete Conversation</Heading>
           </AlertDialog.Header>
           <AlertDialog.Body>
-            <Text className="text-center text-slate-500">
+             <Text className="text-center text-black-100">
               Are you sure you want to delete this conversation?
             </Text>
           </AlertDialog.Body>
@@ -370,12 +425,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#e2e8f0",
+    borderBottomColor: "#bbf7d0",
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: "800",
-    color: "#0f172a",
+    fontFamily: "JakartaSans-Bold",
+    color: "#191D31",
   },
   centerContainer: {
     flex: 1,
@@ -385,14 +440,14 @@ const styles = StyleSheet.create({
   },
   emptyList: { flexGrow: 1 },
   emptyText: {
-    color: "#94a3b8",
+    color: "#8C8E98",
     fontSize: 15,
-    fontWeight: "600",
+    fontFamily: "JakartaSans-SemiBold",
     marginTop: 12,
     textAlign: "center",
   },
   emptySubtext: {
-    color: "#cbd5e1",
+    color: "#666876",
     fontSize: 13,
     marginTop: 4,
     textAlign: "center",
@@ -402,18 +457,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#f1f5f9",
+    borderBottomColor: "#dcfce7",
     alignItems: "center",
     backgroundColor: "#fff",
   },
   unreadItem: {
-    backgroundColor: "#f0f9ff",
+    backgroundColor: "#dcfce7",
   },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#f59e0b",
+    backgroundColor: "#22c55e",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -432,7 +487,7 @@ const styles = StyleSheet.create({
   avatarText: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "700",
+    fontFamily: "JakartaSans-Bold",
   },
   conversationContent: {
     flex: 1,
@@ -445,21 +500,57 @@ const styles = StyleSheet.create({
   },
   otherName: {
     fontSize: 15,
-    fontWeight: "700",
-    color: "#0f172a",
+    fontFamily: "JakartaSans-Bold",
+    color: "#191D31",
     flex: 1,
     marginRight: 8,
   },
   unreadText: {
-    fontWeight: "800",
+    fontFamily: "JakartaSans-ExtraBold",
   },
   timeText: {
     fontSize: 11,
-    color: "#94a3b8",
+    color: "#8C8E98",
+  },
+  timeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  unreadBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#22c55e",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 5,
+  },
+  unreadBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontFamily: "JakartaSans-ExtraBold",
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginVertical: 8,
+    paddingHorizontal: 12,
+    height: 36,
+    backgroundColor: "#dcfce7",
+    borderRadius: 10,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#191D31",
+    padding: 0,
   },
   lastMessage: {
     fontSize: 13,
-    color: "#64748b",
+    color: "#666876",
     marginTop: 2,
   },
   actionsContainer: {
@@ -475,7 +566,7 @@ const styles = StyleSheet.create({
   actionLabel: {
     color: "#fff",
     fontSize: 11,
-    fontWeight: "600",
+    fontFamily: "JakartaSans-SemiBold",
     marginTop: 4,
   },
 });

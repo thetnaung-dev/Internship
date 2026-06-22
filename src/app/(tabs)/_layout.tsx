@@ -1,4 +1,4 @@
-import { Tabs } from "expo-router";
+import { Tabs, useFocusEffect } from "expo-router";
 import {
   Bookmark,
   CirclePlus,
@@ -6,23 +6,42 @@ import {
   MessageSquare,
   User,
 } from "lucide-react-native";
-import React from "react";
+import React, { useCallback, useState } from "react";
+import { Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { supabase } from "@/lib/supabase";
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const [totalUnread, setTotalUnread] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
+      const fetchUnread = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data } = await supabase.rpc("get_total_unread_count", {
+          p_user_id: user.id,
+        });
+        if (mounted) setTotalUnread(data ?? 0);
+      };
+      fetchUnread();
+      return () => { mounted = false; };
+    }, []),
+  );
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#0f172a",
-        tabBarInactiveTintColor: "#94a3b8",
+        tabBarActiveTintColor: "#22c55e",
+        tabBarInactiveTintColor: "#8C8E98",
 
         tabBarStyle: {
           backgroundColor: "#ffffff",
           borderTopWidth: 1,
-          borderTopColor: "#f1f5f9",
+          borderTopColor: "#bbf7d0",
           height: 70 + insets.bottom,
           paddingBottom: insets.bottom + 10,
           paddingTop: 10,
@@ -68,7 +87,31 @@ export default function TabsLayout() {
         options={{
           title: "Chat",
           tabBarIcon: ({ color }) => (
-            <MessageSquare size={22} color={color} />
+            <View>
+              <MessageSquare size={22} color={color} />
+              {totalUnread > 0 && (
+                <View style={{
+                  position: "absolute",
+                  top: -4,
+                  right: -8,
+                  minWidth: 16,
+                  height: 16,
+                  borderRadius: 8,
+                  backgroundColor: "#ef4444",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  paddingHorizontal: 4,
+                }}>
+                  <Text style={{
+                    color: "#fff",
+                    fontSize: 9,
+                    fontWeight: "800",
+                  }}>
+                    {totalUnread > 99 ? "99+" : totalUnread}
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
         }}
       />

@@ -6,7 +6,6 @@ import { ChevronLeft, User } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Text,
   TextInput,
@@ -14,12 +13,16 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { AlertDialog } from "@/components/ui/alert-dialog";
+import { Button, ButtonText } from "@/components/features/ui/button/button";
+import { Heading } from "@/components/features/ui/heading/heading";
 
 export default function EditProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [showError, setShowError] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -106,7 +109,7 @@ export default function EditProfileScreen() {
       router.back();
     } catch (err) {
       console.error("Error saving profile:", err);
-      Alert.alert("Error", "Failed to save profile. Please try again.");
+      setShowError(true);
     } finally {
       setSaving(false);
     }
@@ -174,6 +177,32 @@ export default function EditProfileScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <AlertDialog
+        isOpen={showError}
+        onClose={() => setShowError(false)}
+        useRNModal={true}
+      >
+        <AlertDialog.Backdrop />
+        <AlertDialog.Content className="p-6 rounded-3xl bg-white w-5/6 items-center shadow-xl">
+          <AlertDialog.Header>
+            <Heading>Error</Heading>
+          </AlertDialog.Header>
+          <AlertDialog.Body>
+            <Text className="text-center text-slate-500">
+              Failed to save profile. Please try again.
+            </Text>
+          </AlertDialog.Body>
+          <AlertDialog.Footer className="w-full flex-row justify-center">
+            <Button
+              onPress={() => setShowError(false)}
+              className="flex-1"
+            >
+              <ButtonText>OK</ButtonText>
+            </Button>
+          </AlertDialog.Footer>
+        </AlertDialog.Content>
+      </AlertDialog>
     </SafeAreaView>
   );
 }

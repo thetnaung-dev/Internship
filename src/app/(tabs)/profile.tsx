@@ -12,6 +12,8 @@ import { supabase } from "@/lib/supabase";
 import { router, useFocusEffect } from "expo-router";
 import {
   ChevronRight,
+  Globe,
+  Home,
   LogOut,
   MapPin,
   Shield,
@@ -89,16 +91,16 @@ export default function ProfileScreen() {
 
   if (loading)
     return (
-      <View className="flex-1 justify-center items-center bg-slate-50">
-        <ActivityIndicator size="large" color="#f59e0b" />
+      <View className="flex-1 justify-center items-center bg-primary-100">
+        <ActivityIndicator size="large" className="text-primary-300" />
       </View>
     );
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50">
+    <SafeAreaView className="flex-1 bg-primary-100">
       <ScrollView showsVerticalScrollIndicator={false}>
-        <View className="bg-amber-500 pt-8 pb-14 px-6 items-center rounded-b-[40px]">
-          <View className="w-24 h-24 bg-white rounded-full items-center justify-center border-4 border-amber-300 overflow-hidden">
+        <View className="bg-primary-300 pt-8 pb-14 px-6 items-center rounded-b-[40px]">
+          <View className="w-24 h-24 bg-white rounded-full items-center justify-center border-4 border-primary-200 overflow-hidden">
             {profile?.avatar_url && !avatarError ? (
               <Image
                 source={{ uri: profile.avatar_url }}
@@ -107,60 +109,70 @@ export default function ProfileScreen() {
                 onError={() => setAvatarError(true)}
               />
             ) : (
-              <User size={50} color="#f59e0b" />
+              <User size={50} color="#ffffff" />
             )}
           </View>
-          <Text className="text-white text-2xl font-extrabold mt-4">
+          <Text className="text-white text-2xl font-rubik-extrabold mt-4">
             {profile?.full_name || t("profile.user")}
           </Text>
         </View>
 
-        <View className="mx-6 -mt-10 bg-white rounded-2xl p-5 flex-row shadow-sm border border-slate-100">
-          <View className="flex-1 items-center border-r border-slate-100">
-            <Text className="text-2xl font-black text-slate-800">
+        <View className="mx-6 -mt-10 bg-white rounded-2xl p-5 flex-row shadow-lg shadow-black-100/10 border border-primary-200">
+          <View className="flex-1 items-center border-r border-primary-200">
+            <Text className="text-2xl font-rubik-black text-black-300">
               {postCount}
             </Text>
-            <Text className="text-slate-400 text-xs mt-1">
+            <Text className="text-black-100 text-xs font-rubik mt-1">
               {t("profile.totalPosts")}
             </Text>
           </View>
           <View className="flex-1 items-center">
-            <Text className="text-2xl font-black text-emerald-500">
+            <Text className="text-2xl font-rubik-extrabold text-primary-300">
               {t("profile.active")}
             </Text>
-            <Text className="text-slate-400 text-xs mt-1">
+            <Text className="text-black-100 text-xs font-rubik mt-1">
               {t("profile.accountStatus")}
             </Text>
           </View>
         </View>
 
         <View className="mt-8 px-6">
-          <Text className="text-slate-500 text-xs font-bold mb-3 uppercase">
+          <Text className="text-black-100 text-xs font-rubik-bold mb-3 uppercase">
             {t("profile.settings")}
           </Text>
-          <View className="bg-white rounded-2xl overflow-hidden border border-slate-100">
+          <View className="bg-white rounded-2xl overflow-hidden border border-primary-200">
             <MenuRow
-              icon={<User size={20} color="#64748b" />}
+              icon={<User size={20} color="#666876" />}
               title={t("profile.profileSettings")}
               onPress={() => router.push("/edit-profile")}
             />
             <MenuRow
-              icon={<MapPin size={20} color="#64748b" />}
-              title={t("profile.savedProperties")}
-              onPress={() => router.push("/(tabs)")}
+              icon={<Home size={20} color="#666876" />}
+              title={t("profile.myListings") || "My Listings"}
+              onPress={() => router.push("/my-listings")}
             />
             <MenuRow
-              icon={<Shield size={20} color="#64748b" />}
+              icon={<MapPin size={20} color="#666876" />}
+              title={t("profile.savedProperties")}
+              onPress={() => router.push("/(tabs)/favourites")}
+            />
+            <MenuRow
+              icon={<Shield size={20} color="#666876" />}
               title={t("profile.security")}
               onPress={() => {}}
+            />
+            <MenuRow
+              icon={<Globe size={20} color="#666876" />}
+              title={t("profile.language") || "Language"}
+              onPress={() => router.push("/settings/language")}
             />
           </View>
           <TouchableOpacity
             onPress={() => setShowLogoutDialog(true)}
             className="mt-6 bg-red-50 border border-red-100 py-4 rounded-2xl flex-row justify-center items-center active:opacity-80"
           >
-            <LogOut size={20} color="#ef4444" />
-            <Text className="text-red-500 font-bold ml-2">
+            <LogOut size={20} color="#F75555" />
+            <Text className="text-red-500 font-rubik-bold ml-2">
               {t("profile.logout")}
             </Text>
           </TouchableOpacity>
@@ -202,15 +214,15 @@ function MenuRow({ icon, title, onPress }: any) {
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="flex-row items-center justify-between px-5 py-4 border-b border-slate-100 active:bg-slate-50"
+      className="flex-row items-center justify-between px-5 py-4 border-b border-primary-200 active:bg-primary-100"
     >
       <View className="flex-row items-center">
-        <View className="w-9 h-9 bg-slate-50 rounded-xl items-center justify-center mr-3">
+        <View className="w-9 h-9 bg-primary-100 rounded-xl items-center justify-center mr-3">
           {icon}
         </View>
-        <Text className="text-slate-700 font-semibold">{title}</Text>
+        <Text className="text-black-200 font-rubik-semibold">{title}</Text>
       </View>
-      <ChevronRight size={18} color="#cbd5e1" />
+      <ChevronRight size={18} color="#bbf7d0" />
     </TouchableOpacity>
   );
 }

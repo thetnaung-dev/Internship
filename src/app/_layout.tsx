@@ -9,6 +9,11 @@ import { useLanguageStore } from "@/store/useLanguageStore";
 
 export default function RootLayout() {
   const language = useLanguageStore((s) => s.language);
+  const loadLanguage = useLanguageStore((s) => s.loadLanguage);
+
+  useEffect(() => {
+    loadLanguage();
+  }, []);
 
   useEffect(() => {
     if (i18n && typeof i18n.changeLanguage === "function") {
