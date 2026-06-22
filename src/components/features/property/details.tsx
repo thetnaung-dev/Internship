@@ -1,40 +1,40 @@
+import { Button, ButtonText } from "@/components/features/ui/button/button";
+import { Heading } from "@/components/features/ui/heading/heading";
+import { AlertDialog } from "@/components/ui/alert-dialog";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { VideoView, useVideoPlayer } from "expo-video";
-import MapView, { Marker } from "react-native-maps";
 import {
-  Bed,
-  ChevronLeft,
-  Heart,
-  MapPin,
-  Maximize2,
-  MessageCircle,
-  Minimize2,
-  Navigation,
-  Phone,
-  ShowerHead,
-  Star,
-  X,
+    Bed,
+    ChevronLeft,
+    Heart,
+    MapPin,
+    Maximize2,
+    MessageCircle,
+    Minimize2,
+    Navigation,
+    Phone,
+    ShowerHead,
+    Star,
+    X,
 } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  ActivityIndicator,
-  Animated,
-  Dimensions,
-  FlatList,
-  Image,
-  Linking,
-  Modal,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    FlatList,
+    Image,
+    Linking,
+    Modal,
+    ScrollView,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
-import { AlertDialog } from "@/components/ui/alert-dialog";
-import { Button, ButtonText } from "@/components/features/ui/button/button";
-import { Heading } from "@/components/features/ui/heading/heading";
+import MapView, { Marker } from "react-native-maps";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const DEFAULT_IMAGE =
@@ -68,7 +68,10 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
   const [isNavigatingChat, setIsNavigatingChat] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
-  const [alertDialog, setAlertDialog] = useState<{ title: string; message: string } | null>(null);
+  const [alertDialog, setAlertDialog] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const carouselRef = useRef<FlatList>(null);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -161,7 +164,9 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
 
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user || !propertyId) return;
       const { data } = await supabase
         .from("saved_properties")
@@ -177,11 +182,15 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
   }, [propertyId]);
 
   const toggleSave = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       setAlertDialog({
         title: isBurmese ? "အကောင့်ဝင်ရန်လိုအပ်သည်" : "Authentication Required",
-        message: isBurmese ? "သိမ်းရန် အကောင့်ဝင်ပေးပါ" : "Please log in to save properties.",
+        message: isBurmese
+          ? "သိမ်းရန် အကောင့်ဝင်ပေးပါ"
+          : "Please log in to save properties.",
       });
       return;
     }
@@ -205,11 +214,17 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
   const handleChatPress = async () => {
     try {
       setIsNavigatingChat(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
         setAlertDialog({
-          title: isBurmese ? "အကောင့်ဝင်ရန်လိုအပ်သည်" : "Authentication Required",
-          message: isBurmese ? "စာပို့ရန်အတွက် အရင်ဆုံးအကောင့်ဝင်ပေးပါ" : "Please log in to contact the seller.",
+          title: isBurmese
+            ? "အကောင့်ဝင်ရန်လိုအပ်သည်"
+            : "Authentication Required",
+          message: isBurmese
+            ? "စာပို့ရန်အတွက် အရင်ဆုံးအကောင့်ဝင်ပေးပါ"
+            : "Please log in to contact the seller.",
         });
         return;
       }
@@ -217,7 +232,9 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
       if (user.id === property.user_id) {
         setAlertDialog({
           title: isBurmese ? "သတိပေးချက်" : "Notice",
-          message: isBurmese ? "သင့်ကိုယ်ပိုင်ကြော်ငြာကို စာပို့၍မရပါ" : "You cannot open a chat on your own property.",
+          message: isBurmese
+            ? "သင့်ကိုယ်ပိုင်ကြော်ငြာကို စာပို့၍မရပါ"
+            : "You cannot open a chat on your own property.",
         });
         return;
       }
@@ -278,7 +295,9 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
     return (
       <View className="flex-1 bg-white items-center justify-center p-6">
         <Text className="text-black-200 font-rubik-bold text-center">
-          {isBurmese ? "ကြော်ငြာအချက်အလက် ရှာမတွေ့ပါ" : "Property details not found."}
+          {isBurmese
+            ? "ကြော်ငြာအချက်အလက် ရှာမတွေ့ပါ"
+            : "Property details not found."}
         </Text>
         <TouchableOpacity
           onPress={onBack}
@@ -329,16 +348,16 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
       <StatusBar style="dark" />
 
       <Animated.View
-      style={[
-        {
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          backgroundColor: headerBg,
-        },
-      ]}
+        style={[
+          {
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 100,
+            backgroundColor: headerBg,
+          },
+        ]}
       >
         <View
           className="flex-row items-center justify-between px-3"
@@ -363,8 +382,12 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             {property && (
               <Text className="text-primary-300 font-rubik-bold text-sm uppercase">
                 {property.deal_type === "rent"
-                  ? isBurmese ? "ငှားရန်" : "For Rent"
-                  : isBurmese ? "ရောင်းရန်" : "For Sale"}
+                  ? isBurmese
+                    ? "ငှားရန်"
+                    : "For Rent"
+                  : isBurmese
+                    ? "ရောင်းရန်"
+                    : "For Sale"}
               </Text>
             )}
           </Animated.View>
@@ -409,14 +432,19 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             showsHorizontalScrollIndicator={false}
             keyExtractor={(_, i) => String(i)}
             onMomentumScrollEnd={(e) => {
-              const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+              const idx = Math.round(
+                e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
+              );
               setActiveImageIndex(idx);
               if (timerRef.current) {
                 clearInterval(timerRef.current);
                 timerRef.current = setInterval(() => {
                   setActiveImageIndex((prev) => {
                     const next = (prev + 1) % mediaDataset.length;
-                    carouselRef.current?.scrollToIndex({ index: next, animated: true });
+                    carouselRef.current?.scrollToIndex({
+                      index: next,
+                      animated: true,
+                    });
                     return next;
                   });
                 }, 3000);
@@ -431,7 +459,10 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
                 }}
               >
                 {isVideoFile(mediaUrl) ? (
-                  <VideoItem videoUrl={mediaUrl} isActive={index === activeImageIndex} />
+                  <VideoItem
+                    videoUrl={mediaUrl}
+                    isActive={index === activeImageIndex}
+                  />
                 ) : (
                   <Image
                     source={{ uri: mediaUrl }}
@@ -447,10 +478,14 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
 
           <View className="absolute bottom-5 left-5">
             <View className="bg-primary-300 px-4 py-2 rounded-full self-start">
-              <Text className="text-white text-xs font-rubik-bold uppercase">
+              <Text className="text-white text-xs font-rubik-bold uppercase p-2 text-center">
                 {property.deal_type === "rent"
-                  ? isBurmese ? "ငှားရန်" : "For Rent"
-                  : isBurmese ? "ရောင်းရန်" : "For Sale"}
+                  ? isBurmese
+                    ? "ငှားရန်"
+                    : "For Rent"
+                  : isBurmese
+                    ? "ရောင်းရန်"
+                    : "For Sale"}
               </Text>
             </View>
           </View>
@@ -505,7 +540,12 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
                   <Maximize2 size={16} color="#22c55e" />
                 </View>
                 <Text className="text-black-300 text-sm font-rubik-medium">
-                  {property.area_value} {property.area_unit === "sqft" ? "Sqft" : isBurmese ? "ဧက" : "Acre"}
+                  {property.area_value}{" "}
+                  {property.area_unit === "sqft"
+                    ? "Sqft"
+                    : isBurmese
+                      ? "ဧက"
+                      : "Acre"}
                 </Text>
               </>
             )}
@@ -524,7 +564,8 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
                 </View>
                 <View className="flex flex-col items-start justify-center ml-3">
                   <Text className="text-lg text-black-300 font-rubik-bold">
-                    {property.profiles?.full_name || (isBurmese ? "ပိုင်ရှင်" : "Owner")}
+                    {property.profiles?.full_name ||
+                      (isBurmese ? "ပိုင်ရှင်" : "Owner")}
                   </Text>
                   <Text className="text-sm text-black-200 font-rubik-medium">
                     {property.search_value || property.phone || ""}
@@ -542,7 +583,9 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() =>
-                    Linking.openURL(`tel:${property.search_value || property.phone}`)
+                    Linking.openURL(
+                      `tel:${property.search_value || property.phone}`,
+                    )
                   }
                   className="size-10 rounded-full bg-primary-100 items-center justify-center"
                 >
@@ -557,7 +600,10 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
               {isBurmese ? "အကျဉ်းချုပ်" : "Overview"}
             </Text>
             <Text className="text-black-200 text-base font-rubik mt-2 leading-6">
-              {property.description || (isBurmese ? "အသေးစိတ်အချက်အလက်မရှိသေးပါ" : "No description available.")}
+              {property.description ||
+                (isBurmese
+                  ? "အသေးစိတ်အချက်အလက်မရှိသေးပါ"
+                  : "No description available.")}
             </Text>
           </View>
 
@@ -721,7 +767,14 @@ function VideoItem({
   }, [isActive, isVideoFull, player]);
 
   return (
-    <View style={{ width: SCREEN_WIDTH, height: Dimensions.get("window").height / 2, backgroundColor: "#000", position: "relative" }}>
+    <View
+      style={{
+        width: SCREEN_WIDTH,
+        height: Dimensions.get("window").height / 2,
+        backgroundColor: "#000",
+        position: "relative",
+      }}
+    >
       <VideoView
         style={{ width: "100%", height: "100%" }}
         player={player}
