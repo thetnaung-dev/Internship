@@ -152,7 +152,8 @@
     "register": "အကောင့်ဖွင့်ရန်",
     "errorTitle": "အမှား",
     "loginFailed": "Login မအောင်မြင်ပါ",
-    "enterEmailPassword": "အီးမေးလ်နှင့် လျှို့ဝှက်နံပါတ်ထည့်ပါ"
+    "enterEmailPassword": "အီးမေးလ်နှင့် လျှို့ဝှက်နံပါတ် ထည့်ပါ",
+    "googleButton": "Google ဖြင့် ဝင်ရန်"
   },
 
   "register": {
@@ -161,16 +162,14 @@
 
     "name": "အမည်",
     "namePlaceholder": "သင်၏အမည်",
-
     "email": "အီးမေးလ်",
     "emailPlaceholder": "example@mail.com",
-
     "password": "လျှို့ဝှက်နံပါတ်",
     "passwordPlaceholder": "လျှို့ဝှက်နံပါတ်",
-
     "confirmPassword": "အတည်ပြုပါ",
-
     "button": "အကောင့်အသစ်ပြုလုပ်မည်",
+
+    "googleButton": "Google ဖြင့် ဆက်လုပ်ရန်",
 
     "haveAccount": "အကောင့်ရှိပြီးသားလား?",
     "login": "Login ဝင်ရန်",
@@ -237,6 +236,14 @@
     "back": "နောက်သို့",
     "next": "ရှေ့သို့",
     "submit": "ကြော်ငြာတင်မည်"
+  },
+  "otp": {
+    "title": "OTP အတည်ပြုပါ",
+    "subtitle": "သင့်{{method}}သို့ ပို့ထားသော ဂဏန်း ၆ လုံးကုဒ်ကို ရိုက်ထည့်ပါ။",
+    "verify": "အတည်ပြုပါ",
+    "resend": "ကုဒ်ပြန်ပို့မည်",
+    "methodEmail": "အီးမေးလ်",
+    "methodPhone": "ဖုန်း"
   },
   "alerts_and_dialogs": {
     "button_confirm": "ကောင်းပြီ",

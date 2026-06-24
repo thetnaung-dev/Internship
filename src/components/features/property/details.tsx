@@ -6,35 +6,40 @@ import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { VideoView, useVideoPlayer } from "expo-video";
 import {
-    Bed,
-    ChevronLeft,
-    Heart,
-    MapPin,
-    Maximize2,
-    MessageCircle,
-    Minimize2,
-    Navigation,
-    Phone,
-    ShowerHead,
-    Star,
-    X,
+  Bed,
+  ChevronLeft,
+  Heart,
+  Home,
+  MapPin,
+  Maximize2,
+  MessageCircle,
+  Minimize2,
+  Navigation,
+  Phone,
+  ShowerHead,
+  Star,
+  Trash2,
+  X,
 } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-    FlatList,
-    Image,
-    Linking,
-    Modal,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  Linking,
+  Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { WebView } from "react-native-webview";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const DEFAULT_IMAGE =
@@ -68,55 +73,15 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
   const [isNavigatingChat, setIsNavigatingChat] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const [alertDialog, setAlertDialog] = useState<{
     title: string;
     message: string;
   } | null>(null);
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const carouselRef = useRef<FlatList>(null);
   const [previewIndex, setPreviewIndex] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const HEADER_HEIGHT = 48;
-  const HEADER_VISIBLE_OFFSET = 180;
-
-  const headerBg = scrollY.interpolate({
-    inputRange: [0, HEADER_VISIBLE_OFFSET],
-    outputRange: ["transparent", "#dcfce7"],
-    extrapolate: "clamp",
-  });
-
-  const headerBorderOpacity = scrollY.interpolate({
-    inputRange: [0, HEADER_VISIBLE_OFFSET],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
-  const titleOpacity = scrollY.interpolate({
-    inputRange: [60, HEADER_VISIBLE_OFFSET],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  });
-
-  const iconColor = scrollY.interpolate({
-    inputRange: [0, HEADER_VISIBLE_OFFSET],
-    outputRange: ["#ffffff", "#191D31"],
-    extrapolate: "clamp",
-  });
-
-  const iconBg = scrollY.interpolate({
-    inputRange: [0, HEADER_VISIBLE_OFFSET],
-    outputRange: ["rgba(255,255,255,0.2)", "transparent"],
-    extrapolate: "clamp",
-  });
-
-  const [headerIconColor, setHeaderIconColor] = useState("#ffffff");
-
-  useEffect(() => {
-    const c1 = iconColor.addListener(({ value }) => setHeaderIconColor(value));
-    return () => {
-      iconColor.removeListener(c1);
-    };
-  }, []);
+  const carouselRef = useRef<FlatList>(null);
 
   useEffect(() => {
     const images = [];
@@ -160,6 +125,10 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
     }
 
     fetchPropertyDetails();
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setCurrentUserId(user.id);
+    });
   }, [propertyId]);
 
   useEffect(() => {
@@ -195,9 +164,15 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
       return;
     }
     if (isSaved && savedId) {
-      await supabase.from("saved_properties").delete().eq("id", savedId);
-      setIsSaved(false);
-      setSavedId(null);
+      const { error } = await supabase
+        .from("saved_properties")
+        .delete()
+        .eq("id", savedId)
+        .eq("user_id", user.id);
+      if (!error) {
+        setIsSaved(false);
+        setSavedId(null);
+      }
     } else {
       const { data } = await supabase
         .from("saved_properties")
@@ -209,6 +184,56 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
         setSavedId(data.id);
       }
     }
+  };
+
+  const handleMarkAsSold = () => {
+    Alert.alert(
+      isBurmese ? "ရောင်းပြီးကြောင်းမှတ်သားရန်" : "Mark as Sold",
+      isBurmese
+        ? "ဤအိမ်ခြံမြေကို ရောင်းပြီးကြောင်း မှတ်သားလိုပါသလား?"
+        : "Are you sure you want to mark this property as sold?",
+      [
+        { text: isBurmese ? "မလုပ်တော့ပါ" : "Cancel", style: "cancel" },
+        {
+          text: isBurmese ? "ရောင်းပြီးမှတ်သားရန်" : "Mark Sold",
+          onPress: async () => {
+            await supabase
+              .from("properties")
+              .update({ is_sold: true })
+              .eq("id", propertyId);
+            setProperty((prev: any) =>
+              prev ? { ...prev, is_sold: true } : prev,
+            );
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDeleteProperty = () => {
+    Alert.alert(
+      isBurmese ? "ဖျက်မည်" : "Delete Property",
+      isBurmese
+        ? "ဤအိမ်ခြံမြေကို ဖျက်လိုပါသလား?"
+        : "Are you sure you want to delete this property?",
+      [
+        { text: isBurmese ? "မလုပ်တော့ပါ" : "Cancel", style: "cancel" },
+        {
+          text: isBurmese ? "ဖျက်မည်" : "Delete",
+          style: "destructive",
+          onPress: async () => {
+            const { error } = await supabase
+              .from("properties")
+              .delete()
+              .eq("id", propertyId)
+              .eq("user_id", currentUserId);
+            if (!error) {
+              onBack();
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleChatPress = async () => {
@@ -283,6 +308,30 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
     }
   };
 
+  const handleContact = () => {
+    if (property.search_value || property.phone) {
+      Linking.openURL(`tel:${property.search_value || property.phone}`);
+    }
+  };
+
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+    setActiveImageIndex(index);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setActiveImageIndex((prev) => {
+          const next = (prev + 1) % mediaDataset.length;
+          carouselRef.current?.scrollToIndex({
+            index: next,
+            animated: true,
+          });
+          return next;
+        });
+      }, 3000);
+    }
+  };
+
   if (isLoading) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
@@ -311,6 +360,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
     );
   }
 
+  const isOwner = currentUserId === property.user_id;
   const displayTitle =
     isBurmese && property.title_mm
       ? property.title_mm
@@ -334,6 +384,11 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
       ? `${townshipName}, ${regionName}`
       : "Yangon, Myanmar";
 
+  const propertyTypeLabel =
+    isBurmese && property.property_type
+      ? property.property_type
+      : property.property_type || "property";
+
   let mediaDataset: string[] = [];
   if (property.video_url) mediaDataset.push(property.video_url);
   else if (property.video) mediaDataset.push(property.video);
@@ -341,348 +396,338 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
     mediaDataset = [...mediaDataset, ...property.images];
   if (mediaDataset.length === 0) mediaDataset = [DEFAULT_IMAGE];
 
-  const windowHeight = Dimensions.get("window").height;
+  const isLongDesc = (property.description?.length ?? 0) > 150;
+  const displayDesc =
+    expanded || !isLongDesc
+      ? property.description
+      : property.description?.slice(0, 150) + "...";
+
+  const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${
+    property.longitude - 0.003
+  }%2C${property.latitude - 0.003}%2C${property.longitude + 0.003}%2C${
+    property.latitude + 0.003
+  }&layer=mapnik&marker=${property.latitude}%2C${property.longitude}`;
 
   return (
     <View className="flex-1 bg-white">
       <StatusBar style="dark" />
-
-      <Animated.View
-        style={[
-          {
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 100,
-            backgroundColor: headerBg,
-          },
-        ]}
-      >
-        <View
-          className="flex-row items-center justify-between px-3"
-          style={{ height: HEADER_HEIGHT }}
-        >
-          <Animated.View
-            className="size-8 rounded-full items-center justify-center overflow-hidden"
-            style={{ backgroundColor: iconBg }}
-          >
-            <TouchableOpacity
-              onPress={onBack}
-              className="size-8 items-center justify-center"
-            >
-              <ChevronLeft size={18} color={headerIconColor} />
-            </TouchableOpacity>
-          </Animated.View>
-
-          <Animated.View
-            className="flex-1 items-center justify-center px-2"
-            style={{ opacity: titleOpacity }}
-          >
-            {property && (
-              <Text className="text-primary-300 font-rubik-bold text-sm uppercase">
-                {property.deal_type === "rent"
-                  ? isBurmese
-                    ? "ငှားရန်"
-                    : "For Rent"
-                  : isBurmese
-                    ? "ရောင်းရန်"
-                    : "For Sale"}
-              </Text>
-            )}
-          </Animated.View>
-
-          <Animated.View
-            className="size-8 rounded-full items-center justify-center overflow-hidden"
-            style={{ backgroundColor: iconBg }}
-          >
-            <TouchableOpacity
-              onPress={toggleSave}
-              className="size-8 items-center justify-center"
-            >
-              <Heart
-                size={18}
-                color={isSaved ? "#F75555" : headerIconColor}
-                fill={isSaved ? "#F75555" : "transparent"}
-              />
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-        <Animated.View
-          className="h-[1px] bg-primary-200"
-          style={{ opacity: headerBorderOpacity }}
-        />
-      </Animated.View>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerClassName="pb-32 bg-white"
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false },
-        )}
-        scrollEventThrottle={16}
-      >
-        <View className="relative w-full" style={{ height: windowHeight / 2 }}>
-          <FlatList
-            ref={carouselRef}
-            data={mediaDataset}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(_, i) => String(i)}
-            onMomentumScrollEnd={(e) => {
-              const idx = Math.round(
-                e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
-              );
-              setActiveImageIndex(idx);
-              if (timerRef.current) {
-                clearInterval(timerRef.current);
-                timerRef.current = setInterval(() => {
-                  setActiveImageIndex((prev) => {
-                    const next = (prev + 1) % mediaDataset.length;
-                    carouselRef.current?.scrollToIndex({
-                      index: next,
-                      animated: true,
-                    });
-                    return next;
-                  });
-                }, 3000);
-              }
-            }}
-            renderItem={({ item: mediaUrl, index }) => (
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => {
-                  setPreviewIndex(index);
-                  setIsModalVisible(true);
-                }}
-              >
-                {isVideoFile(mediaUrl) ? (
-                  <VideoItem
-                    videoUrl={mediaUrl}
-                    isActive={index === activeImageIndex}
-                  />
-                ) : (
-                  <Image
-                    source={{ uri: mediaUrl }}
-                    style={{ width: SCREEN_WIDTH, height: windowHeight / 2 }}
-                    resizeMode="cover"
-                  />
-                )}
-              </TouchableOpacity>
-            )}
-          />
-
-          <View className="absolute top-0 w-full h-32 bg-gradient-to-b from-black/50 to-transparent" />
-
-          <View className="absolute bottom-5 left-5">
-            <View className="bg-primary-300 px-4 py-2 rounded-full self-start">
-              <Text className="text-white text-xs font-rubik-bold uppercase p-2 text-center">
-                {property.deal_type === "rent"
-                  ? isBurmese
-                    ? "ငှားရန်"
-                    : "For Rent"
-                  : isBurmese
-                    ? "ရောင်းရန်"
-                    : "For Sale"}
-              </Text>
-            </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Image Carousel */}
+        <View>
+          <View style={{ opacity: property.is_sold ? 0.5 : 1 }}>
+            <FlatList
+              ref={carouselRef}
+              data={mediaDataset}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(_, i) => String(i)}
+              onScroll={onScroll}
+              scrollEventThrottle={16}
+              renderItem={({ item: mediaUrl, index }) => (
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={() => {
+                    setPreviewIndex(index);
+                    setIsModalVisible(true);
+                  }}
+                >
+                  {isVideoFile(mediaUrl) ? (
+                    <VideoItem
+                      videoUrl={mediaUrl}
+                      isActive={index === activeImageIndex}
+                    />
+                  ) : (
+                    <Image
+                      source={{ uri: mediaUrl }}
+                      style={{
+                        width: SCREEN_WIDTH,
+                        height: SCREEN_HEIGHT / 2.5,
+                      }}
+                      resizeMode="cover"
+                    />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
           </View>
 
+          {/* Image count badge */}
           {mediaDataset.length > 1 && (
-            <View className="absolute bottom-5 right-5">
-              <View className="bg-black/50 px-3 py-1.5 rounded-full">
-                <Text className="text-white text-xs font-rubik-medium">
-                  {activeImageIndex + 1}/{mediaDataset.length}
+            <View className="absolute bottom-3 right-4 bg-black/50 px-3 py-1 rounded-full">
+              <Text className="text-white text-xs font-rubik-medium">
+                {activeImageIndex + 1}/{mediaDataset.length}
+              </Text>
+            </View>
+          )}
+
+          {/* Dot indicators */}
+          {mediaDataset.length > 1 && (
+            <View className="absolute bottom-3 left-0 right-0 flex-row justify-center gap-1">
+              {mediaDataset.map((_, i) => (
+                <View
+                  key={i}
+                  className={`h-1.5 rounded-full ${
+                    i === activeImageIndex
+                      ? "w-4 bg-white"
+                      : "w-1.5 bg-white/50"
+                  }`}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Sold badge */}
+          {property.is_sold && (
+            <View className="absolute top-20 left-4">
+              <View className="bg-red-500 px-3 py-1 rounded-full">
+                <Text className="text-white text-xs font-rubik-bold uppercase">
+                  {isBurmese ? "ရောင်းပြီး" : "Sold"}
                 </Text>
               </View>
             </View>
           )}
+
+          {/* Back + Save buttons */}
+          <SafeAreaView className="absolute top-0 left-0 right-0">
+            <View className="flex-row items-center justify-between px-4 pt-2">
+              <TouchableOpacity
+                onPress={onBack}
+                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                style={{ elevation: 3 }}
+              >
+                <ChevronLeft size={20} color="#191D31" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={toggleSave}
+                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                style={{ elevation: 3 }}
+              >
+                <Heart
+                  size={20}
+                  color={isSaved ? "#EF4444" : "#191D31"}
+                  fill={isSaved ? "#EF4444" : "transparent"}
+                />
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
         </View>
 
-        <View className="px-5 mt-4 flex gap-2">
-          <View className="flex flex-row items-center gap-3">
-            <View className="flex flex-row items-center px-4 py-2 bg-primary-100 rounded-full">
-              <Text className="text-xs font-rubik-bold text-primary-300">
-                {t(property.property_type || "premium")}
+        {/* Content */}
+        <View className="px-5 pt-5 pb-8">
+          {/* Badges */}
+          <View className="flex-row gap-2 mb-3 flex-wrap">
+            <View className="bg-primary-100 px-3 py-1 rounded-full">
+              <Text className="text-primary-300 text-xs font-rubik-semibold capitalize">
+                {propertyTypeLabel}
               </Text>
             </View>
-
-            <View className="flex flex-row items-center gap-1.5">
-              <Star size={16} color="#22c55e" fill="#22c55e" />
-              <Text className="text-black-200 text-sm font-rubik-medium">
+            {property.is_sold && (
+              <View className="bg-red-50 px-3 py-1 rounded-full">
+                <Text className="text-red-500 text-xs font-rubik-semibold">
+                  {isBurmese ? "ရောင်းပြီး" : "Sold"}
+                </Text>
+              </View>
+            )}
+            <View className="flex-row items-center gap-1 bg-primary-100 px-3 py-1 rounded-full">
+              <Star size={12} color="#22c55e" fill="#22c55e" />
+              <Text className="text-primary-300 text-xs font-rubik-semibold">
                 {property.rating || "5.0"}
               </Text>
             </View>
           </View>
 
-          <Text className="text-2xl font-rubik-extrabold text-black-300 mt-1">
+          {/* Title + Price */}
+          <Text className="text-2xl font-rubik-extrabold text-black-300 mb-1">
             {displayTitle}
           </Text>
+          <Text className="text-primary-300 text-xl font-rubik-bold mb-4">
+            {displayPrice}
+          </Text>
 
-          <View className="flex flex-row items-center mt-2 gap-2">
-            <View className="flex flex-row items-center justify-center bg-primary-100 rounded-full size-10">
-              <Bed size={18} color="#22c55e" />
-            </View>
-            <Text className="text-black-300 text-sm font-rubik-medium mr-3">
-              {property.bedrooms || 0} {isBurmese ? "အိပ်ခန်း" : "Beds"}
-            </Text>
-            <View className="flex flex-row items-center justify-center bg-primary-100 rounded-full size-10">
-              <ShowerHead size={18} color="#22c55e" />
-            </View>
-            <Text className="text-black-300 text-sm font-rubik-medium mr-3">
-              {property.bathrooms || 0} {isBurmese ? "ရေချိုးခန်း" : "Baths"}
-            </Text>
-            {property.area_value && (
-              <>
-                <View className="flex flex-row items-center justify-center bg-primary-100 rounded-full size-10">
-                  <Maximize2 size={16} color="#22c55e" />
-                </View>
-                <Text className="text-black-300 text-sm font-rubik-medium">
-                  {property.area_value}{" "}
-                  {property.area_unit === "sqft"
-                    ? "Sqft"
-                    : isBurmese
-                      ? "ဧက"
-                      : "Acre"}
-                </Text>
-              </>
-            )}
+          {/* Specs Row */}
+          <View className="flex-row justify-between bg-primary-100 rounded-2xl p-4 mb-5">
+            <SpecItem
+              icon={<Bed size={20} color="#22c55e" />}
+              label={isBurmese ? "အိပ်ခန်း" : "Beds"}
+              value={`${property.bedrooms || 0}`}
+            />
+            <SpecItem
+              icon={<ShowerHead size={20} color="#22c55e" />}
+              label={isBurmese ? "ရေချိုးခန်း" : "Baths"}
+              value={`${property.bathrooms || 0}`}
+            />
+            <SpecItem
+              icon={<Maximize2 size={20} color="#22c55e" />}
+              label={isBurmese ? "အကျယ်" : "Area"}
+              value={
+                property.area_value
+                  ? `${property.area_value}${property.area_unit === "sqft" ? "ft²" : "A"}`
+                  : "-"
+              }
+            />
+            <SpecItem
+              icon={<Home size={20} color="#22c55e" />}
+              label={isBurmese ? "အမျိုးအစား" : "Type"}
+              value={propertyTypeLabel}
+            />
           </View>
 
-          <View className="w-full border-t border-primary-200 pt-6 mt-5">
-            <Text className="text-black-300 text-xl font-rubik-bold mb-4">
-              {isBurmese ? "ပိုင်ရှင်" : "Agent"}
-            </Text>
-            <View className="flex flex-row items-center justify-between">
-              <View className="flex flex-row items-center">
-                <View className="size-14 rounded-full bg-primary-100 items-center justify-center">
-                  <Text className="text-primary-300 text-xl font-rubik-bold">
-                    {(property.profiles?.full_name || "O")[0].toUpperCase()}
-                  </Text>
-                </View>
-                <View className="flex flex-col items-start justify-center ml-3">
-                  <Text className="text-lg text-black-300 font-rubik-bold">
-                    {property.profiles?.full_name ||
-                      (isBurmese ? "ပိုင်ရှင်" : "Owner")}
-                  </Text>
-                  <Text className="text-sm text-black-200 font-rubik-medium">
-                    {property.search_value || property.phone || ""}
-                  </Text>
-                </View>
-              </View>
-
-              <View className="flex flex-row items-center gap-3">
-                <TouchableOpacity
-                  onPress={handleChatPress}
-                  disabled={isNavigatingChat}
-                  className="size-10 rounded-full bg-primary-100 items-center justify-center"
-                >
-                  <MessageCircle size={20} color="#22c55e" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() =>
-                    Linking.openURL(
-                      `tel:${property.search_value || property.phone}`,
-                    )
-                  }
-                  className="size-10 rounded-full bg-primary-100 items-center justify-center"
-                >
-                  <Phone size={20} color="#22c55e" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          <View className="mt-6">
-            <Text className="text-black-300 text-xl font-rubik-bold">
-              {isBurmese ? "အကျဉ်းချုပ်" : "Overview"}
-            </Text>
-            <Text className="text-black-200 text-base font-rubik mt-2 leading-6">
-              {property.description ||
-                (isBurmese
-                  ? "အသေးစိတ်အချက်အလက်မရှိသေးပါ"
-                  : "No description available.")}
-            </Text>
-          </View>
-
-          {property.latitude && property.longitude && (
-            <View className="mt-6">
-              <Text className="text-black-300 text-xl font-rubik-bold">
-                {isBurmese ? "တည်နေရာ" : "Location"}
+          {/* Description */}
+          <Text className="text-base font-rubik-bold text-black-300 mb-2">
+            {isBurmese ? "အကျဉ်းချုပ်" : "Description"}
+          </Text>
+          <Text className="text-black-200 text-sm font-rubik leading-6 mb-1">
+            {displayDesc || (isBurmese ? "အသေးစိတ်အချက်အလက်မရှိသေးပါ" : "No description available.")}
+          </Text>
+          {isLongDesc && (
+            <TouchableOpacity onPress={() => setExpanded(!expanded)}>
+              <Text className="text-primary-300 text-sm font-rubik-semibold mb-5">
+                {expanded
+                  ? isBurmese ? "ရှင်းရှင်းပြရန်" : "Show less"
+                  : isBurmese ? "ဆက်ဖတ်ရန်" : "Read more"}
               </Text>
-              <View className="flex flex-row items-center justify-start mt-3 gap-2">
-                <MapPin size={20} color="#22c55e" />
-                <Text className="text-black-200 text-sm font-rubik-medium flex-1">
+            </TouchableOpacity>
+          )}
+
+          <View className="mb-5" />
+
+          {/* Location */}
+          <Text className="text-base font-rubik-bold text-black-300 mb-2">
+            {isBurmese ? "တည်နေရာ" : "Location"}
+          </Text>
+          <View className="flex-row items-center gap-2 mb-4">
+            <MapPin size={16} color="#666876" />
+            <Text className="text-black-200 text-sm font-rubik flex-1">
+              {displayLocation}
+            </Text>
+          </View>
+
+          {/* Map Preview */}
+          {property.latitude && property.longitude ? (
+            <TouchableOpacity
+              onPress={() =>
+                router.push(
+                  `/property/map?latitude=${property.latitude}&longitude=${property.longitude}&title=${encodeURIComponent(displayTitle)}&address=${encodeURIComponent(displayLocation)}` as any,
+                )
+              }
+              activeOpacity={0.9}
+              className="rounded-2xl overflow-hidden mb-6"
+              style={{ height: 200 }}
+            >
+              <WebView
+                source={{ uri: mapUrl }}
+                style={{ flex: 1 }}
+                scrollEnabled={false}
+                pointerEvents="none"
+              />
+              <View className="absolute bottom-3 right-3 bg-white/90 px-3 py-1 rounded-full flex-row items-center gap-1">
+                <Navigation size={12} color="#666876" />
+                <Text className="text-black-200 text-xs font-rubik-medium">
+                  {isBurmese ? "အကြည့်ချဲ့ရန်" : "Tap to expand"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => {
+                const query = encodeURIComponent(displayLocation);
+                Linking.openURL(
+                  `https://www.google.com/maps/search/${query}`,
+                );
+              }}
+              className="rounded-2xl overflow-hidden border border-primary-200 mb-6"
+            >
+              <View className="bg-primary-100 items-center justify-center py-10 gap-2">
+                <MapPin size={40} color="#22c55e" />
+                <Text className="text-black-200 text-sm font-rubik-medium text-center px-4">
                   {displayLocation}
                 </Text>
               </View>
-              <View className="rounded-2xl overflow-hidden border border-primary-200 mt-3">
-                <MapView
-                  style={{ width: "100%", height: 180 }}
-                  initialRegion={{
-                    latitude: property.latitude,
-                    longitude: property.longitude,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                  }}
-                  scrollEnabled={false}
-                  zoomEnabled={false}
-                >
-                  <Marker
-                    coordinate={{
-                      latitude: property.latitude,
-                      longitude: property.longitude,
-                    }}
-                    title={displayTitle}
-                  />
-                </MapView>
+              <View className="flex-row items-center justify-center py-3 border-t border-primary-200 gap-2">
+                <Navigation size={16} color="#22c55e" />
+                <Text className="text-primary-300 font-rubik-bold text-sm">
+                  {isBurmese ? "Google Maps တွင်ကြည့်ရန်" : "View on Google Maps"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Agent Section */}
+          <View className="flex-row items-center gap-3 mb-6">
+            <View className="size-12 rounded-full bg-primary-100 items-center justify-center">
+              <Text className="text-primary-300 text-lg font-rubik-bold">
+                {(property.profiles?.full_name || "O")[0].toUpperCase()}
+              </Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-black-300 font-rubik-bold text-base">
+                {property.profiles?.full_name ||
+                  (isBurmese ? "ပိုင်ရှင်" : "Owner")}
+              </Text>
+              <Text className="text-black-100 text-sm font-rubik">
+                {property.search_value || property.phone || ""}
+              </Text>
+            </View>
+          </View>
+
+          {/* Contact / Action Buttons */}
+          {isOwner ? (
+            <View className="flex-row gap-3">
+              {!property.is_sold && (
                 <TouchableOpacity
-                  onPress={() => {
-                    const url = `https://www.google.com/maps/dir/?api=1&destination=${property.latitude},${property.longitude}`;
-                    Linking.openURL(url);
-                  }}
-                  className="flex-row items-center justify-center py-3 bg-primary-100 gap-2"
+                  onPress={handleMarkAsSold}
+                  className="flex-1 flex-row items-center justify-center gap-2 bg-amber-50 border border-amber-200 py-4 rounded-2xl"
                 >
-                  <Navigation size={16} color="#22c55e" />
-                  <Text className="text-primary-300 font-rubik-bold text-sm">
-                    {isBurmese ? "လမ်းညွှန်ချက်များ" : "Get Directions"}
+                  <Star size={18} color="#D97706" fill="#D97706" />
+                  <Text className="text-amber-600 font-rubik-bold text-sm">
+                    {isBurmese ? "ရောင်းပြီးမှတ်သားရန်" : "Mark as Sold"}
                   </Text>
                 </TouchableOpacity>
-              </View>
+              )}
+              <TouchableOpacity
+                onPress={handleDeleteProperty}
+                className="flex-1 flex-row items-center justify-center gap-2 bg-red-50 border border-red-100 py-4 rounded-2xl"
+              >
+                <Trash2 size={18} color="#EF4444" />
+                <Text className="text-red-500 font-rubik-bold text-sm">
+                  {isBurmese ? "ဖျက်မည်" : "Delete"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                onPress={handleContact}
+                className="flex-1 flex-row items-center justify-center gap-2 bg-primary-100 border border-primary-200 py-4 rounded-2xl"
+              >
+                <Phone size={18} color="#22c55e" />
+                <Text className="text-primary-300 font-rubik-bold text-sm">
+                  {isBurmese ? "ဖုန်းခေါ်ရန်" : "Call Now"}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleChatPress}
+                disabled={isNavigatingChat}
+                className="flex-1 flex-row items-center justify-center gap-2 bg-primary-300 py-4 rounded-2xl"
+              >
+                {isNavigatingChat ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <MessageCircle size={18} color="#ffffff" />
+                    <Text className="text-white font-rubik-bold text-sm">
+                      {isBurmese ? "စာပို့ရန်" : "Chat"}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </View>
           )}
         </View>
       </ScrollView>
 
-      <View className="absolute bg-white bottom-0 w-full rounded-t-2xl border-t border-primary-200 p-5">
-        <View className="flex flex-row items-center justify-between gap-4">
-          <View className="flex flex-col items-start">
-            <Text className="text-black-200 text-xs font-rubik-medium">
-              {isBurmese ? "စျေးနှုန်း" : "Price"}
-            </Text>
-            <Text className="text-primary-300 text-2xl font-rubik-bold">
-              {displayPrice}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            onPress={handleChatPress}
-            disabled={isNavigatingChat}
-            className="flex-1 flex flex-row items-center justify-center bg-primary-300 py-4 rounded-full shadow-md"
-          >
-            {isNavigatingChat ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Text className="text-white text-base font-rubik-bold">
-                {isBurmese ? "စာပို့ရန်" : "Send Message"}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
+      {/* Image Viewer Modal */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -721,6 +766,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
         </View>
       </Modal>
 
+      {/* Alert Dialog */}
       <AlertDialog
         isOpen={!!alertDialog}
         onClose={() => setAlertDialog(null)}
@@ -743,6 +789,24 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           </AlertDialog.Footer>
         </AlertDialog.Content>
       </AlertDialog>
+    </View>
+  );
+}
+
+function SpecItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View className="items-center gap-1">
+      {icon}
+      <Text className="text-black-300 font-rubik-bold text-sm">{value}</Text>
+      <Text className="text-black-100 text-xs font-rubik">{label}</Text>
     </View>
   );
 }
@@ -770,7 +834,7 @@ function VideoItem({
     <View
       style={{
         width: SCREEN_WIDTH,
-        height: Dimensions.get("window").height / 2,
+        height: SCREEN_HEIGHT / 2.5,
         backgroundColor: "#000",
         position: "relative",
       }}

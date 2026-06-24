@@ -24,11 +24,17 @@ export default function AuthLayout() {
         <Stack.Screen
           name="login"
           options={{
-            animationTypeForReplace: "pop", // Smooth transition when returning back
+            animationTypeForReplace: "pop",
           }}
         />
         <Stack.Screen
           name="register"
+          options={{
+            animationTypeForReplace: "pop",
+          }}
+        />
+        <Stack.Screen
+          name="forgot_password"
           options={{
             animationTypeForReplace: "pop",
           }}

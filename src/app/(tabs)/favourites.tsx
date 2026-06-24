@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
-import { Heart, MessageCircle } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Heart } from "lucide-react-native";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -52,9 +52,11 @@ const Favourites = () => {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchFavourites();
-  }, [fetchFavourites]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchFavourites();
+    }, [fetchFavourites])
+  );
 
   const handleRemove = async (propertyId: string) => {
     if (!userId) return;

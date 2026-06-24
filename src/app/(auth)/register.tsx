@@ -1,16 +1,12 @@
 import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
-import {
-  ChevronLeft,
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  User,
-} from "lucide-react-native";
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
+import { ChevronLeft, Eye, EyeOff, Lock, Mail, User } from "lucide-react-native";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   Text,
   TextInput,
@@ -31,6 +27,54 @@ import {
 import { Button, ButtonText } from "@/components/features/ui/button/button";
 import { Heading } from "@/components/features/ui/heading/heading";
 import { useTranslation } from "react-i18next";
+
+WebBrowser.maybeCompleteAuthSession();
+
+const signInWithGoogle = async () => {
+  const redirectUrl = Linking.createURL("auth/callback");
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: redirectUrl,
+    },
+  });
+
+  if (error) throw error;
+  if (!data?.url) throw new Error("Failed to get OAuth URL. Is Google provider enabled in Supabase?");
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+  if (result.type === "success") {
+    const fragment = result.url.split("#")[1];
+    if (fragment) {
+      const params = fragment.split("&").reduce<Record<string, string>>(
+        (acc, pair) => {
+          const [key, value] = pair.split("=");
+          acc[key] = decodeURIComponent(value);
+          return acc;
+        },
+        {},
+      );
+
+      const { access_token, refresh_token } = params;
+
+      if (access_token) {
+        await supabase.auth.setSession({
+          access_token,
+          refresh_token: refresh_token || "",
+        });
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          router.replace("/(tabs)");
+          return;
+        }
+      }
+    }
+  }
+
+  throw new Error("Google sign-in was cancelled or failed. Please try again.");
+};
 
 export default function RegisterScreen() {
   const { t } = useTranslation();
@@ -70,7 +114,7 @@ export default function RegisterScreen() {
 
       setLoading(true);
 
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -83,12 +127,38 @@ export default function RegisterScreen() {
         return;
       }
 
+      if (signUpData.user) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .upsert({
+            id: signUpData.user.id,
+            full_name: name,
+            email: email,
+          });
+
+        if (profileError) {
+          openError(t("register.errors.invalid"), profileError.message);
+          return;
+        }
+      }
+
       setSuccessDialog(true);
 
       setName("");
       setEmail("");
       setPassword("");
       setConfirmPassword("");
+    } catch (err: any) {
+      openError(t("register.errors.error"), err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      await signInWithGoogle();
     } catch (err: any) {
       openError(t("register.errors.error"), err.message);
     } finally {
@@ -147,6 +217,7 @@ export default function RegisterScreen() {
               onChangeText={setEmail}
               className="flex-1 ml-3 font-rubik text-black-300"
               placeholder={t("register.emailPlaceholder")}
+              autoCapitalize="none"
             />
           </View>
         </View>
@@ -201,6 +272,28 @@ export default function RegisterScreen() {
           )}
         </TouchableOpacity>
 
+        <View className="flex-row items-center my-6">
+          <View className="flex-1 h-px bg-primary-200" />
+          <Text className="mx-4 text-black-100 text-sm font-rubik">or</Text>
+          <View className="flex-1 h-px bg-primary-200" />
+        </View>
+
+        <TouchableOpacity
+          onPress={handleGoogleSignIn}
+          disabled={loading}
+          className="flex-row items-center justify-center bg-white border border-primary-200 rounded-xl py-4 active:opacity-80"
+        >
+          <Image
+            source={{
+              uri: "https://cdn-icons-png.flaticon.com/512/2991/2991148.png",
+            }}
+            className="w-6 h-6 mr-3"
+          />
+          <Text className="text-black-300 font-rubik-semibold text-base">
+            {t("register.googleButton")}
+          </Text>
+        </TouchableOpacity>
+
         <View className="flex-row justify-center items-center mt-6 mb-12">
           <Text className="text-black-100 text-sm font-rubik">
             {t("register.haveAccount")}
@@ -232,7 +325,7 @@ export default function RegisterScreen() {
               className="bg-primary-300 w-full"
               onPress={() => {
                 setSuccessDialog(false);
-                router.replace(`/(auth)/otp?email=${encodeURIComponent(email)}`);
+                router.replace("/(auth)/login");
               }}
             >
               <ButtonText>OK</ButtonText>

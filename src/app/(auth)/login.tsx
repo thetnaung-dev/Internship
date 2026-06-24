@@ -1,16 +1,7 @@
-import {
-  AlertDialog,
-  AlertDialogBackdrop,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-} from "@/components/features/ui/alertdialog/alertdialog";
-import { Button, ButtonText } from "@/components/features/ui/button/button";
-import { Heading } from "@/components/features/ui/heading/heading";
 import { supabase } from "@/lib/supabase";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { AlertTriangle, CheckCircle } from "lucide-react-native";
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -27,6 +18,54 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+WebBrowser.maybeCompleteAuthSession();
+
+const signInWithGoogle = async () => {
+  const redirectUrl = Linking.createURL("auth/callback");
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: redirectUrl,
+    },
+  });
+
+  if (error) throw error;
+  if (!data?.url) throw new Error("Failed to get OAuth URL. Is Google provider enabled in Supabase?");
+
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+
+  if (result.type === "success") {
+    const fragment = result.url.split("#")[1];
+    if (fragment) {
+      const params = fragment.split("&").reduce<Record<string, string>>(
+        (acc, pair) => {
+          const [key, value] = pair.split("=");
+          acc[key] = decodeURIComponent(value);
+          return acc;
+        },
+        {},
+      );
+
+      const { access_token, refresh_token } = params;
+
+      if (access_token) {
+        await supabase.auth.setSession({
+          access_token,
+          refresh_token: refresh_token || "",
+        });
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          router.replace("/(tabs)");
+          return;
+        }
+      }
+    }
+  }
+
+  throw new Error("Google sign-in was cancelled or failed. Please try again.");
+};
 
 export default function LoginScreen() {
   const { t } = useTranslation();
@@ -92,6 +131,17 @@ export default function LoginScreen() {
         return;
       }
       router.replace("/(tabs)");
+    } catch (err: any) {
+      openInfo(t("login.errorTitle"), err.message, false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setLoading(true);
+      await signInWithGoogle();
     } catch (err: any) {
       openInfo(t("login.errorTitle"), err.message, false);
     } finally {
@@ -167,6 +217,28 @@ export default function LoginScreen() {
                 )}
               </TouchableOpacity>
 
+              <View className="flex-row items-center my-6">
+                <View className="flex-1 h-px bg-primary-200" />
+                <Text className="mx-4 text-black-100 text-sm font-rubik">or</Text>
+                <View className="flex-1 h-px bg-primary-200" />
+              </View>
+
+              <TouchableOpacity
+                onPress={handleGoogleSignIn}
+                disabled={loading}
+                className="flex-row items-center justify-center bg-white border border-primary-200 rounded-2xl py-4 active:opacity-80"
+              >
+                <Image
+                  source={{
+                    uri: "https://cdn-icons-png.flaticon.com/512/2991/2991148.png",
+                  }}
+                  className="w-6 h-6 mr-3"
+                />
+                <Text className="text-black-300 font-rubik-semibold text-base">
+                  {t("login.googleButton")}
+                </Text>
+              </TouchableOpacity>
+
               <View className="flex-row justify-center mt-6">
                 <Text className="text-black-100 font-rubik">{t("login.noAccount")} </Text>
                 <TouchableOpacity onPress={() => router.push("/register")}>
@@ -179,36 +251,6 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <AlertDialog
-        isOpen={infoDialog.visible}
-        onClose={() => setInfoDialog((p) => ({ ...p, visible: false }))}
-      >
-        <AlertDialogBackdrop />
-        <AlertDialogContent className="p-6 rounded-3xl bg-white items-center">
-          {infoDialog.isSuccess ? (
-            <CheckCircle size={40} color="#22c55e" />
-          ) : (
-            <AlertTriangle size={40} color="#F75555" />
-          )}
-          <AlertDialogHeader>
-            <Heading>{infoDialog.title}</Heading>
-          </AlertDialogHeader>
-          <AlertDialogBody>
-            <Text className="text-center text-black-200 font-rubik">
-              {infoDialog.message}
-            </Text>
-          </AlertDialogBody>
-          <AlertDialogFooter>
-            <Button
-              onPress={() => setInfoDialog((p) => ({ ...p, visible: false }))}
-              className="bg-primary-300 w-full"
-            >
-              <ButtonText>OK</ButtonText>
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </SafeAreaView>
   );
 }

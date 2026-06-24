@@ -153,7 +153,8 @@
     "register": "Register",
     "errorTitle": "Error",
     "loginFailed": "Login Failed",
-    "enterEmailPassword": "Please enter email and password"
+    "enterEmailPassword": "Please enter email and password",
+    "googleButton": "Continue with Google"
   },
 
   "register": {
@@ -162,16 +163,14 @@
 
     "name": "Name",
     "namePlaceholder": "Your name",
-
     "email": "Email",
     "emailPlaceholder": "example@mail.com",
-
     "password": "Password",
     "passwordPlaceholder": "Password",
-
     "confirmPassword": "Confirm Password",
-
     "button": "Create Account",
+
+    "googleButton": "Continue with Google",
 
     "haveAccount": "Already have an account?",
     "login": "Login",
@@ -238,6 +237,14 @@
     "back": "Back",
     "next": "Next",
     "submit": "Publish Listing"
+  },
+  "otp": {
+    "title": "Verify OTP",
+    "subtitle": "Enter the 6-digit code sent to your {{method}}.",
+    "verify": "Verify",
+    "resend": "Resend Code",
+    "methodEmail": "email",
+    "methodPhone": "phone"
   },
   "alerts_and_dialogs": {
     "button_confirm": "OK",

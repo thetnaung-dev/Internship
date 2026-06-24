@@ -1,8 +1,8 @@
 import { Tabs, useFocusEffect } from "expo-router";
 import {
-  Bookmark,
   CirclePlus,
   Home,
+  Map,
   MessageSquare,
   User,
 } from "lucide-react-native";
@@ -67,10 +67,10 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
-        name="favourites"
+        name="map"
         options={{
-          title: "Saved",
-          tabBarIcon: ({ color }) => <Bookmark size={24} color={color} />,
+          title: "Map",
+          tabBarIcon: ({ color }) => <Map size={24} color={color} />,
         }}
       />
 
