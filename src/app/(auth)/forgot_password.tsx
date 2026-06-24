@@ -26,7 +26,7 @@ export default function ForgotPasswordScreen() {
     setError("");
 
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: "medicareapp://reset-password",
+      redirectTo: "nestfinder://reset-password",
     });
 
     setLoading(false);

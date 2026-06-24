@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+
 import * as Linking from "expo-linking";
-import * as WebBrowser from "expo-web-browser";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -19,8 +19,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-WebBrowser.maybeCompleteAuthSession();
-
 const signInWithGoogle = async () => {
   const redirectUrl = Linking.createURL("auth/callback");
 
@@ -34,37 +32,7 @@ const signInWithGoogle = async () => {
   if (error) throw error;
   if (!data?.url) throw new Error("Failed to get OAuth URL. Is Google provider enabled in Supabase?");
 
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-
-  if (result.type === "success") {
-    const fragment = result.url.split("#")[1];
-    if (fragment) {
-      const params = fragment.split("&").reduce<Record<string, string>>(
-        (acc, pair) => {
-          const [key, value] = pair.split("=");
-          acc[key] = decodeURIComponent(value);
-          return acc;
-        },
-        {},
-      );
-
-      const { access_token, refresh_token } = params;
-
-      if (access_token) {
-        await supabase.auth.setSession({
-          access_token,
-          refresh_token: refresh_token || "",
-        });
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          router.replace("/(tabs)");
-          return;
-        }
-      }
-    }
-  }
-
-  throw new Error("Google sign-in was cancelled or failed. Please try again.");
+  await Linking.openURL(data.url);
 };
 
 export default function LoginScreen() {

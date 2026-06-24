@@ -1,49 +1,33 @@
-import { supabase } from "@/lib/supabase";
-import { router } from "expo-router";
 import * as Linking from "expo-linking";
-import { useEffect } from "react";
+import { router } from "expo-router";
+import { useEffect, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
 
+import { handleAuthCallbackUrl } from "@/lib/handleAuthCallback";
+
 export default function AuthCallback() {
+  const timedOut = useRef(false);
+
   useEffect(() => {
-    const handleUrl = async (url: string) => {
-      const fragment = url.split("#")[1];
-      if (fragment) {
-        const params = fragment.split("&").reduce<Record<string, string>>(
-          (acc, pair) => {
-            const [key, value] = pair.split("=");
-            acc[key] = decodeURIComponent(value);
-            return acc;
-          },
-          {},
-        );
-
-        const { access_token, refresh_token } = params;
-
-        if (access_token) {
-          const { error } = await supabase.auth.setSession({
-            access_token,
-            refresh_token: refresh_token || "",
-          });
-
-          if (!error) {
-            router.replace("/(tabs)");
-            return;
-          }
-        }
-      }
-      router.replace("/(auth)/login");
-    };
-
     Linking.getInitialURL().then((url) => {
-      if (url) handleUrl(url);
+      if (url) {
+        handleAuthCallbackUrl(url);
+      }
     });
 
     const subscription = Linking.addEventListener("url", (event) => {
-      handleUrl(event.url);
+      handleAuthCallbackUrl(event.url);
     });
 
-    return () => subscription.remove();
+    const timeout = setTimeout(() => {
+      timedOut.current = true;
+      router.replace("/(auth)/login");
+    }, 15000);
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.remove();
+    };
   }, []);
 
   return (

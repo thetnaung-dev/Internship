@@ -154,7 +154,7 @@ export default function ProfileScreen() {
             <MenuRow
               icon={<MapPin size={20} color="#666876" />}
               title={t("profile.savedProperties")}
-              onPress={() => router.push("/(tabs)/favourites")}
+              onPress={() => router.push("/saved-properties")}
             />
             <MenuRow
               icon={<Shield size={20} color="#666876" />}

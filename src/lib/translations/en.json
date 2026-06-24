@@ -193,6 +193,10 @@
     "settings": "Settings",
     "profileSettings": "Profile Settings",
     "savedProperties": "Saved Properties",
+    "noSavedProperties": "No saved properties yet",
+    "browseProperties": "Browse Properties",
+    "unsave": "Unsave",
+    "view": "View",
     "security": "Security",
     "logout": "Logout"
   },

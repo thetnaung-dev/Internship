@@ -3,12 +3,12 @@ const googleMapsApiKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "";
 module.exports = {
   expo: {
     main: "expo-router/entry",
-    name: "medicare",
-    slug: "medicare",
+    name: "Nestfinder",
+    slug: "nestfinder",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "medicare",
+    scheme: "nestfinder",
     userInterfaceStyle: "automatic",
     ios: {
       supportsTablet: true,
@@ -46,7 +46,7 @@ module.exports = {
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_AUDIO",
       ],
-      package: "com.thetnaung.medicare",
+      package: "com.thetnaung.nestfinder",
     },
     web: {
       output: "static",

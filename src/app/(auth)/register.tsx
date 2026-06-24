@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
+
 import * as Linking from "expo-linking";
-import * as WebBrowser from "expo-web-browser";
 import { ChevronLeft, Eye, EyeOff, Lock, Mail, User } from "lucide-react-native";
 import React, { useState } from "react";
 import {
@@ -28,8 +28,6 @@ import { Button, ButtonText } from "@/components/features/ui/button/button";
 import { Heading } from "@/components/features/ui/heading/heading";
 import { useTranslation } from "react-i18next";
 
-WebBrowser.maybeCompleteAuthSession();
-
 const signInWithGoogle = async () => {
   const redirectUrl = Linking.createURL("auth/callback");
 
@@ -43,37 +41,7 @@ const signInWithGoogle = async () => {
   if (error) throw error;
   if (!data?.url) throw new Error("Failed to get OAuth URL. Is Google provider enabled in Supabase?");
 
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
-
-  if (result.type === "success") {
-    const fragment = result.url.split("#")[1];
-    if (fragment) {
-      const params = fragment.split("&").reduce<Record<string, string>>(
-        (acc, pair) => {
-          const [key, value] = pair.split("=");
-          acc[key] = decodeURIComponent(value);
-          return acc;
-        },
-        {},
-      );
-
-      const { access_token, refresh_token } = params;
-
-      if (access_token) {
-        await supabase.auth.setSession({
-          access_token,
-          refresh_token: refresh_token || "",
-        });
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          router.replace("/(tabs)");
-          return;
-        }
-      }
-    }
-  }
-
-  throw new Error("Google sign-in was cancelled or failed. Please try again.");
+  await Linking.openURL(data.url);
 };
 
 export default function RegisterScreen() {
