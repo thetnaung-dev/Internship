@@ -1,0 +1,15 @@
+{
+  "enabledPlugins": {
+    "expo@claude-plugins-official": true
+  },
+  "deno.suggest.imports.hosts": {
+    "https://raw.githubusercontent.com": true,
+    "https://deno.land": true
+  },
+  "json.schemas": [
+    {
+      "fileMatch": ["deno.json"],
+      "url": "https://deno.land/x/deno/cli/schemas/config-file.v1.json"
+    }
+  ]
+}
