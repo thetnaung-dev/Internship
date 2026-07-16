@@ -13,6 +13,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useThemeStore } from "@/store/useThemeStore";
+
 // ✅ Import Paths များကို ပိုမိုရှင်းလင်းအောင် ပြင်ဆင်ထားပါတယ်
 import AdsSearchForm from "@/components/features/search/searchadsscreen";
 import PropertySearchForm from "@/components/features/search/searchpropertyscreen";
@@ -23,6 +25,8 @@ const SEGMENT_WIDTH =
   (Dimensions.get("window").width - SCREEN_PADDING * 2 - TRACK_PADDING * 2) / 2;
 
 export default function SearchScreen() {
+  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
+  const isDark = resolvedTheme === "dark";
   const { t } = useTranslation();
   const [activeCategory, setActiveCategory] = useState("properties");
   const slideValue = useRef(new Animated.Value(0)).current;
@@ -42,30 +46,30 @@ export default function SearchScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-100">
-      <StatusBar style="dark" />
-      <View className="bg-white px-4 py-4 flex-row items-center border-b border-primary-200">
+    <SafeAreaView className="flex-1 bg-primary-100 dark:bg-gray-800">
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <View className="bg-white dark:bg-black px-4 py-4 flex-row items-center border-b border-primary-200 dark:border-gray-800">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-full bg-primary-100"
+          className="w-10 h-10 items-center justify-center rounded-full bg-primary-100 dark:bg-gray-800"
         >
-          <ChevronLeft size={28} color="#22c55e" />
+          <ChevronLeft size={24} color="#22c55e" />
         </TouchableOpacity>
-        <Text className="text-black-300 text-lg font-rubik-bold ml-2 flex-1 text-center mr-10">
+        <Text className="text-black-300 dark:text-gray-100 text-lg font-rubik-bold ml-2 flex-1 text-center mr-10">
           {t("findyourDreamProperty", {
             defaultValue: "သင့်အိမ်မက်ကို ရှာဖွေပါ",
           })}
         </Text>
       </View>
-      <View className="bg-white border-b border-primary-200 pt-2">
+      <View className="bg-white dark:bg-black border-b border-primary-200 dark:border-gray-800 pt-2">
         <View className="px-6 mb-4">
-          <View className="flex-row w-full bg-primary-100 p-1 rounded-full relative">
+          <View className="flex-row w-full bg-primary-100 dark:bg-gray-800 p-1 rounded-full relative">
             <Animated.View
               style={{
                 width: SEGMENT_WIDTH,
                 transform: [{ translateX: slideValue }],
               }}
-              className="absolute top-1 bottom-1 left-1 bg-white rounded-full shadow-sm"
+              className="absolute top-1 bottom-1 left-1 bg-white dark:bg-gray-900 rounded-full shadow-sm"
             />
 
             {searchcategories.map((cat, index) => {
@@ -79,7 +83,7 @@ export default function SearchScreen() {
                 >
                   <Text
                     className={`font-rubik-bold text-sm text-center duration-150 ${
-                      isActive ? "text-black-300" : "text-black-100"
+                      isActive ? "text-black-300 dark:text-gray-100" : "text-black-100 dark:text-gray-400"
                     }`}
                   >
                     {cat.label}

@@ -1,14 +1,15 @@
 import { Button, ButtonText } from "@/components/features/ui/button/button";
 import { Heading } from "@/components/features/ui/heading/heading";
 import { AlertDialog } from "@/components/ui/alert-dialog";
+import { sendNotification } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
+import { useThemeStore } from "@/store/useThemeStore";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { VideoView, useVideoPlayer } from "expo-video";
 import {
   Bed,
   ChevronLeft,
-  Heart,
   Home,
   MapPin,
   Maximize2,
@@ -25,7 +26,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  Alert,
   Dimensions,
   FlatList,
   Image,
@@ -71,13 +71,14 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isNavigatingChat, setIsNavigatingChat] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-  const [savedId, setSavedId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [alertDialog, setAlertDialog] = useState<{
     title: string;
     message: string;
+    onConfirm?: () => void;
+    showCancel?: boolean;
+    confirmText?: string;
   } | null>(null);
   const [previewIndex, setPreviewIndex] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -127,113 +128,53 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
     fetchPropertyDetails();
 
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setCurrentUserId(user.id);
+      if (user) {
+        setCurrentUserId(user.id);
+        supabase.rpc("increment_property_views", { property_id: propertyId })
+          .then(({ error }) => {
+            if (error) console.error("View increment error:", error);
+          });
+      }
     });
   }, [propertyId]);
 
-  useEffect(() => {
-    (async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user || !propertyId) return;
-      const { data } = await supabase
-        .from("saved_properties")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("property_id", propertyId)
-        .maybeSingle();
-      if (data) {
-        setIsSaved(true);
-        setSavedId(data.id);
-      }
-    })();
-  }, [propertyId]);
-
-  const toggleSave = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setAlertDialog({
-        title: isBurmese ? "အကောင့်ဝင်ရန်လိုအပ်သည်" : "Authentication Required",
-        message: isBurmese
-          ? "သိမ်းရန် အကောင့်ဝင်ပေးပါ"
-          : "Please log in to save properties.",
-      });
-      return;
-    }
-    if (isSaved && savedId) {
-      const { error } = await supabase
-        .from("saved_properties")
-        .delete()
-        .eq("id", savedId)
-        .eq("user_id", user.id);
-      if (!error) {
-        setIsSaved(false);
-        setSavedId(null);
-      }
-    } else {
-      const { data } = await supabase
-        .from("saved_properties")
-        .insert({ user_id: user.id, property_id: propertyId })
-        .select("id")
-        .single();
-      if (data) {
-        setIsSaved(true);
-        setSavedId(data.id);
-      }
-    }
-  };
-
   const handleMarkAsSold = () => {
-    Alert.alert(
-      isBurmese ? "ရောင်းပြီးကြောင်းမှတ်သားရန်" : "Mark as Sold",
-      isBurmese
+    setAlertDialog({
+      title: isBurmese ? "ရောင်းပြီးကြောင်းမှတ်သားရန်" : "Mark as Sold",
+      message: isBurmese
         ? "ဤအိမ်ခြံမြေကို ရောင်းပြီးကြောင်း မှတ်သားလိုပါသလား?"
         : "Are you sure you want to mark this property as sold?",
-      [
-        { text: isBurmese ? "မလုပ်တော့ပါ" : "Cancel", style: "cancel" },
-        {
-          text: isBurmese ? "ရောင်းပြီးမှတ်သားရန်" : "Mark Sold",
-          onPress: async () => {
-            await supabase
-              .from("properties")
-              .update({ is_sold: true })
-              .eq("id", propertyId);
-            setProperty((prev: any) =>
-              prev ? { ...prev, is_sold: true } : prev,
-            );
-          },
-        },
-      ],
-    );
+      showCancel: true,
+      onConfirm: async () => {
+        await supabase
+          .from("properties")
+          .update({ is_sold: true, sold_at: new Date().toISOString() })
+          .eq("id", propertyId);
+        setProperty((prev: any) =>
+          prev ? { ...prev, is_sold: true, sold_at: new Date().toISOString() } : prev,
+        );
+      },
+    });
   };
 
   const handleDeleteProperty = () => {
-    Alert.alert(
-      isBurmese ? "ဖျက်မည်" : "Delete Property",
-      isBurmese
+    setAlertDialog({
+      title: isBurmese ? "ဖျက်မည်" : "Delete Property",
+      message: isBurmese
         ? "ဤအိမ်ခြံမြေကို ဖျက်လိုပါသလား?"
         : "Are you sure you want to delete this property?",
-      [
-        { text: isBurmese ? "မလုပ်တော့ပါ" : "Cancel", style: "cancel" },
-        {
-          text: isBurmese ? "ဖျက်မည်" : "Delete",
-          style: "destructive",
-          onPress: async () => {
-            const { error } = await supabase
-              .from("properties")
-              .delete()
-              .eq("id", propertyId)
-              .eq("user_id", currentUserId);
-            if (!error) {
-              onBack();
-            }
-          },
-        },
-      ],
-    );
+      showCancel: true,
+      onConfirm: async () => {
+        const { error } = await supabase
+          .from("properties")
+          .delete()
+          .eq("id", propertyId)
+          .eq("user_id", currentUserId);
+        if (!error) {
+          onBack();
+        }
+      },
+    });
   };
 
   const handleChatPress = async () => {
@@ -250,6 +191,9 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           message: isBurmese
             ? "စာပို့ရန်အတွက် အရင်ဆုံးအကောင့်ဝင်ပေးပါ"
             : "Please log in to contact the seller.",
+          showCancel: true,
+          confirmText: isBurmese ? "အကောင့်ဝင်ရန်" : "Login",
+          onConfirm: () => router.push("/(auth)/login"),
         });
         return;
       }
@@ -294,6 +238,13 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           sender_id: user.id,
           text: `Hi! I'm interested in: ${title}`,
         });
+
+        sendNotification(
+          property.user_id,
+          "New Inquiry",
+          `Someone is interested in: ${title}`,
+          { screen: "chat", conversationId },
+        );
       }
 
       router.push(`/chat/${conversationId}` as any);
@@ -384,6 +335,9 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
       ? `${townshipName}, ${regionName}`
       : "Yangon, Myanmar";
 
+  const resolvedTheme = useThemeStore?.getState?.().resolvedTheme;
+  const isDark = resolvedTheme === "dark";
+
   const propertyTypeLabel =
     isBurmese && property.property_type
       ? property.property_type
@@ -409,9 +363,9 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
   }&layer=mapnik&marker=${property.latitude}%2C${property.longitude}`;
 
   return (
-    <View className="flex-1 bg-white">
-      <StatusBar style="dark" />
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <View className="flex-1 bg-white dark:bg-black">
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Image Carousel */}
         <View>
           <View style={{ opacity: property.is_sold ? 0.5 : 1 }}>
@@ -488,27 +442,17 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             </View>
           )}
 
-          {/* Back + Save buttons */}
+          {/* Back button */}
           <SafeAreaView className="absolute top-0 left-0 right-0">
             <View className="flex-row items-center justify-between px-4 pt-2">
               <TouchableOpacity
                 onPress={onBack}
-                className="w-10 h-10 bg-white rounded-full items-center justify-center"
+                className="w-10 h-10 bg-white dark:bg-gray-900 rounded-full items-center justify-center"
                 style={{ elevation: 3 }}
               >
-                <ChevronLeft size={20} color="#191D31" />
+                <ChevronLeft size={20} color={isDark ? "#d1d5db" : "#191D31"} />
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={toggleSave}
-                className="w-10 h-10 bg-white rounded-full items-center justify-center"
-                style={{ elevation: 3 }}
-              >
-                <Heart
-                  size={20}
-                  color={isSaved ? "#EF4444" : "#191D31"}
-                  fill={isSaved ? "#EF4444" : "transparent"}
-                />
-              </TouchableOpacity>
+              <View />
             </View>
           </SafeAreaView>
         </View>
@@ -545,8 +489,44 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             {displayPrice}
           </Text>
 
+          {/* Ad Info Card */}
+          <View className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 mb-5">
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text className="text-black-100 dark:text-gray-400 text-xs font-rubik-medium uppercase tracking-wider">
+                  {isBurmese ? "ကြော်ငြာနံပါတ်" : "Ad Number"}
+                </Text>
+                <Text className="text-black-300 dark:text-gray-100 text-lg font-rubik-extrabold mt-0.5">
+                  PROP-{10000 + (property.ad_number || 0)}
+                </Text>
+              </View>
+              <View className="w-px h-10 bg-gray-200 dark:bg-gray-600" />
+              <View className="items-end">
+                <Text className="text-black-100 dark:text-gray-400 text-xs font-rubik-medium uppercase tracking-wider">
+                  {isBurmese ? "တင်သည့်နေ့" : "Posted"}
+                </Text>
+                <Text className="text-black-300 dark:text-gray-100 text-sm font-rubik-bold mt-0.5">
+                  {property.created_at
+                    ? new Date(property.created_at).toLocaleDateString(
+                        isBurmese ? "my-MM" : "en-US",
+                        { year: "numeric", month: "short", day: "numeric" }
+                      )
+                    : "-"}
+                </Text>
+                {property.created_at && (
+                  <Text className="text-black-100 dark:text-gray-400 text-xs font-rubik mt-0.5">
+                    {new Date(property.created_at).toLocaleTimeString(
+                      isBurmese ? "my-MM" : "en-US",
+                      { hour: "2-digit", minute: "2-digit" }
+                    )}
+                  </Text>
+                )}
+              </View>
+            </View>
+          </View>
+
           {/* Specs Row */}
-          <View className="flex-row justify-between bg-primary-100 rounded-2xl p-4 mb-5">
+          <View className="flex-row justify-between bg-primary-100 dark:bg-gray-900 rounded-2xl p-4 mb-5">
             <SpecItem
               icon={<Bed size={20} color="#22c55e" />}
               label={isBurmese ? "အိပ်ခန်း" : "Beds"}
@@ -574,10 +554,10 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           </View>
 
           {/* Description */}
-          <Text className="text-base font-rubik-bold text-black-300 mb-2">
+          <Text className="text-base font-rubik-bold text-black-300 dark:text-gray-100 mb-2">
             {isBurmese ? "အကျဉ်းချုပ်" : "Description"}
           </Text>
-          <Text className="text-black-200 text-sm font-rubik leading-6 mb-1">
+          <Text className="text-black-200 dark:text-gray-300 text-sm font-rubik leading-6 mb-1">
             {displayDesc || (isBurmese ? "အသေးစိတ်အချက်အလက်မရှိသေးပါ" : "No description available.")}
           </Text>
           {isLongDesc && (
@@ -593,12 +573,12 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           <View className="mb-5" />
 
           {/* Location */}
-          <Text className="text-base font-rubik-bold text-black-300 mb-2">
+          <Text className="text-base font-rubik-bold text-black-300 dark:text-gray-100 mb-2">
             {isBurmese ? "တည်နေရာ" : "Location"}
           </Text>
           <View className="flex-row items-center gap-2 mb-4">
             <MapPin size={16} color="#666876" />
-            <Text className="text-black-200 text-sm font-rubik flex-1">
+            <Text className="text-black-200 dark:text-gray-300 text-sm font-rubik flex-1">
               {displayLocation}
             </Text>
           </View>
@@ -638,13 +618,13 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
               }}
               className="rounded-2xl overflow-hidden border border-primary-200 mb-6"
             >
-              <View className="bg-primary-100 items-center justify-center py-10 gap-2">
+              <View className="bg-primary-100 dark:bg-gray-900 items-center justify-center py-10 gap-2">
                 <MapPin size={40} color="#22c55e" />
-                <Text className="text-black-200 text-sm font-rubik-medium text-center px-4">
+                <Text className="text-black-200 dark:text-gray-300 text-sm font-rubik-medium text-center px-4">
                   {displayLocation}
                 </Text>
               </View>
-              <View className="flex-row items-center justify-center py-3 border-t border-primary-200 gap-2">
+              <View className="flex-row items-center justify-center py-3 border-t border-primary-200 dark:border-gray-800 gap-2">
                 <Navigation size={16} color="#22c55e" />
                 <Text className="text-primary-300 font-rubik-bold text-sm">
                   {isBurmese ? "Google Maps တွင်ကြည့်ရန်" : "View on Google Maps"}
@@ -655,23 +635,28 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
 
           {/* Agent Section */}
           <View className="flex-row items-center gap-3 mb-6">
-            <View className="size-12 rounded-full bg-primary-100 items-center justify-center">
-              <Text className="text-primary-300 text-lg font-rubik-bold">
+            <View className="size-12 rounded-full bg-primary-100 dark:bg-gray-800 items-center justify-center">
+              <Text className="text-primary-300 dark:text-green-400 text-lg font-rubik-bold">
                 {(property.profiles?.full_name || "O")[0].toUpperCase()}
               </Text>
             </View>
             <View className="flex-1">
-              <Text className="text-black-300 font-rubik-bold text-base">
+              <Text className="text-black-300 dark:text-gray-100 font-rubik-bold text-base">
                 {property.profiles?.full_name ||
                   (isBurmese ? "ပိုင်ရှင်" : "Owner")}
               </Text>
-              <Text className="text-black-100 text-sm font-rubik">
+              <Text className="text-black-100 dark:text-gray-400 text-sm font-rubik">
                 {property.search_value || property.phone || ""}
               </Text>
             </View>
           </View>
 
-          {/* Contact / Action Buttons */}
+        </View>
+      </ScrollView>
+
+      {/* Fixed Bottom Action Buttons */}
+      <SafeAreaView edges={["bottom"]} className="bg-white dark:bg-black border-t border-gray-100 dark:border-gray-800">
+        <View className="px-5 py-3">
           {isOwner ? (
             <View className="flex-row gap-3">
               {!property.is_sold && (
@@ -725,7 +710,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             </View>
           )}
         </View>
-      </ScrollView>
+      </SafeAreaView>
 
       {/* Image Viewer Modal */}
       <Modal
@@ -773,19 +758,41 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
         useRNModal={true}
       >
         <AlertDialog.Backdrop />
-        <AlertDialog.Content className="p-6 rounded-3xl bg-white w-5/6 items-center shadow-xl">
+        <AlertDialog.Content className="p-7 rounded-3xl bg-white dark:bg-gray-900 w-5/6 items-center shadow-xl">
           <AlertDialog.Header>
-            <Heading>{alertDialog?.title || ""}</Heading>
+            <Heading className="text-black-300 dark:text-gray-100 font-rubik-bold text-lg">
+              {alertDialog?.title || ""}
+            </Heading>
           </AlertDialog.Header>
-          <AlertDialog.Body>
-            <Text className="text-center text-black-200">
+          <AlertDialog.Body className="pb-5">
+            <Text className="text-center text-black-200 dark:text-gray-300 font-rubik">
               {alertDialog?.message || ""}
             </Text>
           </AlertDialog.Body>
-          <AlertDialog.Footer className="w-full flex-row justify-center">
-            <Button onPress={() => setAlertDialog(null)} className="flex-1">
-              <ButtonText>OK</ButtonText>
-            </Button>
+          <AlertDialog.Footer className="w-full">
+            <View className="flex-row gap-3 w-full">
+              {alertDialog?.showCancel && (
+                <Button
+                  className="flex-1 bg-primary-200"
+                  onPress={() => setAlertDialog(null)}
+                >
+                  <ButtonText className="text-black-300">
+                    {isBurmese ? "မလုပ်တော့ပါ" : "Cancel"}
+                  </ButtonText>
+                </Button>
+              )}
+              <Button
+                onPress={() => {
+                  setAlertDialog(null);
+                  if (alertDialog?.onConfirm) alertDialog.onConfirm();
+                }}
+                className="flex-1 bg-primary-300"
+              >
+                <ButtonText className="text-white">
+                  {alertDialog?.confirmText || (isBurmese ? "သေချာပါသည်" : "OK")}
+                </ButtonText>
+              </Button>
+            </View>
           </AlertDialog.Footer>
         </AlertDialog.Content>
       </AlertDialog>
@@ -805,8 +812,8 @@ function SpecItem({
   return (
     <View className="items-center gap-1">
       {icon}
-      <Text className="text-black-300 font-rubik-bold text-sm">{value}</Text>
-      <Text className="text-black-100 text-xs font-rubik">{label}</Text>
+      <Text className="text-black-300 dark:text-gray-100 font-rubik-bold text-sm">{value}</Text>
+      <Text className="text-black-100 dark:text-gray-400 text-xs font-rubik">{label}</Text>
     </View>
   );
 }

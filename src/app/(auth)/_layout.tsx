@@ -1,8 +1,21 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React from "react";
+import * as Linking from "expo-linking";
+import React, { useEffect } from "react";
+
+import { handleAuthCallbackUrl } from "@/lib/handleAuthCallback";
 
 export default function AuthLayout() {
+  useEffect(() => {
+    const subscription = Linking.addEventListener("url", (event) => {
+      if (event.url.includes("auth/callback")) {
+        handleAuthCallbackUrl(event.url);
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   return (
     <>
       {/* Forces a consistent status bar appearance across login/register screens */}

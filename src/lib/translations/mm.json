@@ -22,6 +22,7 @@
   "property.apartment": "တိုက်ခန်း",
   "property.house": "အိမ်",
   "property.land": "အိမ်ယာမြေ",
+  "property.hostel": "အဆောင်",
   "choose floor": "အလွှာ ရွေးချယ်ပါ",
   "ground floor": "မြေညီထပ်",
   "ground + attic": "မြေညီထပ် + ထပ်ခိုး",
@@ -111,6 +112,16 @@
     "condo": "ကွန်ဒို",
     "hostel(for rent)": "အဆောင်(ငှားရန်)"
   },
+  "subFilters": {
+    "propertiesForSale": "ရောင်းရန်အိမ်ခြံများ",
+    "affordableProperties": "တန်ဈေးအိမ်ခြံများ",
+    "soldOut": "ရောင်းပြီးအိမ်ခြံများ",
+    "propertiesForRent": "ငှားရန်အိမ်ခြံများ",
+    "rented": "ငှားပြီးအိမ်ခြံများ"
+  },
+  "badge": {
+    "soldOut": "ရောင်းပြီး"
+  },
   "searchcategories": {
     "search properties": "အိမ်ခြံမြေများ ရှာဖွေရန်",
     "search by ads number": "ကြော်ငြာနံပါတ်ဖြင့် ရှာဖွေရန်"
@@ -130,15 +141,21 @@
     "maxPrice": "အတွင်း",
     "rooms": "အိပ်ခန်း",
     "sqft": "sq.ft အကျယ်အဝန်း",
-    "searchButton": "ရှာမည်"
+    "searchButton": "ရှာမည်",
+    "backToSearch": "ရှာဖွေရန်သို့ပြန်သွားပါ",
+    "resultsFound": "ရလဒ် {{num}} ခုတွေ့ရှိသည်"
   },
   "adsFilter": {
     "byIdNumber": "ကြော်ငြာနံပါတ်ဖြင့်",
     "byPhoneNumber": "ဖုန်းနံပါတ်ဖြင့်",
     "placeholder": "ကြော်ငြာနံပါတ် ရိုက်ထည့်ပါ",
+    "phonePlaceholder": "ဖုန်းနံပါတ် ရိုက်ထည့်ပါ",
     "stateRegion": "တိုင်းဒေသကြီးနှင့်ပြည်နယ်အားလုံး",
     "township": "မြို့နယ်အားလုံး",
-    "searchButton": "ရှာမည်"
+    "searchButton": "ရှာမည်",
+    "backToSearch": "ရှာဖွေရန်သို့ပြန်သွားပါ",
+    "noResults": "ကြော်ငြာမတွေ့ပါ",
+    "resultsFound": "ရလဒ် {{num}} ခုတွေ့ရှိသည်"
   },
   "login": {
     "title": "ကြိုဆိုပါတယ်",
@@ -190,6 +207,20 @@
     "active": "အသုံးပြုနေဆဲ",
     "accountStatus": "အကောင့်အခြေအနေ",
     "settings": "ဆက်တင်များ",
+    "myListings": "ကျွန်ုပ်၏စာရင်းများ",
+    "availableToPost": "တင်နိုင်သည့်အရေအတွက်",
+    "totalPosted": "စုစုပေါင်းတင်ပြီး",
+    "tabForSale": "ရောင်းရန်",
+    "tabForRent": "ငှားရန်",
+    "tabHostel": "အဆောင်",
+    "tabSoldOut": "ရောင်းပြီး",
+    "tabRentOut": "ငှားပြီး",
+    "tabRentOutHostel": "အဆောင်ငှားပြီး",
+    "noListingsInTab": "ဤအမျိုးအစားတွင် စာရင်းမရှိသေးပါ",
+    "deleteTitle": "စာရင်းဖျက်ရန်",
+    "deleteConfirm": "ဤစာရင်းကို ဖျက်လိုသည်မှာ သေချာပါသလား။",
+    "createListing": "စာရင်းအသစ်တင်ရန်",
+    "language": "ဘာသာစကား",
     "profileSettings": "ပရိုဖိုင် ဆက်တင်များ",
     "savedProperties": "သိမ်းဆည်းထားသော အိမ်ခြံမြေများ",
     "noSavedProperties": "သိမ်းဆည်းထားသော အိမ်ခြံမြေ မရှိသေးပါ",
@@ -208,20 +239,33 @@
       { "label": "တိုက်ခန်း (Apartment)", "value": "apartment" },
       { "label": "ကွန်ဒို (Condo)", "value": "condo" },
       { "label": "လုံးချင်းအိမ် (House)", "value": "house" },
-      { "label": "မြေကွက် (Land)", "value": "land" }
+      { "label": "မြေကွက် (Land)", "value": "land" },
+      { "label": "အဆောင် (Hostel)", "value": "hostel" }
     ]
   },
   "step_1": {
     "section_title": "အခြေခံအချက်အလက်များ",
+    "labels": {
+      "title_mm": "ခေါင်းစဉ် (မြန်မာ)",
+      "title_en": "ခေါင်းစဉ် (English)",
+      "property_type": "အိမ်ခြံမြေ အမျိုးအစား",
+      "price": "စျေးနှုန်း",
+      "currency": "ငွေကြေးယူနစ်"
+    },
     "placeholders": {
       "title_mm": "ကြော်ငြာခေါင်းစဉ် (Myanmar) *",
       "property_type_dropdown": "အိမ်ခြံမြေ အမျိုးအစား ရွေးချယ်ပါ *",
       "price_rent": "လစဉ်ငှားရမ်းခ (သိန်း) *",
       "price_sale": "ရောင်းဈေး/ဝယ်လိုဈေး (သိန်း) *"
-    }
+    },
+    "ad_content": "ကြော်ငြာပါဝင်သည့်အကြောင်းအရာ",
+    "ad_content_placeholder": "အိမ်ခြံမြေအကြောင်း ဖော်ပြပါ..."
   },
   "step_2": {
     "section_title": "အသေးစိတ် အချက်အလက်များ",
+    "labels": {
+      "floor": "အလွှာ"
+    },
     "placeholders": {
       "floor": "အလွှာ (Floor)",
       "rooms": "အခန်းအရေအတွက်",
@@ -230,6 +274,11 @@
   },
   "step_3": {
     "section_title": "တည်နေရာနှင့် ဆက်သွယ်ရန်",
+    "labels": {
+      "region": "တိုင်းဒေသကြီး / ပြည်နယ်",
+      "township": "မြို့နယ်",
+      "phone": "ဖုန်းနံပါတ်"
+    },
     "placeholders": {
       "region": "တိုင်းဒေသကြီး / ပြည်နယ် *",
       "township": "မြို့နယ် *",
@@ -249,6 +298,52 @@
     "methodEmail": "အီးမေးလ်",
     "methodPhone": "ဖုန်း"
   },
+  "wanted": {
+    "title": "ဝယ်/ငှားလိုသော ကြော်ငြာများ",
+    "new": "အသစ်",
+    "all": "အားလုံး",
+    "buy": "ဝယ်ရန်",
+    "rent": "ငှားရန်",
+    "post": "ကြော်ငြာတင်မည်",
+    "titlePlaceholder": "ဥပမာ - မရမ်းကုန်းမြို့နယ်တွင် တိုက်ခန်းရှာနေပါသည်",
+    "descriptionPlaceholder": "သင်ရှာနေသောအိမ်ခြံမြေအကြောင်း အသေးစိတ်ရေးပါ...",
+    "propertyType": "အိမ်ခြံမြေအမျိုးအစား",
+    "selectPropertyType": "အမျိုးအစားရွေးပါ",
+    "budget": "ဘတ်ဂျက် (သိန်း)",
+    "budgetPlaceholder": "ဥပမာ - 5000",
+    "bedrooms": "အိပ်ခန်း",
+    "bedroomsPlaceholder": "ဥပမာ - 2",
+    "region": "တိုင်းဒေသကြီး / ပြည်နယ်",
+    "selectRegion": "တိုင်းဒေသကြီး / ပြည်နယ်ရွေးပါ",
+    "township": "မြို့နယ်",
+    "selectTownship": "မြို့နယ်ရွေးပါ",
+    "phone": "ဆက်သွယ်ရန် ဖုန်းနံပါတ်",
+    "phonePlaceholder": "ဖုန်းနံပါတ်",
+    "createTitle": "ဝယ်/ငှားလိုကြော်ငြာအသစ်",
+    "detailTitle": "ကြော်ငြာအသေးစိတ်",
+    "poster": "ကြော်ငြာရှင်",
+    "wantToBuy": "ဝယ်ယူလိုသည်",
+    "wantToRent": "ငှားရမ်းလိုသည်",
+    "empty": "ကြော်ငြာများမရှိသေးပါ",
+    "notFound": "ကြော်ငြာမတွေ့ပါ",
+    "success": "သင်၏ကြော်ငြာကို အောင်မြင်စွာ တင်ပြီးပါပြီ။",
+    "titleRequired": "ခေါင်းစဉ် ရိုက်ထည့်ပါ။",
+    "phoneRequired": "ဖုန်းနံပါတ် ရိုက်ထည့်ပါ။",
+    "description": "အသေးစိတ်ဖော်ပြချက်"
+  },
+  "savedSearches": {
+    "title": "သိမ်းဆည်းထားသော ရှာဖွေမှုများ",
+    "empty": "သိမ်းဆည်းထားသော ရှာဖွေမှု မရှိသေးပါ",
+    "save": "ရှာဖွေမှုကို သိမ်းဆည်းရန်",
+    "namePlaceholder": "ဥပမာ - သိန်း ၂၀၀၀ အောက် တိုက်ခန်းများ",
+    "dialogTitle": "ရှာဖွေမှုကို သိမ်းဆည်းရန်",
+    "dialogMessage": "ဤရှာဖွေမှုကို အမည်ပေးပါ:",
+    "cancel": "မလုပ်တော့ပါ",
+    "save": "သိမ်းမည်",
+    "delete": "ဖျက်မည်",
+    "deleted": "ရှာဖွေမှုကို ဖျက်ပြီးပါပြီ။",
+    "loginRequired": "သိမ်းဆည်းရန် Login ဝင်ပါ။"
+  },
   "alerts_and_dialogs": {
     "button_confirm": "ကောင်းပြီ",
     "login_required": {
@@ -259,7 +354,34 @@
       "title": "သတိပေးချက်",
       "message": "လိုအပ်သော အချက်အလက်များကို ဖြည့်စွက်ပေးပါ။"
     },
-    "step_2_validation": {
+    "hostel": {
+    "step_title": "အဆောင်အချက်အလက်",
+    "rent_price": "လစဉ်ငှားခ",
+    "rent_price_placeholder": "ဥပမာ - ၁၅၀၀၀၀",
+    "type": "အမျိုးအစား",
+    "type_male": "အမျိုးသား",
+    "type_female": "အမျိုးသမီး",
+    "type_householder": "အိမ်ထောင်သည်",
+    "type_coed": "တွဲနေ",
+    "room_capacity": "ဝင်ဆံ့နှုန်း",
+    "capacity_1": "၁ ဦး",
+    "capacity_2": "၂ ဦး",
+    "capacity_3": "၃ ဦး",
+    "capacity_4": "၄ ဦး",
+    "capacity_5": "၅ ဦး",
+    "capacity_6": "၆ ဦး",
+    "capacity_7": "၇ ဦး",
+    "capacity_8": "၈ ဦး",
+    "capacity_9": "၉ ဦး",
+    "capacity_10": "၁၀ ဦး",
+    "capacity_hall": "ခန်းမ",
+    "capacity_family": "မိသားစု",
+    "description": "အသေးစိတ်",
+    "description_placeholder": "ပါဝင်ပစ္စည်းများ၊ စည်းကမ်းချက်များ၊ အနီးအနား...",
+    "pin": "နေရာချရန်",
+    "pinned": "နေရာချပြီး"
+  },
+  "step_2_validation": {
       "title": "သတိပေးချက်",
       "message": "တည်နေရာနှင့် ဆက်သွယ်ရန် ဖုန်းနံပါတ် ဖြည့်စွက်ပေးပါ။"
     },

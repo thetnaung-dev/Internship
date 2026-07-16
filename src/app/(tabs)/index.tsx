@@ -1,13 +1,18 @@
 import { supabase } from "@/lib/supabase";
+import { Card } from "@/components/features/property/Cards";
+import { useCompareStore } from "@/store/useCompareStore";
+import { useThemeStore } from "@/store/useThemeStore";
 import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Search } from "lucide-react-native";
-import React, { useState } from "react";
+import { ChevronDown, Search, User, ClipboardList } from "lucide-react-native";
+import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { FlashList } from "@shopify/flash-list";
 import {
   ActivityIndicator,
-  FlatList,
+  DeviceEventEmitter,
   Image,
+  RefreshControl,
   Text,
   TouchableOpacity,
   View,
@@ -15,31 +20,54 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Card } from "../../components/features/property/Cards";
-
 export default function HomeScreen() {
   const { t, i18n } = useTranslation();
   const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
+  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
+  const isDark = resolvedTheme === "dark";
 
   const [properties, setProperties] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
+  const [saleSubFilter, setSaleSubFilter] = useState("all");
+  const [showSaleDropdown, setShowSaleDropdown] = useState(false);
+  const [rentSubFilter, setRentSubFilter] = useState("all");
+  const [showRentDropdown, setShowRentDropdown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
-  const fetchProperties = async (category: string) => {
+  const fetchProperties = async (category: string, isPullRefresh = false) => {
     try {
-      setIsLoading(true);
+      if (isPullRefresh) setIsRefreshing(true); else setIsLoading(true);
       let query = supabase
         .from("properties")
-        .select("*")
+        .select(
+          `*, views, states_regions(name_en, name_mm), townships(name_en, name_mm)`,
+        )
         .order("created_at", { ascending: false });
 
       if (category === "for rent") {
         query = query.eq("deal_type", "rent");
+        if (rentSubFilter === "rented") {
+          query = query.eq("is_sold", true);
+        } else {
+          query = query.eq("is_sold", false);
+        }
       } else if (category === "for sale") {
         query = query.eq("deal_type", "sale");
-      } else if (category !== "all") {
-        query = query.eq("property_type", category);
+        if (saleSubFilter === "sold") {
+          query = query.eq("is_sold", true);
+        } else {
+          query = query.eq("is_sold", false);
+          if (saleSubFilter === "affordable") {
+            query = query.lt("price", 3000);
+          }
+        }
+      } else if (category === "all") {
+        query = query.eq("is_sold", false);
+      } else {
+        query = query.eq("property_type", category).eq("is_sold", false);
       }
 
       const { data } = await query;
@@ -47,27 +75,71 @@ export default function HomeScreen() {
     } catch (err) {
       console.error("Error fetching properties:", err);
     } finally {
-      setIsLoading(false);
+      if (isPullRefresh) setIsRefreshing(false); else setIsLoading(false);
     }
   };
 
+  useEffect(() => {
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url")
+          .eq("id", user.id)
+          .single();
+        setUser(profile);
+
+        const { data: saved } = await supabase
+          .from("saved_properties")
+          .select("property_id")
+          .eq("user_id", user.id);
+        setSavedIds(new Set(saved?.map((s) => s.property_id) || []));
+      }
+    };
+    init();
+  }, []);
+
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener("resetHomeTab", () => {
+      setActiveCategory("all");
+      setSaleSubFilter("all");
+      setRentSubFilter("all");
+    });
+    return () => sub.remove();
+  }, []);
+
   useFocusEffect(
     React.useCallback(() => {
-      const getUser = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data } = await supabase
-            .from("profiles")
-            .select("full_name, avatar_url")
-            .eq("id", user.id)
-            .single();
-          setUser(data);
-        }
-      };
-      getUser();
       fetchProperties(activeCategory);
-    }, [activeCategory]),
+    }, [activeCategory, saleSubFilter, rentSubFilter]),
   );
+
+  const handleSave = async (propertyId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/(auth)/login");
+      return;
+    }
+
+    if (savedIds.has(propertyId)) {
+      await supabase
+        .from("saved_properties")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("property_id", propertyId);
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(propertyId);
+        return next;
+      });
+    } else {
+      await supabase
+        .from("saved_properties")
+        .insert({ user_id: user.id, property_id: propertyId });
+      setSavedIds((prev) => new Set(prev).add(propertyId));
+    }
+  };
 
   const categories = [
     { id: "all", label: t("categories.all") },
@@ -78,7 +150,23 @@ export default function HomeScreen() {
     { id: "hostel", label: t("categories.hostel") },
   ];
 
+  const saleFilters = [
+    { id: "all", label: t("subFilters.propertiesForSale") },
+    { id: "affordable", label: t("subFilters.affordableProperties") },
+    { id: "sold", label: t("subFilters.soldOut") },
+  ];
+
+  const rentFilters = [
+    { id: "all", label: t("subFilters.propertiesForRent") },
+    { id: "rented", label: t("subFilters.rented") },
+  ];
+
   const handleCardPress = (id: string) => router.push(`/property/${id}`);
+
+  const compareItems = useCompareStore((s) => s.items);
+  const handleCompare = (property: any) => {
+    useCompareStore.getState().add(property);
+  };
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -88,29 +176,41 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView className="h-full bg-white">
-      <StatusBar style="dark" />
+    <SafeAreaView className="h-full bg-white dark:bg-black">
+      <StatusBar style={isDark ? "light" : "dark"} />
 
-      <View className="bg-white border-b border-primary-100">
+      <View className="bg-white dark:bg-black border-b border-primary-100 dark:border-gray-800">
         <View className="px-5 pt-2 pb-3">
           <View className="flex flex-row items-center justify-between">
             <View className="flex flex-row">
-              <Image
-                source={{ uri: user?.avatar_url || "https://ui-avatars.com/api/?name=User" }}
-                className="size-12 rounded-full"
-              />
+              <View className="size-12 rounded-full bg-primary-100 dark:bg-gray-800 items-center justify-center overflow-hidden">
+                {user?.avatar_url ? (
+                  <Image
+                    source={{ uri: user.avatar_url }}
+                    className="size-full"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <User size={22} color="#22c55e" />
+                )}
+              </View>
               <View className="flex flex-col items-start ml-2 justify-center">
-                <Text className="text-xs font-rubik text-black-100">
+                <Text className="text-xs font-rubik text-black-100 dark:text-gray-400">
                   {getGreeting()}
                 </Text>
-                <Text className="text-base font-rubik-medium text-black-300">
+                <Text className="text-base font-rubik-medium text-black-300 dark:text-gray-100">
                   {user?.full_name || (isBurmese ? "ဧည့်သည်" : "Guest")}
                 </Text>
               </View>
             </View>
-            <TouchableOpacity onPress={() => router.push("/search")}>
-              <Search size={24} color="#191D31" />
-            </TouchableOpacity>
+            <View className="flex-row items-center gap-3">
+              <TouchableOpacity onPress={() => router.push("/wanted" as any)}>
+                <ClipboardList size={24} color={isDark ? "#d1d5db" : "#191D31"} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push("/search")}>
+                <Search size={24} color={isDark ? "#d1d5db" : "#191D31"} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <ScrollView
@@ -123,11 +223,15 @@ export default function HomeScreen() {
               return (
                 <TouchableOpacity
                   key={cat.id}
-                  onPress={() => setActiveCategory(cat.id)}
-                  className={`px-5 py-2.5 rounded-full ${isActive ? "bg-primary-300" : "bg-primary-100"}`}
+                    onPress={() => {
+                      setActiveCategory(cat.id);
+                      if (cat.id !== "for sale") setSaleSubFilter("all");
+                      if (cat.id !== "for rent") setRentSubFilter("all");
+                    }}
+                  className={`px-5 py-2.5 rounded-full ${isActive ? "bg-primary-300" : "bg-primary-100 dark:bg-gray-800"}`}
                 >
                   <Text
-                    className={`text-sm font-rubik-medium ${isActive ? "text-white" : "text-black-200"}`}
+                    className={`text-sm font-rubik-medium ${isActive ? "text-white" : "text-black-200 dark:text-gray-300"}`}
                   >
                     {cat.label}
                   </Text>
@@ -135,31 +239,115 @@ export default function HomeScreen() {
               );
             })}
           </ScrollView>
+
+          {activeCategory === "for sale" && (
+            <View className="relative mt-3 z-10">
+              <TouchableOpacity
+                onPress={() => setShowSaleDropdown((p) => !p)}
+                className="flex-row items-center justify-between bg-white dark:bg-gray-900 border border-primary-200 dark:border-gray-700 rounded-full px-4 py-2.5"
+              >
+                <Text className="text-sm font-rubik-medium text-black-300 dark:text-gray-100">
+                  {saleFilters.find((f) => f.id === saleSubFilter)?.label}
+                </Text>
+                <ChevronDown size={16} color={isDark ? "#d1d5db" : "#191D31"} />
+              </TouchableOpacity>
+
+              {showSaleDropdown && (
+                <View className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-primary-200 dark:border-gray-700 rounded-2xl shadow-lg overflow-hidden">
+                  {saleFilters.map((f) => (
+                    <TouchableOpacity
+                      key={f.id}
+                      onPress={() => {
+                        setSaleSubFilter(f.id);
+                        setShowSaleDropdown(false);
+                      }}
+                      className={`px-4 py-3 ${saleSubFilter === f.id ? "bg-primary-100 dark:bg-gray-800" : ""}`}
+                    >
+                      <Text
+                        className={`text-sm font-rubik-medium ${saleSubFilter === f.id ? "text-primary-300" : "text-black-200 dark:text-gray-300"}`}
+                      >
+                        {f.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeCategory === "for rent" && (
+            <View className="relative mt-3 z-10">
+              <TouchableOpacity
+                onPress={() => setShowRentDropdown((p) => !p)}
+                className="flex-row items-center justify-between bg-white dark:bg-gray-900 border border-primary-200 dark:border-gray-700 rounded-full px-4 py-2.5"
+              >
+                <Text className="text-sm font-rubik-medium text-black-300 dark:text-gray-100">
+                  {rentFilters.find((f) => f.id === rentSubFilter)?.label}
+                </Text>
+                <ChevronDown size={16} color={isDark ? "#d1d5db" : "#191D31"} />
+              </TouchableOpacity>
+
+              {showRentDropdown && (
+                <View className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-primary-200 dark:border-gray-700 rounded-2xl shadow-lg overflow-hidden">
+                  {rentFilters.map((f) => (
+                    <TouchableOpacity
+                      key={f.id}
+                      onPress={() => {
+                        setRentSubFilter(f.id);
+                        setShowRentDropdown(false);
+                      }}
+                      className={`px-4 py-3 ${rentSubFilter === f.id ? "bg-primary-100 dark:bg-gray-800" : ""}`}
+                    >
+                      <Text
+                        className={`text-sm font-rubik-medium ${rentSubFilter === f.id ? "text-primary-300" : "text-black-200 dark:text-gray-300"}`}
+                      >
+                        {f.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
         </View>
       </View>
 
-      <FlatList
+      <FlashList
         data={properties}
-        numColumns={2}
         renderItem={({ item }) => (
-          <Card item={item} onPress={() => handleCardPress(item.id)} />
+          <Card
+            item={item}
+            onPress={() => handleCardPress(item.id)}
+            onSave={() => handleSave(item.id)}
+            onCompare={() => handleCompare(item)}
+            isSaved={savedIds.has(item.id)}
+            compareSelected={compareItems.some((i: any) => i.id === item.id)}
+          />
         )}
         keyExtractor={(item) => item.id}
         contentContainerClassName="pb-32 pt-5"
-        columnWrapperClassName="flex gap-5 px-5"
         showsVerticalScrollIndicator={false}
+        overScrollMode="never"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => fetchProperties(activeCategory, true)}
+            colors={["#22c55e"]}
+            tintColor="#22c55e"
+          />
+        }
         ListEmptyComponent={
           isLoading ? (
-            <ActivityIndicator size="large" className="text-primary-300 mt-5" />
+            <ActivityIndicator size="large" color="#22c55e" className="mt-5" />
           ) : (
             <View className="items-center py-12">
-              <Text className="text-black-100 font-rubik-medium text-base">
+              <Text className="text-black-100 dark:text-gray-400 font-rubik-medium text-base">
                 {isBurmese ? "ကြော်ငြာများမရှိသေးပါ" : "No properties found"}
               </Text>
             </View>
           )
         }
-      />
+        />
     </SafeAreaView>
   );
 }

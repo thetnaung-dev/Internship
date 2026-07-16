@@ -1,3 +1,4 @@
+import { sendNotification } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
@@ -21,10 +22,10 @@ import {
   X,
 } from "lucide-react-native";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FlashList, FlashListRef } from "@shopify/flash-list";
 import {
   ActionSheetIOS,
   ActivityIndicator,
-  FlatList,
   Image,
   Keyboard,
   Modal,
@@ -131,8 +132,9 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
   const [sending, setSending] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [otherName, setOtherName] = useState("");
+  const otherIdRef = useRef<string | null>(null);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const flatListRef = useRef<FlatList>(null);
+  const flatListRef = useRef<FlashListRef<any>>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
@@ -196,6 +198,7 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
           .eq("id", channelId);
 
         const otherId = conv.buyer_id === user.id ? conv.seller_id : conv.buyer_id;
+        otherIdRef.current = otherId;
         const { data: profile } = await supabase
           .from("profiles")
           .select("full_name")
@@ -565,6 +568,17 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
         });
         if (error) throw error;
       }
+
+      const recipientId = otherIdRef.current;
+      if (recipientId) {
+        const snippet = textToSend
+          ? textToSend.slice(0, 100)
+          : "Sent an attachment";
+        sendNotification(recipientId, "New Message", snippet, {
+          screen: "chat",
+          conversationId: channelId,
+        });
+      }
     } catch (err) {
       console.error("Error sending message:", err);
       setAlertDialog({ title: "Error", message: "Failed to send message. Please try again." });
@@ -650,8 +664,8 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerLeft}>
-          <ChevronLeft size={24} color="#1e293b" />
+        <TouchableOpacity onPress={() => router.back()} style={[styles.headerLeft, { width: 40, height: 40, borderRadius: 20, backgroundColor: "#bbf7d0", alignItems: "center", justifyContent: "center" }]}>
+          <ChevronLeft size={24} color="#22c55e" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle} numberOfLines={1}>
@@ -675,12 +689,11 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
         </View>
       )}
 
-      <FlatList
+      <FlashList
         ref={flatListRef}
         data={buildMessageList(messages)}
         keyExtractor={(item) => ("type" in item ? item.id : item.id)}
         contentContainerStyle={styles.messageList}
-        style={styles.flex}
         onContentSizeChange={() => {
           if (isAtBottom) {
             flatListRef.current?.scrollToEnd({ animated: false });
@@ -790,11 +803,11 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
           >
             {pendingAttachments.map((att, index) => (
               <View key={index} style={styles.attachmentPreview}>
-                <Image
-                  source={{ uri: att.uri }}
-                  style={styles.attachmentPreviewImage}
-                  resizeMode="cover"
-                />
+              <Image
+                source={{ uri: att.uri }}
+                style={styles.attachmentPreviewImage}
+                resizeMode="cover"
+              />
                 <Text style={styles.attachmentPreviewName} numberOfLines={1}>
                   {att.name}
                 </Text>

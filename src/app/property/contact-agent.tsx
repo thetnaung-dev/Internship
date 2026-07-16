@@ -20,9 +20,9 @@ export default function ContactAgentScreen() {
       <View className="px-4 py-4 flex-row items-center bg-white border-b border-slate-100">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-full bg-slate-100"
+          className="w-10 h-10 items-center justify-center rounded-full bg-primary-100"
         >
-          <ChevronLeft size={24} color="#334155" />
+          <ChevronLeft size={24} color="#22c55e" />
         </TouchableOpacity>
         <Text className="text-lg font-bold text-slate-800 ml-4">Contact Agent</Text>
       </View>

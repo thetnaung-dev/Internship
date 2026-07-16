@@ -1,23 +1,21 @@
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
-import { ChevronDown } from "lucide-react-native";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { ChevronLeft, Heart, Save, Share2 } from "lucide-react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   ScrollView,
-  StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button, ButtonText } from "@/components/features/ui/button/button";
 import { Heading } from "@/components/features/ui/heading/heading";
-import { Dropdown } from "react-native-element-dropdown";
-import { useFocusEffect } from "expo-router";
+import { SelectField } from "@/components/features/ui/actionsheet/actionsheet";
 
 interface SupabaseRegionRow {
   id: string;
@@ -48,12 +46,18 @@ interface Property {
   area_value: number;
   area_unit: string;
   created_at: string;
+  views?: number;
+  states_regions?: { name_en: string; name_mm: string };
+  townships?: { name_en: string; name_mm: string };
 }
 
 export default function PropertySearchForm() {
   const { t, i18n } = useTranslation();
   const router = useRouter();
   const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
+
+  const toMyanmarNum = (n: number) =>
+    n.toString().replace(/\d/g, (d) => "၀၁၂၃၄၅၆၇၈၉"[parseInt(d)]);
 
   const [dealType, setDealType] = useState("sale");
   const [agentType, setAgentType] = useState("all");
@@ -63,9 +67,6 @@ export default function PropertySearchForm() {
   const [rawTownships, setRawTownships] = useState<SupabaseTownshipRow[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [alertDialog, setAlertDialog] = useState<{ title: string; message: string } | null>(null);
-
-  const [isRegionFocused, setIsRegionFocused] = useState(false);
-  const [isTownshipFocused, setIsTownshipFocused] = useState(false);
 
   const [dropdowns, setDropdowns] = useState({
     stateRegion: "",
@@ -80,29 +81,102 @@ export default function PropertySearchForm() {
 
   const [results, setResults] = useState<Property[] | null>(null);
   const [searching, setSearching] = useState(false);
+  const [saveDialog, setSaveDialog] = useState(false);
+  const [searchName, setSearchName] = useState("");
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        setDealType("sale");
-        setAgentType("all");
-        setTextSearch("");
-        setDropdowns({
-          stateRegion: "",
-          township: "",
-          propertyType: "",
-          floor: "",
-          minPrice: "",
-          maxPrice: "",
-          rooms: "",
-          sqft: "",
+  useEffect(() => {
+    return () => {
+      setDealType("sale");
+      setAgentType("all");
+      setTextSearch("");
+      setDropdowns({
+        stateRegion: "",
+        township: "",
+        propertyType: "",
+        floor: "",
+        minPrice: "",
+        maxPrice: "",
+        rooms: "",
+        sqft: "",
+      });
+      setResults(null);
+    };
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase
+        .from("saved_properties")
+        .select("property_id")
+        .eq("user_id", user.id)
+        .then(({ data }) => {
+          setSavedIds(new Set(data?.map((s) => s.property_id) || []));
         });
-        setResults(null);
-        setIsRegionFocused(false);
-        setIsTownshipFocused(false);
-      };
-    }, []),
-  );
+    });
+  }, []);
+
+  const searchParams = useLocalSearchParams();
+  const autoSearchDone = useRef(false);
+
+  useEffect(() => {
+    if (autoSearchDone.current) return;
+    if (searchParams.autoSearch !== "true") return;
+    autoSearchDone.current = true;
+
+    setSearching(true);
+    setResults([]);
+
+    const dp = searchParams as Record<string, string>;
+    const dt = dp.dealType && ["sale", "rent", "launch", "building"].includes(dp.dealType) ? dp.dealType : "sale";
+    setDealType(dt);
+    const dd = {
+      stateRegion: dp.stateRegion || "",
+      township: dp.township || "",
+      propertyType: dp.propertyType || "",
+      floor: dp.floor || "",
+      minPrice: dp.minPrice || "",
+      maxPrice: dp.maxPrice || "",
+      rooms: dp.rooms || "",
+      sqft: dp.sqft || "",
+    };
+    setDropdowns(dd);
+    handleSearchSubmit({ dealType: dt, dropdowns: dd });
+  }, [searchParams]);
+
+  const handleSaveProperty = async (propertyId: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/(auth)/login");
+      return;
+    }
+    try {
+      if (savedIds.has(propertyId)) {
+        const { error } = await supabase
+          .from("saved_properties")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("property_id", propertyId);
+        if (error) throw error;
+        setSavedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(propertyId);
+          return next;
+        });
+        setAlertDialog({ title: t("common.removed") || "Removed", message: t("property.removedFromSaved") || "Property removed from saved." });
+      } else {
+        const { error } = await supabase
+          .from("saved_properties")
+          .insert({ user_id: user.id, property_id: propertyId });
+        if (error) throw error;
+        setSavedIds((prev) => new Set(prev).add(propertyId));
+        setAlertDialog({ title: t("common.saved") || "Saved", message: t("property.savedSuccess") || "Property saved successfully." });
+      }
+    } catch (err: any) {
+      setAlertDialog({ title: t("error.title") || "Error", message: err.message });
+    }
+  };
 
   useEffect(() => {
     async function fetchMyanmarLocations() {
@@ -151,24 +225,60 @@ export default function PropertySearchForm() {
     setDropdowns((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSearchSubmit = async () => {
+  const handleSaveSearch = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setAlertDialog({ title: "Notice", message: "Please log in to save searches." });
+      return;
+    }
+    const name = searchName.trim() || `Search ${new Date().toLocaleDateString()}`;
+    const { data: existing } = await supabase
+      .from("saved_searches")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("search_params", { dealType, ...dropdowns });
+
+    if (existing && existing.length > 0) {
+      setAlertDialog({ title: "Already Saved", message: "This search has already been saved." });
+      return;
+    }
+    const { error } = await supabase.from("saved_searches").insert({
+      user_id: user.id,
+      name,
+      search_params: {
+        dealType,
+        ...dropdowns,
+      },
+    });
+    if (error) {
+      setAlertDialog({ title: "Error", message: error.message });
+    } else {
+      setSaveDialog(false);
+      setSearchName("");
+      setAlertDialog({ title: "Saved", message: "Search saved successfully." });
+    }
+  };
+
+  const handleSearchSubmit = async (overrides?: { dealType?: string; dropdowns?: typeof dropdowns }) => {
+    const dt = overrides?.dealType ?? dealType;
+    const dd = overrides?.dropdowns ?? dropdowns;
     setSearching(true);
     setResults(null);
     try {
-      let query = supabase.from("properties").select("*").order("created_at", { ascending: false });
+      let query = supabase.from("properties").select("*, views, states_regions(name_en, name_mm), townships(name_en, name_mm)").order("created_at", { ascending: false });
 
-      if (dealType) query = query.eq("deal_type", dealType);
-      if (dropdowns.propertyType) query = query.eq("property_type", dropdowns.propertyType);
-      if (dropdowns.stateRegion) query = query.eq("state_region_id", dropdowns.stateRegion);
-      if (dropdowns.township) query = query.eq("township_id", dropdowns.township);
-      if (dropdowns.floor) query = query.eq("floor", dropdowns.floor);
-      if (dropdowns.minPrice) query = query.gte("price", parseInt(dropdowns.minPrice));
-      if (dropdowns.maxPrice) query = query.lte("price", parseInt(dropdowns.maxPrice));
-      if (dropdowns.rooms) {
-        if (dropdowns.rooms === "4") query = query.gte("bedrooms", 4);
-        else query = query.eq("bedrooms", parseInt(dropdowns.rooms));
+      if (dt) query = query.eq("deal_type", dt);
+      if (dd.propertyType) query = query.eq("property_type", dd.propertyType);
+      if (dd.stateRegion) query = query.eq("state_region_id", dd.stateRegion);
+      if (dd.township) query = query.eq("township_id", dd.township);
+      if (dd.floor) query = query.eq("floor", dd.floor);
+      if (dd.minPrice) query = query.gte("price", parseInt(dd.minPrice));
+      if (dd.maxPrice) query = query.lte("price", parseInt(dd.maxPrice));
+      if (dd.rooms) {
+        if (dd.rooms === "4") query = query.gte("bedrooms", 4);
+        else query = query.eq("bedrooms", parseInt(dd.rooms));
       }
-      if (dropdowns.sqft) query = query.gte("sqft", parseInt(dropdowns.sqft));
+      if (dd.sqft) query = query.gte("sqft", parseInt(dd.sqft));
 
       const { data, error } = await query;
       if (error) throw error;
@@ -181,8 +291,6 @@ export default function PropertySearchForm() {
     }
   };
 
-  const handleBackToForm = () => setResults(null);
-
   if (isLoading) {
     return (
       <View className="py-12 items-center justify-center">
@@ -194,51 +302,136 @@ export default function PropertySearchForm() {
   if (results !== null) {
     return (
       <View className="flex-1">
-        <TouchableOpacity onPress={handleBackToForm} className="mb-4">
-          <Text className="text-primary-300 font-rubik-bold">{t("filter.backToSearch") || "Back to Search"}</Text>
-        </TouchableOpacity>
-        <Text className="text-black-300 font-rubik-bold text-lg mb-3">
-          {results.length} {results.length === 1 ? "result" : "results"} found
-        </Text>
-        {results.length === 0 ? (
+        <View className="flex-row items-center justify-between mb-4">
+          <TouchableOpacity onPress={() => setResults(null)} className="flex-row items-center gap-2">
+            <ChevronLeft size={22} color="#22c55e" />
+            <Text className="text-primary-300 font-rubik-bold">{t("filter.backToSearch")}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setSaveDialog(true)} className="flex-row items-center gap-1 bg-primary-100 px-3 py-1.5 rounded-full">
+            <Save size={16} color="#22c55e" />
+            <Text className="text-primary-300 font-rubik-medium text-sm">Save</Text>
+          </TouchableOpacity>
+        </View>
+        {!searching && (
+          <Text className="text-black-300 font-rubik-bold text-lg mb-3">
+            {t("filter.resultsFound", { num: isBurmese ? toMyanmarNum(results.length) : results.length })}
+          </Text>
+        )}
+        {results.length === 0 && !searching ? (
           <View className="py-12 items-center">
             <Text className="text-black-100 font-rubik">{t("filter.noResults") || "No properties found"}</Text>
+          </View>
+        ) : results.length === 0 && searching ? (
+          <View className="py-12 items-center">
+            <ActivityIndicator size="small" className="text-primary-300" />
           </View>
         ) : (
           <View style={{ gap: 12, paddingBottom: 24 }}>
             {results.map((item) => {
-              const title = isBurmese && item.title_mm ? item.title_mm : item.title_en;
               const price = item.currency_unit === "lakhs" ? `${item.price} Lakhs` : `$${item.price}`;
               const image = item.images?.[0];
+              const regionName = item.states_regions
+                ? item.states_regions.name_mm || item.states_regions.name_en
+                : "";
+              const townshipName = item.townships
+                ? item.townships.name_mm || item.townships.name_en
+                : "";
               return (
-                <TouchableOpacity
+                <View
                   key={item.id}
-                  onPress={() => router.push(`/detail?id=${item.id}` as any)}
                   className="bg-white rounded-2xl overflow-hidden border border-primary-200"
                 >
-                  {image && (
-                    <Image source={{ uri: image }} className="w-full h-40" resizeMode="cover" />
-                  )}
-                  <View className="p-4">
-                    <Text className="text-black-300 font-rubik-bold text-base" numberOfLines={1}>{title}</Text>
-                    <Text className="text-primary-300 font-rubik-bold text-lg mt-1">{price}</Text>
-                    <View className="flex-row items-center gap-3 mt-2">
-                      <Text className="text-black-100 font-rubik text-xs">{item.bedrooms || 0} beds</Text>
-                      <Text className="text-primary-200 font-rubik">|</Text>
-                      <Text className="text-black-100 font-rubik text-xs">{item.bathrooms || 0} baths</Text>
-                      {item.area_value && (
-                        <>
-                          <Text className="text-primary-200 font-rubik">|</Text>
-                          <Text className="text-black-100 font-rubik text-xs">{item.area_value} {item.area_unit === "sqft" ? "sqft" : "acre"}</Text>
-                        </>
-                      )}
+                  <TouchableOpacity
+                    onPress={() => router.push(`/detail?id=${item.id}` as any)}
+                    activeOpacity={0.7}
+                  >
+                    {image && (
+                      <Image source={{ uri: image }} className="w-full h-40" resizeMode="cover" />
+                    )}
+                    <View className="px-4 pt-3 pb-2 gap-1">
+                      <Text className="text-black-100 text-xs font-rubik" numberOfLines={1}>
+                        {regionName} | {townshipName}
+                      </Text>
+                      <View className="flex-row items-center gap-2">
+                        <View className="bg-primary-100 px-2.5 py-0.5 rounded-full">
+                          <Text className="text-primary-300 text-xs font-rubik-semibold capitalize">
+                            {item.property_type || "Property"}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text className="text-primary-300 text-lg font-rubik-extrabold mt-1">{price}</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <View className="flex-row items-center justify-end px-4 py-2.5 border-t border-primary-100">
+                    <View className="flex-row items-center gap-4">
+                    <TouchableOpacity
+                      onPress={() => handleSaveProperty(item.id)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Heart
+                        size={18}
+                        color={savedIds.has(item.id) ? "#F75555" : "#8C8E98"}
+                        fill={savedIds.has(item.id) ? "#F75555" : "transparent"}
+                      />
+                    </TouchableOpacity>
+                    <Share2 size={18} color="#8C8E98" />
                     </View>
                   </View>
-                </TouchableOpacity>
+                </View>
               );
             })}
           </View>
         )}
+        <AlertDialog
+          isOpen={!!alertDialog}
+          onClose={() => setAlertDialog(null)}
+          useRNModal={true}
+        >
+          <AlertDialog.Backdrop />
+          <AlertDialog.Content className="p-6 rounded-3xl bg-white w-5/6 items-center shadow-xl">
+            <AlertDialog.Header>
+              <Heading>{alertDialog?.title || ""}</Heading>
+            </AlertDialog.Header>
+            <AlertDialog.Body>
+              <Text className="text-center text-slate-500">{alertDialog?.message || ""}</Text>
+            </AlertDialog.Body>
+            <AlertDialog.Footer className="w-full flex-row justify-center">
+              <Button onPress={() => setAlertDialog(null)} className="flex-1">
+                <ButtonText>OK</ButtonText>
+              </Button>
+            </AlertDialog.Footer>
+          </AlertDialog.Content>
+        </AlertDialog>
+        <AlertDialog
+          isOpen={saveDialog}
+          onClose={() => setSaveDialog(false)}
+          useRNModal={true}
+        >
+          <AlertDialog.Backdrop />
+          <AlertDialog.Content className="p-6 rounded-3xl bg-white w-5/6 shadow-xl">
+            <AlertDialog.Header>
+              <Heading>Save Search</Heading>
+            </AlertDialog.Header>
+            <AlertDialog.Body>
+              <Text className="text-black-200 font-rubik mb-3">Give this search a name:</Text>
+              <TextInput
+                value={searchName}
+                onChangeText={setSearchName}
+                placeholder="e.g. Apartments under 2000 Lakhs"
+                className="bg-primary-100 border border-primary-200 rounded-2xl px-4 py-3 text-black-300 font-rubik"
+                autoFocus
+              />
+            </AlertDialog.Body>
+            <AlertDialog.Footer className="w-full flex-row gap-3">
+              <Button variant="outline" className="flex-1" onPress={() => setSaveDialog(false)}>
+                <ButtonText>Cancel</ButtonText>
+              </Button>
+              <Button className="flex-1" onPress={handleSaveSearch}>
+                <ButtonText className="text-white">Save</ButtonText>
+              </Button>
+            </AlertDialog.Footer>
+          </AlertDialog.Content>
+        </AlertDialog>
       </View>
     );
   }
@@ -264,76 +457,42 @@ export default function PropertySearchForm() {
       </ScrollView>
 
       <View>
-        <Dropdown
-          style={[styles.dropdown, isRegionFocused && styles.focusedBorder]}
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.selectedTextStyle}
-          containerStyle={styles.containerDropdownStyle}
-          itemTextStyle={styles.itemTextStyle}
-          activeColor="#dcfce7"
-          data={regionsPool}
-          maxHeight={300}
-          labelField="label"
-          valueField="value"
+        <SelectField
+          options={regionsPool}
           placeholder={t("filter.stateRegion") || "Select State/Region"}
           value={dropdowns.stateRegion}
-          onFocus={() => setIsRegionFocused(true)}
-          onBlur={() => setIsRegionFocused(false)}
-          renderRightIcon={() => <ChevronDown size={20} color="#64748b" />}
-          onChange={(item) => {
-            setDropdowns((prev) => ({ ...prev, stateRegion: item.value, township: "" }));
-            setIsRegionFocused(false);
+          onSelect={(val) => {
+            setDropdowns((prev) => ({ ...prev, stateRegion: val, township: "" }));
           }}
         />
       </View>
 
       <View>
-        <Dropdown
-          style={[styles.dropdown, isTownshipFocused && styles.focusedBorder]}
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.selectedTextStyle}
-          containerStyle={styles.containerDropdownStyle}
-          itemTextStyle={styles.itemTextStyle}
-          activeColor="#dcfce7"
-          data={filteredTownships}
-          maxHeight={300}
-          labelField="label"
-          valueField="value"
+        <SelectField
+          options={filteredTownships}
           placeholder={t("filter.township") || "Select Township"}
           value={dropdowns.township}
-          onFocus={() => setIsTownshipFocused(true)}
-          onBlur={() => setIsTownshipFocused(false)}
-          renderRightIcon={() => <ChevronDown size={20} color="#64748b" />}
-          onChange={(item) => { handleSelectDropdown("township", item.value); setIsTownshipFocused(false); }}
+          onSelect={(val) => handleSelectDropdown("township", val)}
         />
       </View>
 
       <View>
-        <Dropdown
-          style={styles.dropdown}
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.selectedTextStyle}
-          containerStyle={styles.containerDropdownStyle}
-          itemTextStyle={styles.itemTextStyle}
-          activeColor="#dcfce7"
-          data={[
+        <SelectField
+          options={[
             { label: t("filter.allProperties") || "All Property Types", value: "" },
             { label: t("property.condo") || "Condominium", value: "condo" },
             { label: t("property.apartment") || "Apartment", value: "apartment" },
             { label: t("property.house") || "House / Villa", value: "house" },
             { label: t("property.land") || "Land", value: "land" },
+            { label: t("property.hostel") || "Hostel", value: "hostel" },
           ]}
-          maxHeight={250}
-          labelField="label"
-          valueField="value"
           placeholder={t("filter.propertyType") || "Property Type"}
           value={dropdowns.propertyType}
-          renderRightIcon={() => <ChevronDown size={20} color="#64748b" />}
-          onChange={(item) => {
+          onSelect={(val) => {
             setDropdowns((prev) => ({
               ...prev,
-              propertyType: item.value,
-              floor: item.value === "condo" || item.value === "apartment" ? prev.floor : "",
+              propertyType: val,
+              floor: val === "condo" || val === "apartment" ? prev.floor : "",
             }));
           }}
         />
@@ -341,14 +500,8 @@ export default function PropertySearchForm() {
 
       {(dropdowns.propertyType === "condo" || dropdowns.propertyType === "apartment") && (
         <View>
-          <Dropdown
-            style={styles.dropdown}
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            containerStyle={styles.containerDropdownStyle}
-            itemTextStyle={styles.itemTextStyle}
-            activeColor="#dcfce7"
-            data={[
+          <SelectField
+            options={[
               { label: t("choose floor") || "All Floors", value: "" },
               { label: t("ground floor") || "Ground Floor", value: "ground" },
               { label: t("ground + attic") || "Ground + Attic", value: "ground_attic" },
@@ -356,114 +509,70 @@ export default function PropertySearchForm() {
               { label: t("floor.nd") || "Middle Floor (5-8)", value: "mid" },
               { label: t("floor.rd") || "High Floor (9+)", value: "high" },
             ]}
-            maxHeight={250}
-            labelField="label"
-            valueField="value"
             placeholder={t("filter.floor") || "Select Floor"}
             value={dropdowns.floor}
-            renderRightIcon={() => <ChevronDown size={20} color="#64748b" />}
-            onChange={(item) => handleSelectDropdown("floor", item.value)}
+            onSelect={(val) => handleSelectDropdown("floor", val)}
           />
         </View>
       )}
 
       <View className="flex-row gap-3">
         <View className="flex-1">
-          <Dropdown
-            style={styles.miniDropdown}
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            containerStyle={styles.containerDropdownStyle}
-            itemTextStyle={styles.itemTextStyle}
-            activeColor="#dcfce7"
-            data={[
+          <SelectField
+            options={[
               { label: "100 Lakhs", value: "100" },
               { label: "500 Lakhs", value: "500" },
               { label: "1000 Lakhs", value: "1000" },
             ]}
-            maxHeight={200}
-            labelField="label"
-            valueField="value"
             placeholder={t("filter.minPrice") || "Min Price"}
             value={dropdowns.minPrice}
-            renderRightIcon={() => <ChevronDown size={18} color="#94a3b8" />}
-            onChange={(item) => handleSelectDropdown("minPrice", item.value)}
+            onSelect={(val) => handleSelectDropdown("minPrice", val)}
           />
         </View>
         <View className="flex-1">
-          <Dropdown
-            style={styles.miniDropdown}
-            placeholderStyle={styles.placeholderStyle}
-            selectedTextStyle={styles.selectedTextStyle}
-            containerStyle={styles.containerDropdownStyle}
-            itemTextStyle={styles.itemTextStyle}
-            activeColor="#dcfce7"
-            data={[
+          <SelectField
+            options={[
               { label: "2000 Lakhs", value: "2000" },
               { label: "5000 Lakhs", value: "5000" },
               { label: "10000 Lakhs", value: "10000" },
             ]}
-            maxHeight={200}
-            labelField="label"
-            valueField="value"
             placeholder={t("filter.maxPrice") || "Max Price"}
             value={dropdowns.maxPrice}
-            renderRightIcon={() => <ChevronDown size={18} color="#94a3b8" />}
-            onChange={(item) => handleSelectDropdown("maxPrice", item.value)}
+            onSelect={(val) => handleSelectDropdown("maxPrice", val)}
           />
         </View>
       </View>
 
       <View>
-        <Dropdown
-          style={styles.dropdown}
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.selectedTextStyle}
-          containerStyle={styles.containerDropdownStyle}
-          itemTextStyle={styles.itemTextStyle}
-          activeColor="#dcfce7"
-          data={[
+        <SelectField
+          options={[
             { label: `1 ${t("filter.room") || "Room"}`, value: "1" },
             { label: `2 ${t("filter.rooms") || "Rooms"}`, value: "2" },
             { label: `3 ${t("filter.rooms") || "Rooms"}`, value: "3" },
             { label: `4+ ${t("filter.rooms") || "Rooms"}`, value: "4" },
           ]}
-          maxHeight={200}
-          labelField="label"
-          valueField="value"
           placeholder={t("filter.rooms") || "Rooms"}
           value={dropdowns.rooms}
-          renderRightIcon={() => <ChevronDown size={20} color="#94a3b8" />}
-          onChange={(item) => handleSelectDropdown("rooms", item.value)}
+          onSelect={(val) => handleSelectDropdown("rooms", val)}
         />
       </View>
 
       <View>
-        <Dropdown
-          style={styles.dropdown}
-          placeholderStyle={styles.placeholderStyle}
-          selectedTextStyle={styles.selectedTextStyle}
-          containerStyle={styles.containerDropdownStyle}
-          itemTextStyle={styles.itemTextStyle}
-          activeColor="#dcfce7"
-          data={[
+        <SelectField
+          options={[
             { label: "400 Sqft", value: "400" },
             { label: "800 Sqft", value: "800" },
             { label: "1200 Sqft", value: "1200" },
             { label: "2000+ Sqft", value: "2000" },
           ]}
-          maxHeight={200}
-          labelField="label"
-          valueField="value"
           placeholder={t("filter.sqft") || "Square Feet"}
           value={dropdowns.sqft}
-          renderRightIcon={() => <ChevronDown size={20} color="#94a3b8" />}
-          onChange={(item) => handleSelectDropdown("sqft", item.value)}
+          onSelect={(val) => handleSelectDropdown("sqft", val)}
         />
       </View>
 
       <TouchableOpacity
-        onPress={handleSearchSubmit}
+        onPress={() => handleSearchSubmit()}
         disabled={searching}
         className="bg-primary-300 w-full py-4 rounded-xl items-center justify-center mt-2"
       >
@@ -496,16 +605,37 @@ export default function PropertySearchForm() {
           </AlertDialog.Footer>
         </AlertDialog.Content>
       </AlertDialog>
+
+      <AlertDialog
+        isOpen={saveDialog}
+        onClose={() => setSaveDialog(false)}
+        useRNModal={true}
+      >
+        <AlertDialog.Backdrop />
+        <AlertDialog.Content className="p-6 rounded-3xl bg-white w-5/6 shadow-xl">
+          <AlertDialog.Header>
+            <Heading>Save Search</Heading>
+          </AlertDialog.Header>
+          <AlertDialog.Body>
+            <Text className="text-black-200 font-rubik mb-3">Give this search a name:</Text>
+            <TextInput
+              value={searchName}
+              onChangeText={setSearchName}
+              placeholder="e.g. Apartments under 2000 Lakhs"
+              className="bg-primary-100 border border-primary-200 rounded-2xl px-4 py-3 text-black-300 font-rubik"
+              autoFocus
+            />
+          </AlertDialog.Body>
+          <AlertDialog.Footer className="w-full flex-row gap-3">
+            <Button variant="outline" className="flex-1" onPress={() => setSaveDialog(false)}>
+              <ButtonText>Cancel</ButtonText>
+            </Button>
+            <Button className="flex-1" onPress={handleSaveSearch}>
+              <ButtonText className="text-white">Save</ButtonText>
+            </Button>
+          </AlertDialog.Footer>
+        </AlertDialog.Content>
+      </AlertDialog>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  dropdown: { height: 54, borderColor: "#bbf7d0", borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, backgroundColor: "#ffffff" },
-  miniDropdown: { height: 54, borderColor: "#bbf7d0", borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, backgroundColor: "#ffffff" },
-  focusedBorder: { borderColor: "#22c55e" },
-  placeholderStyle: { fontSize: 16, color: "#8C8E98" },
-  selectedTextStyle: { fontSize: 16, color: "#191D31" },
-  containerDropdownStyle: { borderRadius: 12, marginTop: 4, overflow: "hidden", elevation: 3, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 4 },
-  itemTextStyle: { fontSize: 15, color: "#666876", textAlign: "left" },
-});

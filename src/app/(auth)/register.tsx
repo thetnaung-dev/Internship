@@ -1,7 +1,9 @@
+import { handleAuthCallbackUrl, resetAuthCallbackLock } from "@/lib/handleAuthCallback";
 import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
 
 import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import { ChevronLeft, Eye, EyeOff, Lock, Mail, User } from "lucide-react-native";
 import React, { useState } from "react";
 import {
@@ -31,17 +33,27 @@ import { useTranslation } from "react-i18next";
 const signInWithGoogle = async () => {
   const redirectUrl = Linking.createURL("auth/callback");
 
+  resetAuthCallbackLock();
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: redirectUrl,
+      queryParams: {
+        prompt: "select_account",
+      },
     },
   });
 
   if (error) throw error;
   if (!data?.url) throw new Error("Failed to get OAuth URL. Is Google provider enabled in Supabase?");
 
-  await Linking.openURL(data.url);
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+  await WebBrowser.maybeCompleteAuthSession();
+
+  if (result.type === "success") {
+    await handleAuthCallbackUrl(result.url);
+  }
 };
 
 export default function RegisterScreen() {
@@ -256,6 +268,7 @@ export default function RegisterScreen() {
               uri: "https://cdn-icons-png.flaticon.com/512/2991/2991148.png",
             }}
             className="w-6 h-6 mr-3"
+            resizeMode="contain"
           />
           <Text className="text-black-300 font-rubik-semibold text-base">
             {t("register.googleButton")}

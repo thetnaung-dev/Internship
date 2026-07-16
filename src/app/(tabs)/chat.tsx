@@ -1,17 +1,23 @@
 import React from "react";
+import { StatusBar } from "expo-status-bar";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useThemeStore } from "@/store/useThemeStore";
 import { ChatList } from "../../components/features/chat/chat_list";
 
 export default function TabChatScreen() {
+  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
+  const isDark = resolvedTheme === "dark";
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? "#111827" : "#fff" }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <ChatList />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  container: { flex: 1 },
 });

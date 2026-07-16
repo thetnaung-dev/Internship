@@ -42,7 +42,7 @@ export default function ForgotPasswordScreen() {
       <View className="px-4 py-4">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-full bg-white border border-primary-200"
+          className="w-10 h-10 items-center justify-center rounded-full bg-primary-100"
         >
           <ChevronLeft size={24} color="#22c55e" />
         </TouchableOpacity>

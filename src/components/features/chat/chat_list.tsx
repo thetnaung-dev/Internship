@@ -10,10 +10,10 @@ import {
   Search,
 } from "lucide-react-native";
 import React, { useCallback, useRef, useState } from "react";
+import { FlashList } from "@shopify/flash-list";
 import {
   ActivityIndicator,
   Animated,
-  FlatList,
   Image,
   StyleSheet,
   Text,
@@ -289,7 +289,7 @@ export function ChatList() {
           autoCorrect={false}
         />
       </View>
-      <FlatList
+      <FlashList
         data={filteredConversations}
         keyExtractor={(item) => item.id}
         contentContainerStyle={conversations.length === 0 ? styles.emptyList : undefined}

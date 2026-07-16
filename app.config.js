@@ -6,9 +6,9 @@ module.exports = {
     name: "Nestfinder",
     slug: "nestfinder",
     version: "1.0.0",
+    scheme: "nestfinder",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
-    scheme: "nestfinder",
     userInterfaceStyle: "automatic",
     ios: {
       supportsTablet: true,

@@ -1,11 +1,10 @@
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
-import { ChevronDown } from "lucide-react-native";
+import { ChevronDown, ChevronLeft } from "lucide-react-native";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   Text,
   TextInput,
@@ -31,6 +30,9 @@ export default function AdsSearchForm() {
   const router = useRouter();
   const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
 
+  const toMyanmarNum = (n: number) =>
+    n.toString().replace(/\d/g, (d) => "၀၁၂၃၄၅၆၇၈၉"[parseInt(d)]);
+
   const [adsSearchMethod, setAdsSearchMethod] = useState("id");
   const [searchValue, setSearchValue] = useState("");
 
@@ -45,11 +47,14 @@ export default function AdsSearchForm() {
       let query = supabase.from("properties").select("*").order("created_at", { ascending: false });
 
       if (adsSearchMethod === "id") {
-        const num = parseInt(searchValue);
-        if (!isNaN(num)) query = query.eq("ad_number", num);
-        else return;
+        const raw = searchValue.replace(/[^0-9]/g, "");
+        const num = parseInt(raw);
+        if (!isNaN(num)) {
+          const storedNum = num > 10000 ? num - 10000 : num;
+          query = query.eq("ad_number", storedNum);
+        } else return;
       } else {
-        query = query.or(`phone.ilike.%${searchValue}%,search_value.ilike.%${searchValue}%`);
+        query = query.ilike("search_value", `%${searchValue}%`);
       }
 
       const { data, error } = await query;
@@ -70,15 +75,16 @@ export default function AdsSearchForm() {
   if (results !== null) {
     return (
       <View className="flex-1">
-        <TouchableOpacity onPress={handleBackToForm} className="mb-4">
-          <Text className="text-primary-300 font-rubik-bold">{t("adsFilter.backToSearch") || "Back to Search"}</Text>
+        <TouchableOpacity onPress={handleBackToForm} className="flex-row items-center gap-2 mb-4">
+          <ChevronLeft size={22} color="#22c55e" />
+          <Text className="text-primary-300 font-rubik-bold">{t("adsFilter.backToSearch")}</Text>
         </TouchableOpacity>
         <Text className="text-black-300 font-rubik-bold text-lg mb-3">
-          {results.length} {results.length === 1 ? "result" : "results"} found
+          {t("adsFilter.resultsFound", { num: isBurmese ? toMyanmarNum(results.length) : results.length })}
         </Text>
         {results.length === 0 ? (
           <View className="py-12 items-center">
-            <Text className="text-black-100 font-rubik">{t("adsFilter.noResults") || "No ads found"}</Text>
+            <Text className="text-black-100 font-rubik">{t("adsFilter.noResults")}</Text>
           </View>
         ) : (
           <View style={{ gap: 12, paddingBottom: 24 }}>
@@ -112,13 +118,13 @@ export default function AdsSearchForm() {
   return (
     <View className="gap-5">
       <View className="flex-row gap-6 items-center py-1">
-        <TouchableOpacity onPress={() => setAdsSearchMethod("id")} className="flex-row items-center gap-2">
+        <TouchableOpacity onPress={() => { setAdsSearchMethod("id"); setSearchValue(""); }} className="flex-row items-center gap-2">
           <View className={`w-5 h-5 rounded-full border-2 items-center justify-center ${adsSearchMethod === "id" ? "border-primary-300" : "border-primary-200"}`}>
             {adsSearchMethod === "id" && <View className="w-2.5 h-2.5 bg-primary-300 rounded-full" />}
           </View>
           <Text className="text-black-300 font-rubik-bold text-sm">{t("adsFilter.byIdNumber")}</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setAdsSearchMethod("phone")} className="flex-row items-center gap-2">
+        <TouchableOpacity onPress={() => { setAdsSearchMethod("phone"); setSearchValue(""); }} className="flex-row items-center gap-2">
           <View className={`w-5 h-5 rounded-full border-2 items-center justify-center ${adsSearchMethod === "phone" ? "border-primary-300" : "border-primary-200"}`}>
             {adsSearchMethod === "phone" && <View className="w-2.5 h-2.5 bg-primary-300 rounded-full" />}
           </View>
@@ -130,7 +136,7 @@ export default function AdsSearchForm() {
         <TextInput
           value={searchValue}
           onChangeText={setSearchValue}
-          placeholder={t("adsFilter.placeholder")}
+          placeholder={adsSearchMethod === "id" ? t("adsFilter.placeholder") : t("adsFilter.phonePlaceholder")}
           keyboardType={adsSearchMethod === "id" ? "numeric" : "default"}
           className="w-full text-black-300 font-rubik-medium text-base text-left"
           placeholderTextColor="#8C8E98"

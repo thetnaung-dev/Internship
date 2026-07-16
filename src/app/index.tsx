@@ -1,7 +1,8 @@
+import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Home } from "lucide-react-native";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,6 +16,7 @@ import Animated, {
 
 export default function OnboardingScreen() {
   const { t } = useTranslation();
+  const [checking, setChecking] = useState(true);
 
   const iconScale = useSharedValue(0);
   const iconOpacity = useSharedValue(0);
@@ -24,6 +26,16 @@ export default function OnboardingScreen() {
   const subtitleOpacity = useSharedValue(0);
   const buttonOffset = useSharedValue(40);
   const buttonOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        router.replace("/(tabs)");
+      } else {
+        setChecking(false);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     iconScale.value = withDelay(200, withTiming(1, { duration: 700, easing: Easing.out(Easing.back(1.5)) }));
@@ -55,6 +67,8 @@ export default function OnboardingScreen() {
     opacity: buttonOpacity.value,
     transform: [{ translateY: buttonOffset.value }],
   }));
+
+  if (checking) return null;
 
   return (
     <SafeAreaView className="flex-1 bg-primary-100">

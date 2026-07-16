@@ -1,7 +1,10 @@
+import { handleAuthCallbackUrl, resetAuthCallbackLock } from "@/lib/handleAuthCallback";
+import { registerForPushNotifications, savePushToken } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 
 import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import React, { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,17 +25,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const signInWithGoogle = async () => {
   const redirectUrl = Linking.createURL("auth/callback");
 
+  resetAuthCallbackLock();
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: redirectUrl,
+      queryParams: {
+        prompt: "select_account",
+      },
     },
   });
 
   if (error) throw error;
   if (!data?.url) throw new Error("Failed to get OAuth URL. Is Google provider enabled in Supabase?");
 
-  await Linking.openURL(data.url);
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
+  await WebBrowser.maybeCompleteAuthSession();
+
+  if (result.type === "success") {
+    await handleAuthCallbackUrl(result.url);
+  }
 };
 
 export default function LoginScreen() {
@@ -98,6 +111,10 @@ export default function LoginScreen() {
         openInfo(t("login.loginFailed"), error.message, false);
         return;
       }
+
+      const token = await registerForPushNotifications();
+      if (token) await savePushToken(token);
+
       router.replace("/(tabs)");
     } catch (err: any) {
       openInfo(t("login.errorTitle"), err.message, false);
@@ -110,6 +127,9 @@ export default function LoginScreen() {
     try {
       setLoading(true);
       await signInWithGoogle();
+
+      const token = await registerForPushNotifications();
+      if (token) await savePushToken(token);
     } catch (err: any) {
       openInfo(t("login.errorTitle"), err.message, false);
     } finally {
@@ -136,7 +156,8 @@ export default function LoginScreen() {
                 source={{
                   uri: "https://cdn-icons-png.flaticon.com/512/1040/1040230.png",
                 }}
-                className="w-24 h-24"
+                className="w-24 h-24 mb-4"
+                resizeMode="contain"
               />
               <Text className="text-3xl font-rubik-bold text-black-300 mt-5">
                 {t("login.title")}
@@ -201,6 +222,7 @@ export default function LoginScreen() {
                     uri: "https://cdn-icons-png.flaticon.com/512/2991/2991148.png",
                   }}
                   className="w-6 h-6 mr-3"
+                  resizeMode="contain"
                 />
                 <Text className="text-black-300 font-rubik-semibold text-base">
                   {t("login.googleButton")}

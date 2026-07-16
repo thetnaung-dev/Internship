@@ -7,6 +7,7 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -126,8 +127,8 @@ export default function EditProfileScreen() {
   return (
     <SafeAreaView className="flex-1 bg-slate-50">
       <View className="flex-row items-center px-4 py-3 border-b border-slate-100 bg-white">
-        <TouchableOpacity onPress={() => router.back()} className="p-1">
-          <ChevronLeft size={24} color="#1e293b" />
+        <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center rounded-full bg-primary-100">
+          <ChevronLeft size={24} color="#22c55e" />
         </TouchableOpacity>
         <Text className="flex-1 text-center text-lg font-bold text-slate-900 mr-6">
           Edit Profile

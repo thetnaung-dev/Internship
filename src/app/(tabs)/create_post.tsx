@@ -1,5 +1,6 @@
 import CreatePostForm from "@/components/features/form/createpostform";
 import { supabase } from "@/lib/supabase";
+import { useThemeStore } from "@/store/useThemeStore";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -31,6 +32,8 @@ export default function CreatePostScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { t } = useTranslation();
   const [loginDialog, setLoginDialog] = useState(false);
+  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
+  const isDark = resolvedTheme === "dark";
 
   const categoryTitles: Record<string, string> = {
     sale: t("createPost.saleTitle"),
@@ -69,16 +72,16 @@ export default function CreatePostScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-100">
-      <StatusBar style="dark" />
-      <View className="bg-white px-4 py-4 flex-row items-center border-b border-primary-200">
+    <SafeAreaView className="flex-1 bg-primary-100 dark:bg-black">
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <View className="bg-white dark:bg-gray-900 px-4 py-4 flex-row items-center border-b border-primary-200 dark:border-gray-800">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-full bg-primary-100"
+          className="w-10 h-10 items-center justify-center rounded-full bg-primary-100 dark:bg-gray-800"
         >
-          <ChevronLeft size={28} color="#22c55e" />
+          <ChevronLeft size={24} color="#22c55e" />
         </TouchableOpacity>
-        <Text className="text-black-300 text-lg font-rubik-bold ml-2 flex-1 text-center mr-10">
+        <Text className="text-black-300 dark:text-gray-100 text-lg font-rubik-bold ml-2 flex-1 text-center mr-10">
           {t("createPost.selectCategory")}
         </Text>
       </View>
@@ -115,14 +118,14 @@ export default function CreatePostScreen() {
 
       <AlertDialog isOpen={loginDialog} onClose={() => setLoginDialog(false)}>
         <AlertDialogBackdrop />
-        <AlertDialogContent className="p-6 rounded-3xl bg-white items-center">
+        <AlertDialogContent className="p-6 rounded-3xl bg-white dark:bg-gray-900 items-center">
           <AlertDialogHeader>
-            <Heading className="text-black-300 font-rubik-bold text-lg">
+            <Heading className="text-black-300 dark:text-gray-100 font-rubik-bold text-lg">
               {t("createPost.loginRequiredTitle")}
             </Heading>
           </AlertDialogHeader>
           <AlertDialogBody>
-            <Text className="text-center text-black-200 font-rubik">
+            <Text className="text-center text-black-200 dark:text-gray-300 font-rubik">
               {t("createPost.loginRequiredMessage")}
             </Text>
           </AlertDialogBody>
@@ -167,12 +170,12 @@ function CategoryCard({
   return (
     <TouchableOpacity
       onPress={onPress}
-      className="w-[48%] bg-white p-6 rounded-2xl items-center border border-primary-200 mb-4"
+      className="w-[48%] bg-white dark:bg-gray-900 p-6 rounded-2xl items-center border border-primary-200 dark:border-gray-800 mb-4"
     >
-      <View className="w-14 h-14 bg-primary-100 rounded-full items-center justify-center mb-3">
+      <View className="w-14 h-14 bg-primary-100 dark:bg-gray-800 rounded-full items-center justify-center mb-3">
         {icon}
       </View>
-      <Text className="text-center font-rubik-bold text-black-200">{title}</Text>
+      <Text className="text-center font-rubik-bold text-black-200 dark:text-gray-300">{title}</Text>
     </TouchableOpacity>
   );
 }

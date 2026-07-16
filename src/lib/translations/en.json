@@ -22,6 +22,7 @@
   "property.apartment": "Apartment",
   "property.house": "House",
   "property.land": "Land",
+  "property.hostel": "Hostel",
   "choose floor": "Choose Floor",
   "ground floor": "Ground Floor",
   "ground + attic": "Ground + Attic",
@@ -112,6 +113,16 @@
     "condo": "Condo",
     "hostel": "Hostel"
   },
+  "subFilters": {
+    "propertiesForSale": "Properties For Sale",
+    "affordableProperties": "Affordable Properties For Sale",
+    "soldOut": "Sold Out Properties",
+    "propertiesForRent": "Properties For Rent",
+    "rented": "Rented Properties"
+  },
+  "badge": {
+    "soldOut": "Sold Out"
+  },
   "searchcategories": {
     "search properties": "Search Properties",
     "search by ads number": "Search by Ads Number"
@@ -131,15 +142,21 @@
     "maxPrice": "Max Price",
     "rooms": "Bedrooms / Rooms",
     "sqft": "Square Feet Size",
-    "searchButton": "Search Now"
+    "searchButton": "Search Now",
+    "backToSearch": "Back to Search",
+    "resultsFound": "{{num}} results found"
   },
   "adsFilter": {
     "byIdNumber": "By ID Number",
     "byPhoneNumber": "By Phone Number",
     "placeholder": "Search by Ad identification code...",
+    "phonePlaceholder": "Enter phone number",
     "stateRegion": "All States & Regions",
     "township": "All Townships",
-    "searchButton": "Search Ad"
+    "searchButton": "Search Ad",
+    "backToSearch": "Back to Search",
+    "noResults": "No ads found",
+    "resultsFound": "{{num}} results found"
   },
   "login": {
     "title": "Welcome Back",
@@ -191,6 +208,20 @@
     "active": "Active",
     "accountStatus": "Account Status",
     "settings": "Settings",
+    "myListings": "My Listings",
+    "availableToPost": "Available to Post",
+    "totalPosted": "Total Posted",
+    "tabForSale": "For Sale",
+    "tabForRent": "For Rent",
+    "tabHostel": "Hostel",
+    "tabSoldOut": "Sold Out",
+    "tabRentOut": "Rent Out",
+    "tabRentOutHostel": "Rent Out Hostel",
+    "noListingsInTab": "No listings in this category",
+    "deleteTitle": "Delete Listing",
+    "deleteConfirm": "Are you sure you want to delete this listing?",
+    "createListing": "Create Listing",
+    "language": "Language",
     "profileSettings": "Profile Settings",
     "savedProperties": "Saved Properties",
     "noSavedProperties": "No saved properties yet",
@@ -209,20 +240,33 @@
       { "label": "Apartment", "value": "apartment" },
       { "label": "Condo", "value": "condo" },
       { "label": "House", "value": "house" },
-      { "label": "Land", "value": "land" }
+      { "label": "Land", "value": "land" },
+      { "label": "Hostel", "value": "hostel" }
     ]
   },
   "step_1": {
     "section_title": "Basic Information",
+    "labels": {
+      "title_mm": "Title (Myanmar)",
+      "title_en": "Title (English)",
+      "property_type": "Property Type",
+      "price": "Price",
+      "currency": "Currency"
+    },
     "placeholders": {
       "title_mm": "Listing Title *",
       "property_type_dropdown": "Select Property Type *",
       "price_rent": "Monthly Rent (Lakhs) *",
       "price_sale": "Selling / Buying Price (Lakhs) *"
-    }
+    },
+    "ad_content": "Ad Content",
+    "ad_content_placeholder": "Describe the property, facilities, highlights..."
   },
   "step_2": {
     "section_title": "Detailed Information",
+    "labels": {
+      "floor": "Floor"
+    },
     "placeholders": {
       "floor": "Floor",
       "rooms": "Number of Rooms",
@@ -231,6 +275,11 @@
   },
   "step_3": {
     "section_title": "Location and Contact",
+    "labels": {
+      "region": "State / Region",
+      "township": "Township",
+      "phone": "Phone Number"
+    },
     "placeholders": {
       "region": "State / Region *",
       "township": "Township *",
@@ -250,6 +299,52 @@
     "methodEmail": "email",
     "methodPhone": "phone"
   },
+  "wanted": {
+    "title": "Wanted Listings",
+    "new": "New",
+    "all": "All",
+    "buy": "Buy",
+    "rent": "Rent",
+    "post": "Post Listing",
+    "titlePlaceholder": "e.g. Looking for an apartment in Mayangone",
+    "descriptionPlaceholder": "Describe what you're looking for...",
+    "propertyType": "Property Type",
+    "selectPropertyType": "Select property type",
+    "budget": "Budget (Lakh)",
+    "budgetPlaceholder": "e.g. 5000",
+    "bedrooms": "Bedrooms",
+    "bedroomsPlaceholder": "e.g. 2",
+    "region": "State / Region",
+    "selectRegion": "Select state/region",
+    "township": "Township",
+    "selectTownship": "Select township",
+    "phone": "Contact Phone",
+    "phonePlaceholder": "Phone number",
+    "createTitle": "New Wanted Listing",
+    "detailTitle": "Listing Details",
+    "poster": "Poster",
+    "wantToBuy": "Want to Buy",
+    "wantToRent": "Want to Rent",
+    "empty": "No wanted listings yet",
+    "notFound": "Listing not found",
+    "success": "Your wanted listing has been posted.",
+    "titleRequired": "Please enter a title.",
+    "phoneRequired": "Please enter a phone number.",
+    "description": "Description"
+  },
+  "savedSearches": {
+    "title": "Saved Searches",
+    "empty": "No saved searches yet",
+    "save": "Save Search",
+    "namePlaceholder": "e.g. Apartments under 2000 Lakhs",
+    "dialogTitle": "Save Search",
+    "dialogMessage": "Give this search a name:",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "deleted": "Search deleted.",
+    "loginRequired": "Please log in to save searches."
+  },
   "alerts_and_dialogs": {
     "button_confirm": "OK",
     "login_required": {
@@ -260,7 +355,34 @@
       "title": "Notice",
       "message": "Please fill in all the required information."
     },
-    "step_2_validation": {
+    "hostel": {
+    "step_title": "Hostel Info",
+    "rent_price": "Monthly Rent",
+    "rent_price_placeholder": "e.g. 150000",
+    "type": "Type",
+    "type_male": "Male",
+    "type_female": "Female",
+    "type_householder": "Householder",
+    "type_coed": "Co-ed",
+    "room_capacity": "Capacity",
+    "capacity_1": "1 Person",
+    "capacity_2": "2 Persons",
+    "capacity_3": "3 Persons",
+    "capacity_4": "4 Persons",
+    "capacity_5": "5 Persons",
+    "capacity_6": "6 Persons",
+    "capacity_7": "7 Persons",
+    "capacity_8": "8 Persons",
+    "capacity_9": "9 Persons",
+    "capacity_10": "10 Persons",
+    "capacity_hall": "Hall",
+    "capacity_family": "Family",
+    "description": "Description",
+    "description_placeholder": "Facilities, rules, nearby landmarks...",
+    "pin": "Pin Location",
+    "pinned": "Pinned"
+  },
+  "step_2_validation": {
       "title": "Notice",
       "message": "Please provide your location and contact phone number."
     },
