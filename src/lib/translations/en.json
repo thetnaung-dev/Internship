@@ -26,9 +26,9 @@
   "choose floor": "Choose Floor",
   "ground floor": "Ground Floor",
   "ground + attic": "Ground + Attic",
-  "floor.st": "1st Floor",
-  "floor.nd": "2nd Floor",
-  "floor.rd": "3rd Floor",
+  "floor.st": "Low Floor (1-4)",
+  "floor.nd": "Middle Floor (5-8)",
+  "floor.rd": "High Floor (9+)",
   "floor.th": "4th Floor",
   "chooseCategoryToPost": "Choose a Category To Post",
   "ad": "Advertisement",
@@ -44,60 +44,47 @@
   "wantToRent": "Want to Rent",
   "categoryScreenSubtitle": "If you have a property to sell, rent, or are looking to acquire one, you can post your advertisement below.",
   "findyourDreamProperty": "Find Your Dream Property",
+
   "createPost": {
     "selectCategory": "Choose Advertisement Type",
-
     "sale": "For Sale",
     "rent": "For Rent",
     "hostel": "Hostel For Rent",
     "wantToBuy": "Want To Buy",
     "wantToRent": "Want To Rent",
-
     "saleTitle": "Sale Advertisement",
     "rentTitle": "Rental Advertisement",
     "hostelTitle": "Hostel Advertisement",
     "wantToBuyTitle": "Wanted To Buy Advertisement",
     "wantToRentTitle": "Wanted To Rent Advertisement",
-
     "fillForm": "Fill Form",
-
     "basicInfo": "Basic Information",
     "detailInfo": "Property Details",
     "locationContact": "Location & Contact",
-
     "titleMm": "Advertisement Title (Myanmar) *",
     "propertyType": "Select Property Type *",
-
     "priceSale": "Sale Price / Desired Price (Lakh) *",
     "priceRent": "Monthly Rental Fee (Lakh) *",
-
     "floor": "Floor",
     "rooms": "Number of Rooms",
     "sqft": "Area (Sqft)",
-
     "region": "State / Region *",
     "township": "Township *",
     "phone": "Contact Phone Number *",
-
     "back": "Back",
     "next": "Next",
     "submit": "Submit Advertisement",
-
     "apartment": "Apartment",
     "condo": "Condo",
     "house": "House",
     "land": "Land",
-
     "warning": "Warning",
     "success": "Success",
     "error": "Error",
-
     "loginRequired": "Please login first before creating a post.",
     "postSuccess": "Your advertisement has been posted successfully.",
-
     "requiredFields": "Please fill in all required fields.",
     "locationRequired": "Please provide location and contact phone number.",
-
     "ok": "OK",
     "loginRequiredTitle": "Warning",
     "loginRequiredMessage": "Please log in first to create a post.",
@@ -113,6 +100,7 @@
     "condo": "Condo",
     "hostel": "Hostel"
   },
+
   "subFilters": {
     "propertiesForSale": "Properties For Sale",
     "affordableProperties": "Affordable Properties For Sale",
@@ -120,16 +108,21 @@
     "propertiesForRent": "Properties For Rent",
     "rented": "Rented Properties"
   },
+
   "badge": {
     "soldOut": "Sold Out"
   },
+
   "searchcategories": {
     "search properties": "Search Properties",
     "search by ads number": "Search by Ads Number"
   },
+
   "filter": {
     "forSale": "For Sale",
     "forRent": "For Rent",
+    "buy": "Buy",
+    "rent": "Rent",
     "newLaunch": "New Launch",
     "hostel": "Hostel",
     "all": "All",
@@ -142,22 +135,25 @@
     "maxPrice": "Max Price",
     "rooms": "Bedrooms / Rooms",
     "sqft": "Square Feet Size",
+    "floor": "Floor",
+    "room": "Room",
+    "noResults": "No results found",
     "searchButton": "Search Now",
     "backToSearch": "Back to Search",
     "resultsFound": "{{num}} results found"
   },
+
   "adsFilter": {
     "byIdNumber": "By ID Number",
     "byPhoneNumber": "By Phone Number",
     "placeholder": "Search by Ad identification code...",
     "phonePlaceholder": "Enter phone number",
-    "stateRegion": "All States & Regions",
-    "township": "All Townships",
     "searchButton": "Search Ad",
     "backToSearch": "Back to Search",
     "noResults": "No ads found",
     "resultsFound": "{{num}} results found"
   },
+
   "login": {
     "title": "Welcome Back",
     "subtitle": "Sign in to continue using Horizon Real Estate",
@@ -177,7 +173,6 @@
   "register": {
     "title": "Create New Account",
     "subtitle": "Create an account to post real estate ads.",
-
     "name": "Name",
     "namePlaceholder": "Your name",
     "email": "Email",
@@ -186,15 +181,11 @@
     "passwordPlaceholder": "Password",
     "confirmPassword": "Confirm Password",
     "button": "Create Account",
-
     "googleButton": "Continue with Google",
-
     "haveAccount": "Already have an account?",
     "login": "Login",
-
     "successTitle": "Success",
     "successMessage": "Your account has been created successfully.",
-
     "errors": {
       "fillAll": "Please fill in all fields.",
       "passwordMismatch": "Passwords do not match.",
@@ -202,6 +193,7 @@
       "invalid": "Invalid"
     }
   },
+
   "profile": {
     "user": "User",
     "totalPosts": "Total Posts",
@@ -226,15 +218,9 @@
     "savedProperties": "Saved Properties",
     "noSavedProperties": "No saved properties yet",
     "browseProperties": "Browse Properties",
-    "unsave": "Unsave",
-    "view": "View",
-    "security": "Security",
-    "logout": "Logout"
+    "error": "Error"
   },
-  "form_headers": {
-    "step_title_suffix": "Registration Details",
-    "step_indicator_prefix": "Step"
-  },
+
   "dropdown_options": {
     "property_types": [
       { "label": "Apartment", "value": "apartment" },
@@ -244,61 +230,35 @@
       { "label": "Hostel", "value": "hostel" }
     ]
   },
-  "step_1": {
-    "section_title": "Basic Information",
-    "labels": {
-      "title_mm": "Title (Myanmar)",
-      "title_en": "Title (English)",
-      "property_type": "Property Type",
-      "price": "Price",
-      "currency": "Currency"
-    },
-    "placeholders": {
-      "title_mm": "Listing Title *",
-      "property_type_dropdown": "Select Property Type *",
-      "price_rent": "Monthly Rent (Lakhs) *",
-      "price_sale": "Selling / Buying Price (Lakhs) *"
-    },
-    "ad_content": "Ad Content",
-    "ad_content_placeholder": "Describe the property, facilities, highlights..."
+
+  "hostel": {
+    "step_title": "Hostel Info",
+    "rent_price": "Monthly Rent",
+    "rent_price_placeholder": "e.g. 150000",
+    "type": "Type",
+    "type_male": "Male",
+    "type_female": "Female",
+    "type_householder": "Householder",
+    "type_coed": "Co-ed",
+    "room_capacity": "Capacity",
+    "capacity_1": "1 Person",
+    "capacity_2": "2 Persons",
+    "capacity_3": "3 Persons",
+    "capacity_4": "4 Persons",
+    "capacity_5": "5 Persons",
+    "capacity_6": "6 Persons",
+    "capacity_7": "7 Persons",
+    "capacity_8": "8 Persons",
+    "capacity_9": "9 Persons",
+    "capacity_10": "10 Persons",
+    "capacity_hall": "Hall",
+    "capacity_family": "Family",
+    "description": "Description",
+    "description_placeholder": "Facilities, rules, nearby landmarks...",
+    "pin": "Pin Location",
+    "pinned": "Pinned"
   },
-  "step_2": {
-    "section_title": "Detailed Information",
-    "labels": {
-      "floor": "Floor"
-    },
-    "placeholders": {
-      "floor": "Floor",
-      "rooms": "Number of Rooms",
-      "sqft": "Area size (Sqft)"
-    }
-  },
-  "step_3": {
-    "section_title": "Location and Contact",
-    "labels": {
-      "region": "State / Region",
-      "township": "Township",
-      "phone": "Phone Number"
-    },
-    "placeholders": {
-      "region": "State / Region *",
-      "township": "Township *",
-      "phone": "Contact Phone Number *"
-    }
-  },
-  "footer_buttons": {
-    "back": "Back",
-    "next": "Next",
-    "submit": "Publish Listing"
-  },
-  "otp": {
-    "title": "Verify OTP",
-    "subtitle": "Enter the 6-digit code sent to your {{method}}.",
-    "verify": "Verify",
-    "resend": "Resend Code",
-    "methodEmail": "email",
-    "methodPhone": "phone"
-  },
+
   "wanted": {
     "title": "Wanted Listings",
     "new": "New",
@@ -330,21 +290,24 @@
     "success": "Your wanted listing has been posted.",
     "titleRequired": "Please enter a title.",
     "phoneRequired": "Please enter a phone number.",
-    "description": "Description"
+    "description": "Description",
+    "since": "Since",
+    "views": "Views",
+    "category": "Category",
+    "floor": "Floor",
+    "stateDivision": "State | Division",
+    "monthlyFee": "Monthly Fee",
+    "furnished": "Furnished",
+    "bedroom": "Bedroom",
+    "bathroom": "Bathroom",
+    "cobrokerage": "Co-brokerage accepted",
+    "phoneNumber": "Phone Number",
+    "clickToViewPhone": "Click to view phone number",
+    "detailDescription": "Detail Description",
+    "readMore": "Read more",
+    "readLess": "Read less"
   },
-  "savedSearches": {
-    "title": "Saved Searches",
-    "empty": "No saved searches yet",
-    "save": "Save Search",
-    "namePlaceholder": "e.g. Apartments under 2000 Lakhs",
-    "dialogTitle": "Save Search",
-    "dialogMessage": "Give this search a name:",
-    "cancel": "Cancel",
-    "save": "Save",
-    "delete": "Delete",
-    "deleted": "Search deleted.",
-    "loginRequired": "Please log in to save searches."
-  },
+
   "alerts_and_dialogs": {
     "button_confirm": "OK",
     "login_required": {
@@ -355,34 +318,7 @@
       "title": "Notice",
       "message": "Please fill in all the required information."
     },
-    "hostel": {
-    "step_title": "Hostel Info",
-    "rent_price": "Monthly Rent",
-    "rent_price_placeholder": "e.g. 150000",
-    "type": "Type",
-    "type_male": "Male",
-    "type_female": "Female",
-    "type_householder": "Householder",
-    "type_coed": "Co-ed",
-    "room_capacity": "Capacity",
-    "capacity_1": "1 Person",
-    "capacity_2": "2 Persons",
-    "capacity_3": "3 Persons",
-    "capacity_4": "4 Persons",
-    "capacity_5": "5 Persons",
-    "capacity_6": "6 Persons",
-    "capacity_7": "7 Persons",
-    "capacity_8": "8 Persons",
-    "capacity_9": "9 Persons",
-    "capacity_10": "10 Persons",
-    "capacity_hall": "Hall",
-    "capacity_family": "Family",
-    "description": "Description",
-    "description_placeholder": "Facilities, rules, nearby landmarks...",
-    "pin": "Pin Location",
-    "pinned": "Pinned"
-  },
-  "step_2_validation": {
+    "step_2_validation": {
       "title": "Notice",
       "message": "Please provide your location and contact phone number."
     },

@@ -16,10 +16,10 @@ import {
   Home,
   LogOut,
   MapPin,
-  Save,
   Settings,
   User,
 } from "lucide-react-native";
+import { useLanguageStore } from "@/store/useLanguageStore";
 import React, { Component, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -31,7 +31,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { useLanguageStore } from "@/store/useLanguageStore";
 import { useThemeStore } from "@/store/useThemeStore";
 
 class NavBoundary extends Component<{ children: React.ReactNode }, { error: boolean }> {
@@ -177,11 +176,6 @@ function ProfileContent() {
               icon={<MapPin size={20} color="#666876" />}
               title={t("profile.savedProperties")}
               onPress={() => router.push("/saved-properties")}
-            />
-            <MenuRow
-              icon={<Save size={20} color="#666876" />}
-              title={t("savedSearches.title")}
-              onPress={() => router.push("/saved-searches")}
             />
             <View className="flex-row items-center justify-between px-5 py-4 border-b border-primary-200 dark:border-gray-800">
               <View className="flex-row items-center">

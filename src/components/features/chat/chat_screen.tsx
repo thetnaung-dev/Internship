@@ -27,7 +27,6 @@ import {
   ActionSheetIOS,
   ActivityIndicator,
   Image,
-  Keyboard,
   Modal,
   Platform,
   ScrollView,
@@ -38,6 +37,7 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { AlertDialog } from "@/components/ui/alert-dialog";
 import { Button, ButtonText } from "@/components/features/ui/button/button";
 import { Heading } from "@/components/features/ui/heading/heading";
@@ -133,7 +133,6 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
   const [userId, setUserId] = useState<string | null>(null);
   const [otherName, setOtherName] = useState("");
   const otherIdRef = useRef<string | null>(null);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const flatListRef = useRef<FlashListRef<any>>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
@@ -154,19 +153,6 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
   } | null>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [previewImageUri, setPreviewImageUri] = useState<string | null>(null);
-
-  useEffect(() => {
-    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
-      setKeyboardHeight(e.endCoordinates.height);
-    });
-    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
-      setKeyboardHeight(0);
-    });
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -662,6 +648,10 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
   }
 
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior="translate-with-padding"
+    >
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity onPress={() => router.back()} style={[styles.headerLeft, { width: 40, height: 40, borderRadius: 20, backgroundColor: "#bbf7d0", alignItems: "center", justifyContent: "center" }]}>
@@ -855,15 +845,7 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
         </View>
       )}
 
-      <View
-        style={[
-          styles.inputBar,
-          {
-            paddingBottom: Math.max(insets.bottom, 8),
-            marginBottom: keyboardHeight === 0 ? 0 : keyboardHeight + 12,
-          },
-        ]}
-      >
+      <View style={[styles.inputBar, { paddingBottom: insets.bottom }]}>
         <TouchableOpacity onPress={openPicker} style={styles.attachButton}>
             <Paperclip size={22} color="#666876" />
         </TouchableOpacity>
@@ -1156,6 +1138,7 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
         </AlertDialog.Content>
       </AlertDialog>
     </View>
+    </KeyboardAvoidingView>
   );
 }
 

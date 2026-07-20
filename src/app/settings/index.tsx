@@ -1,11 +1,10 @@
 import { router } from "expo-router";
-import { ChevronLeft, ChevronRight, Globe, Lock, Bell, User, Shield, Moon, LogOut } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Lock, Bell, User, Shield, Moon } from "lucide-react-native";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useThemeStore } from "@/store/useThemeStore";
-import { supabase } from "@/lib/supabase";
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
@@ -14,7 +13,6 @@ export default function SettingsScreen() {
 
   const rows = [
     { icon: <User size={20} color="#64748b" />, label: "Account", route: "/settings/account" },
-    { icon: <Globe size={20} color="#64748b" />, label: "Language", route: "/settings/language" },
     { icon: <Bell size={20} color="#64748b" />, label: "Notifications", route: "/settings/notifications" },
     { icon: <Lock size={20} color="#64748b" />, label: "Privacy", route: "/settings/privacy" },
   ];
@@ -83,16 +81,6 @@ export default function SettingsScreen() {
           ))}
         </View>
 
-        <TouchableOpacity
-          onPress={async () => {
-            await supabase.auth.signOut();
-            router.replace("/(auth)/login");
-          }}
-          className="flex-row items-center justify-center gap-2 mt-8 mb-12 py-4 bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-800 rounded-2xl"
-        >
-          <LogOut size={20} color="#F75555" />
-          <Text className="text-red-500 font-rubik-bold">Logout</Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );

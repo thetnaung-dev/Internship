@@ -62,11 +62,13 @@ function SectionCard({
   title,
   icon,
   completed,
+  isBurmese,
   children,
 }: {
   title: string;
   icon: React.ReactNode;
   completed: boolean;
+  isBurmese: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -88,7 +90,7 @@ function SectionCard({
         </Text>
         {completed && (
           <Text className="text-[10px] font-rubik-semibold text-green-500">
-            Done
+            {isBurmese ? "ပြီးပါပြီ" : "Done"}
           </Text>
         )}
       </View>
@@ -126,6 +128,7 @@ export default function CreatePostForm({
   const router = useRouter();
   const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
   const isHostel = dealType === "hostel";
+  const isWantToRent = dealType === "want_to_rent";
 
   const [isLoading, setIsLoading] = useState(false);
   const [isMapSyncing, setIsMapSyncing] = useState(true);
@@ -172,6 +175,12 @@ export default function CreatePostForm({
     roomCapacity: [] as string[],
     descriptionMm: "",
     descriptionEn: "",
+    monthlyFeeFrom: "",
+    monthlyFeeTo: "",
+    areaFrom: "",
+    areaTo: "",
+    furnishedStatus: "",
+    coBrokerage: false,
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -182,17 +191,22 @@ export default function CreatePostForm({
       (formData.titleMm.trim() ? 1 : 0) +
       (formData.titleEn.trim() ? 1 : 0) +
       (formData.propertyType || isHostel ? 1 : 0) +
-      (formData.price ? 1 : 0);
+      (isWantToRent ? (formData.monthlyFeeFrom || formData.monthlyFeeTo ? 1 : 0) : (formData.price ? 1 : 0));
 
     const details = isHostel
       ? (formData.hostelType.length > 0 ? 1 : 0) +
         (formData.roomCapacity.length > 0 ? 1 : 0) +
         (formData.descriptionMm.trim() ? 1 : 0) +
         (formData.descriptionEn.trim() ? 1 : 0)
-      : (showDimensions || showAreaBox ? 1 : 0) +
-        (formData.bedrooms !== "0" || formData.bathrooms !== "0" ? 1 : 0) +
-        (formData.descriptionMm.trim() ? 1 : 0) +
-        (formData.descriptionEn.trim() ? 1 : 0);
+      : isWantToRent
+        ? (formData.areaFrom || formData.areaTo ? 1 : 0) +
+          (formData.furnishedStatus ? 1 : 0) +
+          (formData.descriptionMm.trim() ? 1 : 0) +
+          (formData.descriptionEn.trim() ? 1 : 0)
+        : (showDimensions || showAreaBox ? 1 : 0) +
+          (formData.bedrooms !== "0" || formData.bathrooms !== "0" ? 1 : 0) +
+          (formData.descriptionMm.trim() ? 1 : 0) +
+          (formData.descriptionEn.trim() ? 1 : 0);
 
     const location =
       (formData.regionId ? 1 : 0) +
@@ -201,7 +215,7 @@ export default function CreatePostForm({
 
     const media = (images.length > 0 ? 1 : 0) + (video ? 1 : 0);
 
-    const totalFields = isHostel ? 10 : 11;
+    const totalFields = isHostel ? 10 : isWantToRent ? 10 : 11;
     const filled = basic + details + location + media;
     return {
       basic: basic >= (isHostel ? 4 : 4),
@@ -210,7 +224,7 @@ export default function CreatePostForm({
       media: media >= 1,
       percent: Math.round((filled / totalFields) * 100),
     };
-  }, [formData, isHostel, showDimensions, showAreaBox, images, video]);
+  }, [formData, isHostel, isWantToRent, showDimensions, showAreaBox, images, video]);
 
   // ── Dropdown data ────────────────────────────────────────────────
   const propertyTypes = [
@@ -222,7 +236,7 @@ export default function CreatePostForm({
   ];
 
   const currencyUnits = [
-    { label: "ကျပ် (သိန်း)", value: "lakhs" },
+    { label: isBurmese ? "ကျပ် (သိန်း)" : "Kyat (Lakh)", value: "lakhs" },
     { label: "USD", value: "usd" },
   ];
 
@@ -273,6 +287,12 @@ export default function CreatePostForm({
     { label: isBurmese ? "ဧက" : "Acre", value: "acre" },
   ];
 
+  const furnishedStatusOptions = [
+    { label: isBurmese ? "မပါဝင်" : "Not Furnished", value: "not_furnished" },
+    { label: isBurmese ? "တစ်ဝက်ပါဝင်" : "Half Furnished", value: "half_furnished" },
+    { label: isBurmese ? "အပြည့်ပါဝင်" : "Full Furnished", value: "full_furnished" },
+  ];
+
   // ── Effects ──────────────────────────────────────────────────────
   useEffect(() => {
     async function fetchMyanmarLocations() {
@@ -297,7 +317,7 @@ export default function CreatePostForm({
       } catch (error: any) {
         setAlertDialog({
           title: t("error.databaseErrorTitle") || "Database Error",
-          message: "Could not synchronize geolocation assets.",
+          message: isBurmese ? "တည်နေရာဒေတာ မSync နိုင်ပါ။" : "Could not synchronize geolocation assets.",
           showCancel: false,
           onConfirm: () => setAlertDialog(null),
         });
@@ -413,7 +433,10 @@ export default function CreatePostForm({
     if (!result.canceled) {
       const videoAsset: any = result.assets[0];
       if (videoAsset.fileSize && videoAsset.fileSize > 300 * 1024 * 1024) {
-        showAlert("Video Too Large", "Video file size must be under 300 MB.");
+        showAlert(
+          isBurmese ? "ဗီဒီယို ကြီးလွန်းပါသည်" : "Video Too Large",
+          isBurmese ? "ဗီဒီယိုဖိုင် ၃၀၀ MB အောက်ဖြစ်ရပါမည်။" : "Video file size must be under 300 MB."
+        );
         return;
       }
       setVideo(videoAsset.uri);
@@ -442,16 +465,18 @@ export default function CreatePostForm({
         return;
       }
 
-      const { data: canPost } = await supabase.rpc("can_user_post", { user_uuid: user.id });
-      if (canPost === false) {
-        showAlert(
-          isBurmese ? "ကြော်ငြာအရေအတွက် ကန့်သတ်ချက်" : "Post Limit Reached",
-          isBurmese
-            ? "တစ်လလျှင် ကြော်ငြာ ၅ ခုသာ တင်နိုင်ပါသည်။ လာမည့်လအထိ စောင့်ပါ။"
-            : "You can only post 5 advertisements per month. Please wait until next month.",
-        );
-        setIsLoading(false);
-        return;
+      if (!isWantToRent) {
+        const { data: canPost } = await supabase.rpc("can_user_post", { user_uuid: user.id });
+        if (canPost === false) {
+          showAlert(
+            isBurmese ? "ကြော်ငြာအရေအတွက် ကန့်သတ်ချက်" : "Post Limit Reached",
+            isBurmese
+              ? "တစ်လလျှင် ကြော်ငြာ ၅ ခုသာ တင်နိုင်ပါသည်။ လာမည့်လအထိ စောင့်ပါ။"
+              : "You can only post 5 advertisements per month. Please wait until next month.",
+          );
+          setIsLoading(false);
+          return;
+        }
       }
 
       // Validate required fields
@@ -471,10 +496,26 @@ export default function CreatePostForm({
         setIsLoading(false);
         return;
       }
-      if (!formData.price) {
+      if (!formData.price && !isWantToRent) {
         showAlert(
           isBurmese ? "စျေးနှုန်းထည့်ရန် လိုအပ်ပါသည်" : "Price Required",
           isBurmese ? "ကျေးဇူးပြု၍ စျေးနှုန်းထည့်ပါ။" : "Please enter a price.",
+        );
+        setIsLoading(false);
+        return;
+      }
+      if (isWantToRent && !formData.monthlyFeeFrom && !formData.monthlyFeeTo) {
+        showAlert(
+          isBurmese ? "လစဉ်ငှားရမ်းခထည့်ရန် လိုအပ်ပါသည်" : "Monthly Fee Required",
+          isBurmese ? "ကျေးဇူးပြု၍ လစဉ်ငှားရမ်းခ ထည့်ပါ။" : "Please enter at least one monthly fee amount.",
+        );
+        setIsLoading(false);
+        return;
+      }
+      if (isWantToRent && !formData.furnishedStatus) {
+        showAlert(
+          isBurmese ? "ဖာနီးရှားပါဝင်မှု ရွေးပါ" : "Furnished Status Required",
+          isBurmese ? "ကျေးဇူးပြု၍ ဖာနီးရှားပါဝင်မှုကို ရွေးချယ်ပါ။" : "Please select a furnished status.",
         );
         setIsLoading(false);
         return;
@@ -488,7 +529,48 @@ export default function CreatePostForm({
         return;
       }
 
-      // Upload images
+      // ── want_to_rent → save to wanted_listings ────────────────
+      if (isWantToRent) {
+        const wantedPayload = {
+          user_id: user.id,
+          title: formData.titleEn || formData.titleMm,
+          description: [formData.descriptionMm, formData.descriptionEn].filter(Boolean).join("\n---\n") || null,
+          deal_type: "rent",
+          property_type: formData.propertyType || null,
+          region_id: formData.regionId || null,
+          township_id: formData.townshipId || null,
+          budget_min: formData.monthlyFeeFrom ? parseFloat(formData.monthlyFeeFrom) : null,
+          budget_max: formData.monthlyFeeTo ? parseFloat(formData.monthlyFeeTo) : null,
+          contact_phone: formData.phone,
+          currency_unit: formData.currencyUnit,
+          monthly_fee_from: formData.monthlyFeeFrom ? parseFloat(formData.monthlyFeeFrom) : null,
+          monthly_fee_to: formData.monthlyFeeTo ? parseFloat(formData.monthlyFeeTo) : null,
+          area_from: formData.areaFrom ? parseFloat(formData.areaFrom) : null,
+          area_to: formData.areaTo ? parseFloat(formData.areaTo) : null,
+          area_unit: formData.areaUnit,
+          furnished_status: formData.furnishedStatus || null,
+          floor: ["apartment", "condo"].includes(formData.propertyType) ? formData.floor : null,
+          bedrooms: parseInt(formData.bedrooms) || null,
+          bathrooms: parseInt(formData.bathrooms) || null,
+          co_brokerage: formData.coBrokerage,
+          status: "active",
+        };
+
+        const { error } = await supabase.from("wanted_listings").insert(wantedPayload);
+        if (error) throw error;
+
+        setIsLoading(false);
+        showAlert(
+          isBurmese ? "အောင်မြင်ပါသည်" : "Submission Successful",
+          isBurmese
+            ? "သင့်ကြော်ငြာကို အောင်မြင်စွာ တင်ပြီးပါပြီ။"
+            : "Your wanted listing has been posted.",
+          () => router.replace("/wanted" as any),
+        );
+        return;
+      }
+
+      // ── Upload images ──────────────────────────────────────────
       const uploadedImageUrls: string[] = [];
       for (const localUri of images) {
         const fileName = `${user.id}/img_${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`;
@@ -560,7 +642,7 @@ export default function CreatePostForm({
         supabase.functions.invoke("notify-new-property", {
           body: {
             propertyId: insertedData.id,
-            title: formData.title_en || formData.title_mm || "",
+            title: formData.titleEn || formData.titleMm || "",
             price: parseFloat(formData.price),
             dealType: isHostel ? "rent" : dealType,
             propertyType: isHostel ? "hostel" : formData.propertyType,
@@ -581,7 +663,7 @@ export default function CreatePostForm({
       return;
     } catch (err: any) {
       setIsLoading(false);
-      showAlert("Error", err.message);
+      showAlert(isBurmese ? "မှားယွင်းမှု" : "Error", err.message);
       return;
     }
   };
@@ -591,7 +673,7 @@ export default function CreatePostForm({
       <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
         <ActivityIndicator size="small" className="text-primary-300" />
         <Text className="text-gray-400 font-rubik-medium text-xs mt-2">
-          Syncing Myanmar Map Registries...
+          {isBurmese ? "မြန်မာ မြေပုံဒေတာ ဆွဲနေသည်..." : "Syncing Myanmar Map Registries..."}
         </Text>
       </SafeAreaView>
     );
@@ -649,6 +731,7 @@ export default function CreatePostForm({
             title={isBurmese ? "အခြေခံအချက်အလက်" : "Basic Information"}
             icon={<Home size={16} color="#9CA3AF" />}
             completed={completion.basic}
+            isBurmese={isBurmese}
           >
             <FormField label={isBurmese ? "ခေါင်းစဉ် (မြန်မာ)" : "Title (Myanmar)"} required>
               <TextInput
@@ -692,6 +775,46 @@ export default function CreatePostForm({
                   style={styles.input}
                 />
               </FormField>
+            ) : isWantToRent ? (
+              <>
+                <FormField label={isBurmese ? "ငွေကြေး" : "Currency Unit"} required>
+                  <SelectField
+                    options={currencyUnits}
+                    value={formData.currencyUnit}
+                    onSelect={(val) => handleInputChange("currencyUnit", val)}
+                  />
+                </FormField>
+                <FormField
+                  label={
+                    isBurmese
+                      ? `လစဉ်ငှားရမ်းခ (${formData.currencyUnit === "lakhs" ? "ကျပ် (သိန်း)" : "USD"})`
+                      : `Monthly Fee (${formData.currencyUnit === "lakhs" ? "Kyat (Lakh)" : "USD"})`
+                  }
+                  required
+                >
+                  <View className="flex-row gap-3 items-center">
+                    <View className="flex-1">
+                      <TextInput
+                        placeholder={isBurmese ? "မှ" : "From"}
+                        value={formData.monthlyFeeFrom}
+                        onChangeText={(t) => handleInputChange("monthlyFeeFrom", t)}
+                        keyboardType="numeric"
+                        style={styles.input}
+                      />
+                    </View>
+                    <Text className="text-gray-400 font-rubik-semibold text-sm">---</Text>
+                    <View className="flex-1">
+                      <TextInput
+                        placeholder={isBurmese ? "အထိ" : "To"}
+                        value={formData.monthlyFeeTo}
+                        onChangeText={(t) => handleInputChange("monthlyFeeTo", t)}
+                        keyboardType="numeric"
+                        style={styles.input}
+                      />
+                    </View>
+                  </View>
+                </FormField>
+              </>
             ) : (
               <View className="flex-row gap-3">
                 <View className="flex-[5]">
@@ -723,6 +846,7 @@ export default function CreatePostForm({
             title={isHostel ? (isBurmese ? "အဆောင်အသေးစိတ်" : "Hostel Details") : (isBurmese ? "အိမ်ခြံမြေ အသေးစိတ်" : "Property Details")}
             icon={<Pencil size={16} color="#9CA3AF" />}
             completed={completion.details}
+            isBurmese={isBurmese}
           >
             {isHostel ? (
               <>
@@ -776,6 +900,97 @@ export default function CreatePostForm({
                     })}
                   </View>
                 </FormField>
+              </>
+            ) : isWantToRent ? (
+              <>
+                {["apartment", "condo"].includes(formData.propertyType) && (
+                  <FormField label={isBurmese ? "အလွှာ" : "Floor"}>
+                    <SelectField
+                      options={floorOptionsDataset}
+                      placeholder={isBurmese ? "အလွှာ ရွေးပါ" : "Select Floor"}
+                      value={formData.floor}
+                      onSelect={(val) => handleInputChange("floor", val)}
+                    />
+                  </FormField>
+                )}
+
+                <FormField
+                  label={
+                    isBurmese
+                      ? `ဧရိယာ (${formData.areaUnit === "sqft" ? "စတုရန်းပေ" : "ဧက"})`
+                      : `Area (${formData.areaUnit === "sqft" ? "Square Feet" : "Acre"})`
+                  }
+                  required
+                >
+                  <View className="flex-row gap-3 items-center mb-2">
+                    <View className="flex-1">
+                      <TextInput
+                        placeholder={isBurmese ? "မှ" : "From"}
+                        value={formData.areaFrom}
+                        onChangeText={(t) => handleInputChange("areaFrom", t)}
+                        keyboardType="numeric"
+                        style={styles.input}
+                      />
+                    </View>
+                    <Text className="text-gray-400 font-rubik-semibold text-sm">---</Text>
+                    <View className="flex-1">
+                      <TextInput
+                        placeholder={isBurmese ? "အထိ" : "To"}
+                        value={formData.areaTo}
+                        onChangeText={(t) => handleInputChange("areaTo", t)}
+                        keyboardType="numeric"
+                        style={styles.input}
+                      />
+                    </View>
+                  </View>
+                  <SelectField
+                    options={areaUnitsDataset}
+                    value={formData.areaUnit}
+                    onSelect={(val) => handleInputChange("areaUnit", val)}
+                  />
+                </FormField>
+
+                <FormField label={isBurmese ? "ဖာနီးရှားပါဝင်မှု" : "Furnished Status"} required>
+                  <View className="flex-row flex-wrap gap-2">
+                    {furnishedStatusOptions.map((opt) => {
+                      const selected = formData.furnishedStatus === opt.value;
+                      return (
+                        <TouchableOpacity
+                          key={opt.value}
+                          onPress={() => handleInputChange("furnishedStatus", selected ? "" : opt.value)}
+                          className={`px-4 py-2.5 rounded-xl border ${
+                            selected ? "bg-primary-300 border-primary-300" : "bg-white border-gray-200"
+                          }`}
+                        >
+                          <Text className={`font-rubik-medium text-sm ${selected ? "text-white" : "text-gray-600"}`}>
+                            {opt.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </FormField>
+
+                <View className="flex-row gap-3">
+                  <View className="flex-1">
+                    <FormField label={isBurmese ? "အိပ်ခန်း" : "Bedrooms"}>
+                      <SelectField
+                        options={roomCountOptions}
+                        value={formData.bedrooms}
+                        onSelect={(val) => handleInputChange("bedrooms", val)}
+                      />
+                    </FormField>
+                  </View>
+                  <View className="flex-1">
+                    <FormField label={isBurmese ? "ရေချိုးခန်း" : "Bathrooms"}>
+                      <SelectField
+                        options={roomCountOptions}
+                        value={formData.bathrooms}
+                        onSelect={(val) => handleInputChange("bathrooms", val)}
+                      />
+                    </FormField>
+                  </View>
+                </View>
               </>
             ) : (
               <>
@@ -912,52 +1127,57 @@ export default function CreatePostForm({
             title={isBurmese ? "တည်နေရာ" : "Location"}
             icon={<MapPin size={16} color="#9CA3AF" />}
             completed={completion.location}
+            isBurmese={isBurmese}
           >
-            <TouchableOpacity
-              onPress={async () => {
-                const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
-                if (existingStatus !== "granted") {
-                  const { status } = await Location.requestForegroundPermissionsAsync();
-                  if (status !== "granted") return;
-                }
-                const loc = await Location.getCurrentPositionAsync({});
-                setFormData((prev) => ({
-                  ...prev,
-                  latitude: loc.coords.latitude.toString(),
-                  longitude: loc.coords.longitude.toString(),
-                }));
-              }}
-              className="bg-blue-50 border border-blue-100 rounded-xl py-3.5 px-4 flex-row items-center gap-3"
-            >
-              <View className="w-8 h-8 rounded-full bg-blue-100 items-center justify-center">
-                <MapPin size={16} color="#3B82F6" />
-              </View>
-              <Text className="flex-1 text-blue-600 font-rubik-semibold text-sm">
-                {formData.latitude ? (isBurmese ? "တည်နေရာ သတ်မှတ်ပြီး" : "Location Pinned") : (isBurmese ? "တည်နေရာ သတ်မှတ်ရန်" : "Tap to Pin Location")}
-              </Text>
-            </TouchableOpacity>
-
-            {formData.latitude && (
-              <View className="rounded-xl overflow-hidden border border-gray-100" style={{ height: 130 }}>
-                <MapView
-                  style={{ flex: 1 }}
-                  initialRegion={{
-                    latitude: parseFloat(formData.latitude),
-                    longitude: parseFloat(formData.longitude),
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
+            {!isWantToRent && (
+              <>
+                <TouchableOpacity
+                  onPress={async () => {
+                    const { status: existingStatus } = await Location.getForegroundPermissionsAsync();
+                    if (existingStatus !== "granted") {
+                      const { status } = await Location.requestForegroundPermissionsAsync();
+                      if (status !== "granted") return;
+                    }
+                    const loc = await Location.getCurrentPositionAsync({});
+                    setFormData((prev) => ({
+                      ...prev,
+                      latitude: loc.coords.latitude.toString(),
+                      longitude: loc.coords.longitude.toString(),
+                    }));
                   }}
-                  scrollEnabled={false}
-                  zoomEnabled={false}
+                  className="bg-blue-50 border border-blue-100 rounded-xl py-3.5 px-4 flex-row items-center gap-3"
                 >
-                  <Marker
-                    coordinate={{
-                      latitude: parseFloat(formData.latitude),
-                      longitude: parseFloat(formData.longitude),
-                    }}
-                  />
-                </MapView>
-              </View>
+                  <View className="w-8 h-8 rounded-full bg-blue-100 items-center justify-center">
+                    <MapPin size={16} color="#3B82F6" />
+                  </View>
+                  <Text className="flex-1 text-blue-600 font-rubik-semibold text-sm">
+                    {formData.latitude ? (isBurmese ? "တည်နေရာ သတ်မှတ်ပြီး" : "Location Pinned") : (isBurmese ? "တည်နေရာ သတ်မှတ်ရန်" : "Tap to Pin Location")}
+                  </Text>
+                </TouchableOpacity>
+
+                {formData.latitude && (
+                  <View className="rounded-xl overflow-hidden border border-gray-100" style={{ height: 130 }}>
+                    <MapView
+                      style={{ flex: 1 }}
+                      initialRegion={{
+                        latitude: parseFloat(formData.latitude),
+                        longitude: parseFloat(formData.longitude),
+                        latitudeDelta: 0.01,
+                        longitudeDelta: 0.01,
+                      }}
+                      scrollEnabled={false}
+                      zoomEnabled={false}
+                    >
+                      <Marker
+                        coordinate={{
+                          latitude: parseFloat(formData.latitude),
+                          longitude: parseFloat(formData.longitude),
+                        }}
+                      />
+                    </MapView>
+                  </View>
+                )}
+              </>
             )}
 
             <View className="flex-row gap-3">
@@ -994,13 +1214,33 @@ export default function CreatePostForm({
                 style={styles.input}
               />
             </FormField>
+
+            {isWantToRent && (
+              <TouchableOpacity
+                onPress={() => setFormData((prev) => ({ ...prev, coBrokerage: !prev.coBrokerage }))}
+                className="flex-row items-center gap-3 py-2"
+              >
+                <View
+                  className={`w-5 h-5 rounded border-2 items-center justify-center ${
+                    formData.coBrokerage ? "bg-primary-300 border-primary-300" : "border-gray-300"
+                  }`}
+                >
+                  {formData.coBrokerage && <Check size={12} color="white" strokeWidth={3} />}
+                </View>
+                <Text className="text-gray-700 font-rubik-medium text-sm flex-1">
+                  {isBurmese ? "အကျိုးတူဆောင်ရွက်မှု လက်ခံပါသည်" : "Co-brokerage accepted"}
+                </Text>
+              </TouchableOpacity>
+            )}
           </SectionCard>
 
           {/* ── SECTION 4: MEDIA ──────────────────────────────── */}
+          {!isWantToRent && (
           <SectionCard
             title={isBurmese ? "ဓာတ်ပုံနှင့်ဗီဒီယို" : "Photos & Video"}
             icon={<ImageIcon size={16} color="#9CA3AF" />}
             completed={completion.media}
+            isBurmese={isBurmese}
           >
             <View>
               <ScrollView
@@ -1054,6 +1294,7 @@ export default function CreatePostForm({
               </TouchableOpacity>
             )}
           </SectionCard>
+          )}
         </View>
       </ScrollView>
 

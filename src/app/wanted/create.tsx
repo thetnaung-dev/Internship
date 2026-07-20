@@ -197,7 +197,7 @@ export default function CreateWantedScreen() {
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="px-5 pt-2 pb-3 border-b border-primary-100 flex-row items-center">
-        <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center rounded-full bg-primary-100 mr-3">
+        <TouchableOpacity onPress={() => router.replace("/wanted")} className="w-10 h-10 items-center justify-center rounded-full bg-primary-100 mr-3">
           <ChevronLeft size={24} color="#22c55e" />
         </TouchableOpacity>
         <Text className="text-lg font-rubik-bold text-black-300">

@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ChevronLeft, Heart, Save, Share2 } from "lucide-react-native";
+import { ChevronLeft, Heart, Share2 } from "lucide-react-native";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -81,8 +81,6 @@ export default function PropertySearchForm() {
 
   const [results, setResults] = useState<Property[] | null>(null);
   const [searching, setSearching] = useState(false);
-  const [saveDialog, setSaveDialog] = useState(false);
-  const [searchName, setSearchName] = useState("");
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -225,40 +223,6 @@ export default function PropertySearchForm() {
     setDropdowns((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSaveSearch = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setAlertDialog({ title: "Notice", message: "Please log in to save searches." });
-      return;
-    }
-    const name = searchName.trim() || `Search ${new Date().toLocaleDateString()}`;
-    const { data: existing } = await supabase
-      .from("saved_searches")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("search_params", { dealType, ...dropdowns });
-
-    if (existing && existing.length > 0) {
-      setAlertDialog({ title: "Already Saved", message: "This search has already been saved." });
-      return;
-    }
-    const { error } = await supabase.from("saved_searches").insert({
-      user_id: user.id,
-      name,
-      search_params: {
-        dealType,
-        ...dropdowns,
-      },
-    });
-    if (error) {
-      setAlertDialog({ title: "Error", message: error.message });
-    } else {
-      setSaveDialog(false);
-      setSearchName("");
-      setAlertDialog({ title: "Saved", message: "Search saved successfully." });
-    }
-  };
-
   const handleSearchSubmit = async (overrides?: { dealType?: string; dropdowns?: typeof dropdowns }) => {
     const dt = overrides?.dealType ?? dealType;
     const dd = overrides?.dropdowns ?? dropdowns;
@@ -306,10 +270,6 @@ export default function PropertySearchForm() {
           <TouchableOpacity onPress={() => setResults(null)} className="flex-row items-center gap-2">
             <ChevronLeft size={22} color="#22c55e" />
             <Text className="text-primary-300 font-rubik-bold">{t("filter.backToSearch")}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setSaveDialog(true)} className="flex-row items-center gap-1 bg-primary-100 px-3 py-1.5 rounded-full">
-            <Save size={16} color="#22c55e" />
-            <Text className="text-primary-300 font-rubik-medium text-sm">Save</Text>
           </TouchableOpacity>
         </View>
         {!searching && (
@@ -398,36 +358,6 @@ export default function PropertySearchForm() {
             <AlertDialog.Footer className="w-full flex-row justify-center">
               <Button onPress={() => setAlertDialog(null)} className="flex-1">
                 <ButtonText>OK</ButtonText>
-              </Button>
-            </AlertDialog.Footer>
-          </AlertDialog.Content>
-        </AlertDialog>
-        <AlertDialog
-          isOpen={saveDialog}
-          onClose={() => setSaveDialog(false)}
-          useRNModal={true}
-        >
-          <AlertDialog.Backdrop />
-          <AlertDialog.Content className="p-6 rounded-3xl bg-white w-5/6 shadow-xl">
-            <AlertDialog.Header>
-              <Heading>Save Search</Heading>
-            </AlertDialog.Header>
-            <AlertDialog.Body>
-              <Text className="text-black-200 font-rubik mb-3">Give this search a name:</Text>
-              <TextInput
-                value={searchName}
-                onChangeText={setSearchName}
-                placeholder="e.g. Apartments under 2000 Lakhs"
-                className="bg-primary-100 border border-primary-200 rounded-2xl px-4 py-3 text-black-300 font-rubik"
-                autoFocus
-              />
-            </AlertDialog.Body>
-            <AlertDialog.Footer className="w-full flex-row gap-3">
-              <Button variant="outline" className="flex-1" onPress={() => setSaveDialog(false)}>
-                <ButtonText>Cancel</ButtonText>
-              </Button>
-              <Button className="flex-1" onPress={handleSaveSearch}>
-                <ButtonText className="text-white">Save</ButtonText>
               </Button>
             </AlertDialog.Footer>
           </AlertDialog.Content>
@@ -601,37 +531,6 @@ export default function PropertySearchForm() {
           <AlertDialog.Footer className="w-full flex-row justify-center">
             <Button onPress={() => setAlertDialog(null)} className="flex-1">
               <ButtonText>OK</ButtonText>
-            </Button>
-          </AlertDialog.Footer>
-        </AlertDialog.Content>
-      </AlertDialog>
-
-      <AlertDialog
-        isOpen={saveDialog}
-        onClose={() => setSaveDialog(false)}
-        useRNModal={true}
-      >
-        <AlertDialog.Backdrop />
-        <AlertDialog.Content className="p-6 rounded-3xl bg-white w-5/6 shadow-xl">
-          <AlertDialog.Header>
-            <Heading>Save Search</Heading>
-          </AlertDialog.Header>
-          <AlertDialog.Body>
-            <Text className="text-black-200 font-rubik mb-3">Give this search a name:</Text>
-            <TextInput
-              value={searchName}
-              onChangeText={setSearchName}
-              placeholder="e.g. Apartments under 2000 Lakhs"
-              className="bg-primary-100 border border-primary-200 rounded-2xl px-4 py-3 text-black-300 font-rubik"
-              autoFocus
-            />
-          </AlertDialog.Body>
-          <AlertDialog.Footer className="w-full flex-row gap-3">
-            <Button variant="outline" className="flex-1" onPress={() => setSaveDialog(false)}>
-              <ButtonText>Cancel</ButtonText>
-            </Button>
-            <Button className="flex-1" onPress={handleSaveSearch}>
-              <ButtonText className="text-white">Save</ButtonText>
             </Button>
           </AlertDialog.Footer>
         </AlertDialog.Content>

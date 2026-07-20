@@ -1,16 +1,18 @@
 import { supabase } from "@/lib/supabase";
 import { router, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { ChevronLeft, Plus } from "lucide-react-native";
-import React, { useRef, useState } from "react";
+import { ChevronDown, ChevronLeft, Eye, Search, X } from "lucide-react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { FlashList } from "@shopify/flash-list";
 import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Modal,
   PanResponder,
   RefreshControl,
+  ScrollView,
   Text,
   TouchableOpacity,
   View,
@@ -21,6 +23,39 @@ import { useThemeStore } from "@/store/useThemeStore";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25;
+
+const PROPERTY_TYPES = [
+  { label: "အားလုံး", value: "" },
+  { label: "တိုက်ခန်း", value: "apartment" },
+  { label: "ကွန်ဒို", value: "condo" },
+  { label: "လုံးချင်းအိမ်", value: "house" },
+  { label: "မြေကွက်", value: "land" },
+  { label: "အဆောင်", value: "hostel" },
+];
+
+const PRICE_OPTIONS = [
+  { label: "အားလုံး", value: "" },
+  ...[5, 10, 20, 30, 50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000, 1500, 2000, 2500, 3000, 4000, 5000].map((n) => ({
+    label: `${n} (သိန်း)`,
+    value: String(n),
+  })),
+];
+
+interface FilterForm {
+  regionId: string;
+  townshipId: string;
+  propertyType: string;
+  priceFrom: string;
+  priceTo: string;
+}
+
+const EMPTY_FILTER: FilterForm = {
+  regionId: "",
+  townshipId: "",
+  propertyType: "",
+  priceFrom: "",
+  priceTo: "",
+};
 
 export default function WantedListingsScreen() {
   const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
@@ -35,9 +70,71 @@ export default function WantedListingsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"buy" | "rent">("buy");
 
+  const [showFilter, setShowFilter] = useState(false);
+  const [filterForm, setFilterForm] = useState<FilterForm>(EMPTY_FILTER);
+  const [appliedFilters, setAppliedFilters] = useState<Record<"buy" | "rent", FilterForm>>({ buy: EMPTY_FILTER, rent: EMPTY_FILTER });
+
+  const [rawRegions, setRawRegions] = useState<any[]>([]);
+  const [rawTownships, setRawTownships] = useState<any[]>([]);
+
   const translateX = useRef(new Animated.Value(0)).current;
   const tabRef = useRef(activeTab);
   tabRef.current = activeTab;
+
+  useEffect(() => {
+    async function fetchLocations() {
+      const [regionsRes, townshipsRes] = await Promise.all([
+        supabase.from("states_regions").select("id, name_en, name_mm").order("name_en"),
+        supabase.from("townships").select("id, region_id, name_en, name_mm").order("name_en"),
+      ]);
+      if (regionsRes.data) setRawRegions(regionsRes.data);
+      if (townshipsRes.data) setRawTownships(townshipsRes.data);
+    }
+    fetchLocations();
+  }, []);
+
+  const regionOptions = useMemo(() => {
+    const formatted = rawRegions.map((r) => ({
+      label: r.name_mm || r.name_en,
+      value: String(r.id),
+    }));
+    return [{ label: "ပြည်နယ်နှင့်တိုင်းဒေသကြီးအားလုံး", value: "" }, ...formatted];
+  }, [rawRegions]);
+
+  const townshipOptions = useMemo(() => {
+    const subset = filterForm.regionId
+      ? rawTownships.filter((t) => String(t.region_id) === filterForm.regionId)
+      : rawTownships;
+    const formatted = subset.map((t) => ({
+      label: t.name_mm || t.name_en,
+      value: String(t.id),
+    }));
+    return [{ label: "မြို့နယ်အားလုံး", value: "" }, ...formatted];
+  }, [rawTownships, filterForm.regionId]);
+
+  const hasActiveFilter = !!(appliedFilters.buy.regionId || appliedFilters.buy.townshipId || appliedFilters.buy.propertyType || appliedFilters.buy.priceFrom || appliedFilters.buy.priceTo || appliedFilters.rent.regionId || appliedFilters.rent.townshipId || appliedFilters.rent.propertyType || appliedFilters.rent.priceFrom || appliedFilters.rent.priceTo);
+
+  const filterListings = (listings: any[], filter: FilterForm) => {
+    return listings.filter((item) => {
+      if (filter.regionId && String(item.region_id) !== filter.regionId) return false;
+      if (filter.townshipId && String(item.township_id) !== filter.townshipId) return false;
+      if (filter.propertyType && item.property_type !== filter.propertyType) return false;
+      if (filter.priceFrom) {
+        const min = parseFloat(filter.priceFrom);
+        const max = item.budget_max ?? item.budget_min ?? 0;
+        if (max < min) return false;
+      }
+      if (filter.priceTo) {
+        const max = parseFloat(filter.priceTo);
+        const min = item.budget_min ?? item.budget_max ?? 0;
+        if (min > max) return false;
+      }
+      return true;
+    });
+  };
+
+  const filteredBuy = useMemo(() => filterListings(buyListings, appliedFilters.buy), [buyListings, appliedFilters.buy]);
+  const filteredRent = useMemo(() => filterListings(rentListings, appliedFilters.rent), [rentListings, appliedFilters.rent]);
 
   const fetchBuy = async (isPull = false) => {
     try {
@@ -75,10 +172,12 @@ export default function WantedListingsScreen() {
 
   const goToTab = (tab: "buy" | "rent") => {
     setActiveTab(tab);
-    Animated.spring(translateX, {
+    tabRef.current = tab;
+    Animated.timing(translateX, {
       toValue: tab === "buy" ? 0 : -SCREEN_WIDTH,
+      duration: 280,
       useNativeDriver: true,
-      bounciness: 8,
+      isInteraction: false,
     }).start();
   };
 
@@ -86,7 +185,6 @@ export default function WantedListingsScreen() {
     React.useCallback(() => {
       fetchBuy();
       fetchRent();
-      translateX.setValue(0);
     }, []),
   );
 
@@ -108,74 +206,76 @@ export default function WantedListingsScreen() {
     }),
   ).current;
 
+  const currentTabHasFilter = !!(appliedFilters[activeTab].regionId || appliedFilters[activeTab].townshipId || appliedFilters[activeTab].propertyType || appliedFilters[activeTab].priceFrom || appliedFilters[activeTab].priceTo);
+
+  const handleBack = () => {
+    if (currentTabHasFilter) {
+      setAppliedFilters((prev) => ({ ...prev, [activeTab]: EMPTY_FILTER }));
+    } else if (activeTab === "rent") {
+      goToTab("buy");
+    } else {
+      router.replace("/(tabs)");
+    }
+  };
+
   const filters = [
     { id: "buy" as const, label: isBurmese ? "အိမ်ဝယ်လိုသူများ" : "People looking to buy a house" },
     { id: "rent" as const, label: isBurmese ? "အိမ်ငှားလိုသူများ" : "People looking to rent a house" },
   ];
 
-  const getTypeLabel = (item: any) => {
-    const type = item.deal_type === "buy" ? "Buy" : "Rent";
-    const prop = item.property_type
-      ? ` - ${item.property_type.charAt(0).toUpperCase() + item.property_type.slice(1)}`
-      : "";
-    return `${type}${prop}`;
+  const propertyTypeMap: Record<string, string> = {
+    apartment: "တိုက်ခန်း",
+    condo: "ကွန်ဒို",
+    house: "လုံးချင်းအိမ်",
+    land: "မြေကွက်",
+    hostel: "အဆောင်",
   };
 
-  const getLocation = (item: any) => {
-    const region = item.states_regions
-      ? isBurmese
-        ? item.states_regions.name_mm
-        : item.states_regions.name_en
-      : null;
-    const township = item.townships
-      ? isBurmese
-        ? item.townships.name_mm
-        : item.townships.name_en
-      : null;
-    if (township && region) return `${township}, ${region}`;
-    if (region) return region;
-    return null;
-  };
+  const renderItem = (item: any) => {
+    const regionName = item.states_regions ? item.states_regions.name_mm : "";
+    const townshipName = item.townships ? item.townships.name_mm : "";
+    const propertyType = item.property_type ? propertyTypeMap[item.property_type] ?? item.property_type : null;
+    const hasBudget = item.budget_min || item.budget_max;
+    const currencyLabel = item.currency_unit === "usd" ? "USD" : "သိန်း";
 
-  const renderItem = (item: any) => (
-    <TouchableOpacity
-      onPress={() => router.push(`/wanted/${item.id}` as any)}
-      className="mx-5 mt-3 p-4 bg-primary-100 dark:bg-gray-800 rounded-2xl"
-    >
-      <View className="flex-row items-center gap-2 mb-1">
-        <View className="bg-primary-300 px-2.5 py-0.5 rounded-full">
-          <Text className="text-white text-xs font-rubik-medium">
-            {getTypeLabel(item)}
+    return (
+      <TouchableOpacity
+        onPress={() => router.push(`/wanted/${item.id}` as any)}
+        className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 mb-3 mx-5 shadow-sm"
+        activeOpacity={0.85}
+      >
+        <View className="px-4 pt-4 pb-3">
+          <Text className="text-black-300 dark:text-gray-100 text-base font-rubik-bold" numberOfLines={1}>
+            {item.title}
           </Text>
+
+          <Text className="text-orange-500 text-sm font-rubik-medium mt-1.5" numberOfLines={1}>
+            {regionName}{townshipName ? ` | ${townshipName}` : ""}
+          </Text>
+
+          {propertyType && (
+            <Text className="text-gray-600 dark:text-gray-300 text-sm font-rubik-medium mt-1.5">
+              {propertyType}
+            </Text>
+          )}
+
+          {hasBudget && (
+            <Text className="text-blue-600 text-[15px] font-rubik-bold mt-2">
+              {item.budget_min && item.budget_max
+                ? `${item.budget_min.toLocaleString()} မှ ${item.budget_max.toLocaleString()} ${currencyLabel} အတွင်း`
+                : item.budget_min
+                  ? `${item.budget_min.toLocaleString()}+ ${currencyLabel}`
+                  : `အမြင့်ဆုံး ${item.budget_max.toLocaleString()} ${currencyLabel}`}
+            </Text>
+          )}
         </View>
-      </View>
-        <Text className="text-base font-rubik-medium text-black-300 dark:text-gray-100 mb-1">
-        {item.title}
-      </Text>
-      {item.description && (
-        <Text className="text-sm font-rubik text-black-100 dark:text-gray-400 mb-1" numberOfLines={2}>
-          {item.description}
-        </Text>
-      )}
-      {(item.budget_min || item.budget_max) && (
-        <Text className="text-base font-rubik-bold text-primary-300">
-          {item.budget_min && item.budget_max
-            ? `${isBurmese ? "သိန်း" : ""} ${item.budget_min} - ${item.budget_max}${isBurmese ? "" : " Lakh"}`
-            : item.budget_min
-              ? `${isBurmese ? `သိန်း ${item.budget_min}` : `${item.budget_min} Lakh+`}`
-              : `${isBurmese ? `သိန်း ${item.budget_max}` : `Up to ${item.budget_max} Lakh`}`}
-        </Text>
-      )}
-      {getLocation(item) && (
-        <Text className="text-xs font-rubik text-black-100 dark:text-gray-400 mt-1">
-          {getLocation(item)}
-        </Text>
-      )}
-        <Text className="text-xs font-rubik text-black-100 dark:text-gray-400 mt-1">
-        {item.profiles?.full_name || "Unknown"}
-      </Text>
-    </TouchableOpacity>
-  );
+
+        <View className="border-t border-gray-100 dark:border-gray-800 items-center py-2.5">
+          <Eye size={14} color="#9CA3AF" />
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   const listProps = (data: any[], loading: boolean) => ({
     data,
@@ -196,32 +296,70 @@ export default function WantedListingsScreen() {
     ) : (
       <View className="items-center py-12">
         <Text className="text-black-100 dark:text-gray-400 font-rubik-medium text-base">
-          {isBurmese ? "ကြော်ငြာများမရှိသေးပါ" : "No wanted listings yet"}
+          {hasActiveFilter ? "ရလဒ်မတွေ့ပါ" : "ကြော်ငြာများမရှိသေးပါ"}
         </Text>
       </View>
     ),
-  }  );
+  });
+
+  const Dropdown = ({
+    label,
+    value,
+    options,
+    onSelect,
+  }: {
+    label: string;
+    value: string;
+    options: { label: string; value: string }[];
+    onSelect: (val: string) => void;
+  }) => {
+    const [open, setOpen] = useState(false);
+    const selected = options.find((o) => o.value === value);
+    return (
+      <View className="mb-4">
+        <Text className="text-sm font-rubik-medium text-gray-700 dark:text-gray-300 mb-1.5">{label}</Text>
+        <TouchableOpacity
+          onPress={() => setOpen(!open)}
+          className="flex-row items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3"
+        >
+          <Text className={`text-sm font-rubik ${selected && selected.value ? "text-black-300 dark:text-gray-100" : "text-gray-400"}`}>
+            {selected?.label || "ရွေးချယ်ပါ"}
+          </Text>
+          <ChevronDown size={18} color="#9CA3AF" />
+        </TouchableOpacity>
+        {open && (
+          <View className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl mt-1 max-h-48 overflow-hidden">
+            <ScrollView nestedScrollEnabled>
+              {options.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  onPress={() => { onSelect(opt.value); setOpen(false); }}
+                  className={`px-4 py-3 border-b border-gray-100 dark:border-gray-800 ${opt.value === value ? "bg-primary-100 dark:bg-gray-800" : ""}`}
+                >
+                  <Text className={`text-sm font-rubik ${opt.value === value ? "text-primary-300 font-rubik-semibold" : "text-black-300 dark:text-gray-100"}`}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-black">
+    <SafeAreaView className="flex-1 bg-gray-100 dark:bg-black">
       <StatusBar style={isDark ? "light" : "dark"} />
       <View className="px-5 pt-2 pb-3 border-b border-primary-100 dark:border-gray-800">
         <View className="flex-row items-center justify-between">
-          <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center rounded-full bg-primary-100 dark:bg-gray-800">
+          <TouchableOpacity onPress={handleBack} className="w-10 h-10 items-center justify-center rounded-full bg-primary-100 dark:bg-gray-800">
             <ChevronLeft size={24} color="#22c55e" />
           </TouchableOpacity>
            <Text className="text-lg font-rubik-bold text-black-300 dark:text-gray-100">
             {isBurmese ? "ဝယ်/ငှားလိုသော ကြော်ငြာများ" : "Wanted Listings"}
           </Text>
-          <TouchableOpacity
-            onPress={() => router.push("/wanted/create")}
-            className="bg-primary-300 px-4 py-2 rounded-full flex-row items-center gap-1"
-          >
-            <Plus size={16} color="white" />
-            <Text className="text-white font-rubik-medium text-sm">
-              {isBurmese ? "အသစ်" : "New"}
-            </Text>
-          </TouchableOpacity>
+          <View className="w-10" />
         </View>
 
         <View className="flex-row mt-4 border-b border-primary-100 dark:border-gray-800">
@@ -262,14 +400,85 @@ export default function WantedListingsScreen() {
             transform: [{ translateX }],
           }}
         >
-          <View style={{ width: SCREEN_WIDTH }}>
-            <FlashList {...listProps(buyListings, buyLoading)} />
+          <View style={{ width: SCREEN_WIDTH, flex: 1 }}>
+            <FlashList {...listProps(filteredBuy, buyLoading)} />
           </View>
-          <View style={{ width: SCREEN_WIDTH }}>
-            <FlashList {...listProps(rentListings, rentLoading)} />
+          <View style={{ width: SCREEN_WIDTH, flex: 1 }}>
+            <FlashList {...listProps(filteredRent, rentLoading)} />
           </View>
         </Animated.View>
       </View>
+
+      {!currentTabHasFilter && (
+        <TouchableOpacity
+          onPress={() => { setFilterForm(appliedFilters[activeTab]); setShowFilter(true); }}
+          className="absolute bottom-20 right-6 w-14 h-14 bg-primary-300 rounded-full items-center justify-center shadow-lg"
+          activeOpacity={0.85}
+        >
+          <Search size={24} color="white" />
+        </TouchableOpacity>
+      )}
+
+      <Modal visible={showFilter} animationType="slide" transparent>
+        <View className="flex-1 bg-black/40 justify-end">
+          <View className="bg-white dark:bg-gray-900 rounded-t-3xl max-h-[85%]">
+            <View className="flex-row items-center justify-between px-5 pt-5 pb-3">
+              <Text className="text-lg font-rubik-bold text-black-300 dark:text-gray-100">
+                ရှာဖွေရန်
+              </Text>
+              <TouchableOpacity onPress={() => { setFilterForm(EMPTY_FILTER); setShowFilter(false); }} className="w-8 h-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                <X size={18} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView className="px-5 pt-2 pb-6" showsVerticalScrollIndicator={false}>
+              <Dropdown
+                label="ပြည်နယ်နှင့်တိုင်းဒေသကြီး"
+                value={filterForm.regionId}
+                options={regionOptions}
+                onSelect={(val) => setFilterForm((p) => ({ ...p, regionId: val, townshipId: "" }))}
+              />
+
+              <Dropdown
+                label="မြို့နယ်"
+                value={filterForm.townshipId}
+                options={townshipOptions}
+                onSelect={(val) => setFilterForm((p) => ({ ...p, townshipId: val }))}
+              />
+
+              <Dropdown
+                label="အိမ်ခြံမြေအမျိုးအစား"
+                value={filterForm.propertyType}
+                options={PROPERTY_TYPES}
+                onSelect={(val) => setFilterForm((p) => ({ ...p, propertyType: val }))}
+              />
+
+              <Dropdown
+                label="ဈေးနှုန်း မှ"
+                value={filterForm.priceFrom}
+                options={PRICE_OPTIONS}
+                onSelect={(val) => setFilterForm((p) => ({ ...p, priceFrom: val }))}
+              />
+
+              <Dropdown
+                label="ဈေးနှုန်း အတွင်း"
+                value={filterForm.priceTo}
+                options={PRICE_OPTIONS}
+                onSelect={(val) => setFilterForm((p) => ({ ...p, priceTo: val }))}
+              />
+
+              <TouchableOpacity
+                  onPress={() => { setAppliedFilters((prev) => ({ ...prev, [activeTab]: filterForm })); setShowFilter(false); }}
+                  className="py-3.5 rounded-xl bg-primary-300 items-center"
+                >
+                  <Text className="text-sm font-rubik-semibold text-white">
+                    ရှာမည်
+                  </Text>
+                </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

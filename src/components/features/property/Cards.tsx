@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import { Eye, Heart, Share2, GitCompare } from "lucide-react-native";
 import { Image, Share, Text, TouchableOpacity, View } from "react-native";
 
@@ -14,12 +13,19 @@ interface Props {
   compareSelected?: boolean;
 }
 
+const propertyTypeMap: Record<string, string> = {
+  apartment: "တိုက်ခန်း",
+  condo: "ကွန်ဒို",
+  house: "လုံးချင်းအိမ်",
+  land: "မြေကွက်",
+  hostel: "အဆောင်",
+};
+
 export const Card = ({ item, onPress, onSave, onCompare, isSaved, compareSelected }: Props) => {
-  const { t } = useTranslation();
   const displayImage = item.images?.[0] || item.image || DEFAULT_IMAGE;
   const displayPrice =
     item.currency_unit === "lakhs"
-      ? `${item.price} Lakhs`
+      ? `${item.price} သိန်း`
       : `$${item.price}`;
   const regionName = item.states_regions
     ? item.states_regions.name_mm || item.states_regions.name_en
@@ -49,24 +55,24 @@ export const Card = ({ item, onPress, onSave, onCompare, isSaved, compareSelecte
         {item.is_sold && (
           <View className="absolute top-3 left-3 bg-red-500 px-3 py-1 rounded-full">
             <Text className="text-white text-xs font-rubik-extrabold">
-              {t("badge.soldOut")}{item.sold_at ? ` ${new Date(item.sold_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : ""}
+              ရောင်းပြီး{item.sold_at ? ` ${new Date(item.sold_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}` : ""}
             </Text>
           </View>
         )}
       </View>
 
       <View className="px-4 pt-3 pb-2 gap-1">
-        <Text className="text-black-100 dark:text-gray-400 text-xs font-rubik" numberOfLines={1}>
+        <Text className="text-black-100 dark:text-gray-400 text-sm font-rubik" numberOfLines={1}>
           {regionName} | {townshipName}
         </Text>
         <View className="flex-row items-center gap-2">
           <View className="bg-primary-100 dark:bg-gray-800 px-2.5 py-0.5 rounded-full">
-            <Text className="text-primary-300 text-xs font-rubik-semibold capitalize">
-              {item.property_type || "Property"}
+            <Text className="text-primary-300 text-sm font-rubik-semibold">
+              {propertyTypeMap[item.property_type] || "အိမ်ခြံမြေ"}
             </Text>
           </View>
         </View>
-        <Text className="text-primary-300 text-lg font-rubik-extrabold mt-1">
+        <Text className="text-primary-300 text-xl font-rubik-extrabold mt-1">
           {displayPrice}
         </Text>
       </View>
@@ -74,7 +80,7 @@ export const Card = ({ item, onPress, onSave, onCompare, isSaved, compareSelecte
       <View className="flex-row items-center justify-between px-4 py-2.5 border-t border-primary-100 dark:border-gray-800">
         <View className="flex-row items-center gap-1.5">
           <Eye size={16} color="#8C8E98" />
-          <Text className="text-black-100 dark:text-gray-400 text-xs font-rubik-medium">
+          <Text className="text-black-100 dark:text-gray-400 text-sm font-rubik-medium">
             {item.views ?? 0}
           </Text>
         </View>
@@ -109,11 +115,11 @@ export const Card = ({ item, onPress, onSave, onCompare, isSaved, compareSelecte
 
 export const FeaturedCard = ({ item, onPress }: Props) => {
   const displayImage = item.images?.[0] || item.image || DEFAULT_IMAGE;
-  const displayTitle = item.title_en || item.title_mm || item.name || "";
+  const displayTitle = item.title_mm || item.title_en || item.name || "";
   const displayLocation = item.search_value || item.address || "";
   const displayPrice =
     item.currency_unit === "lakhs"
-      ? `${item.price} Lakhs`
+      ? `${item.price} သိန်း`
       : `$${item.price}`;
 
   return (

@@ -4,24 +4,25 @@ import { AlertDialog } from "@/components/ui/alert-dialog";
 import { sendNotification } from "@/lib/notifications";
 import { supabase } from "@/lib/supabase";
 import { useThemeStore } from "@/store/useThemeStore";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { VideoView, useVideoPlayer } from "expo-video";
-import {
-  Bed,
-  ChevronLeft,
-  Home,
-  MapPin,
-  Maximize2,
-  MessageCircle,
-  Minimize2,
-  Navigation,
-  Phone,
-  ShowerHead,
-  Star,
-  Trash2,
-  X,
-} from "lucide-react-native";
+  import {
+    Bed,
+    Building2,
+    ChevronLeft,
+    Home,
+    MapPin,
+    Maximize2,
+    MessageCircle,
+    Minimize2,
+    Navigation,
+    Phone,
+    ShowerHead,
+    Star,
+    Trash2,
+    X,
+  } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -73,6 +74,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
   const [isNavigatingChat, setIsNavigatingChat] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [relatedProperties, setRelatedProperties] = useState<any[]>([]);
   const [alertDialog, setAlertDialog] = useState<{
     title: string;
     message: string;
@@ -126,17 +128,37 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
     }
 
     fetchPropertyDetails();
-
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setCurrentUserId(user.id);
-        supabase.rpc("increment_property_views", { property_id: propertyId })
-          .then(({ error }) => {
-            if (error) console.error("View increment error:", error);
-          });
-      }
-    });
   }, [propertyId]);
+
+  useEffect(() => {
+    async function fetchRelated() {
+      if (!property?.township_id) return;
+      const { data } = await supabase
+        .from("properties")
+        .select("*, states_regions(name_en, name_mm), townships(name_en, name_mm), profiles(id, full_name)")
+        .eq("township_id", property.township_id)
+        .neq("id", propertyId)
+        .eq("is_sold", false)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      setRelatedProperties(data || []);
+    }
+    fetchRelated();
+  }, [property?.township_id, propertyId]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          setCurrentUserId(user.id);
+          supabase.rpc("increment_property_views", { property_view_id: propertyId })
+            .then(({ error }) => {
+              if (error) console.error("View increment error:", error);
+            });
+        }
+      });
+    }, [propertyId])
+  );
 
   const handleMarkAsSold = () => {
     setAlertDialog({
@@ -312,6 +334,13 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
   }
 
   const isOwner = currentUserId === property.user_id;
+  const propertyTypeMap: Record<string, string> = {
+    apartment: "တိုက်ခန်း",
+    condo: "ကွန်ဒို",
+    house: "လုံးချင်းအိမ်",
+    land: "မြေကွက်",
+    hostel: "အဆောင်",
+  };
   const displayTitle =
     isBurmese && property.title_mm
       ? property.title_mm
@@ -365,7 +394,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
   return (
     <View className="flex-1 bg-white dark:bg-black">
       <StatusBar style={isDark ? "light" : "dark"} />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
         {/* Image Carousel */}
         <View>
           <View style={{ opacity: property.is_sold ? 0.5 : 1 }}>
@@ -633,23 +662,128 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             </TouchableOpacity>
           )}
 
-          {/* Agent Section */}
-          <View className="flex-row items-center gap-3 mb-6">
-            <View className="size-12 rounded-full bg-primary-100 dark:bg-gray-800 items-center justify-center">
-              <Text className="text-primary-300 dark:text-green-400 text-lg font-rubik-bold">
-                {(property.profiles?.full_name || "O")[0].toUpperCase()}
-              </Text>
+          {/* Related Listings */}
+          {relatedProperties.length > 0 && (
+            <View className="mt-2">
+              <View className="flex-row items-center gap-2 mb-4">
+                <View className="w-1 h-5 bg-primary-300 rounded-full" />
+                <Text className="text-base font-rubik-bold text-black-300 dark:text-gray-100">
+                  {`${townshipName || "ဒေသ"} အတွင်းရှိ ကြော်ငြာများ`}
+                </Text>
+              </View>
+              <FlatList
+                data={relatedProperties}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={{ paddingRight: 20 }}
+                snapToInterval={198}
+                decelerationRate="fast"
+                renderItem={({ item: rp }) => {
+                  const rpTitle = rp.title_mm || rp.title_en || "";
+                  const rpCurrencyLabel =
+                    rp.currency_unit === "lakhs" || rp.currency_unit === "kyats"
+                      ? "သိန်း(ကျပ်)"
+                      : "USD";
+                  const rpPrice = rp.price
+                    ? `${rp.price.toLocaleString()} ${rpCurrencyLabel}`
+                    : "";
+                  const rpType = rp.property_type
+                    ? propertyTypeMap[rp.property_type] || rp.property_type
+                    : "";
+                  const rpTownship = rp.townships?.name_mm || "";
+                  const rpRegion = rp.states_regions?.name_mm || "";
+                  const rpImage = rp.images?.[0] || DEFAULT_IMAGE;
+                  return (
+                    <TouchableOpacity
+                      onPress={() => router.push(`/property/${rp.id}` as any)}
+                      activeOpacity={0.85}
+                      className="mr-3"
+                      style={{ width: 185 }}
+                    >
+                      <View
+                        className="rounded-2xl overflow-hidden"
+                        style={{ elevation: 5, shadowColor: "#000", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.15, shadowRadius: 10 }}
+                      >
+                        <Image
+                          source={{ uri: rpImage }}
+                          style={{ width: 185, height: 185 }}
+                          resizeMode="cover"
+                        />
+                        <View
+                          style={{
+                            position: "absolute",
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: 110,
+                            justifyContent: "flex-end",
+                            paddingHorizontal: 12,
+                            paddingBottom: 8,
+                          }}
+                        >
+                          <View
+                            style={{
+                              position: "absolute",
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: "transparent",
+                              borderTopLeftRadius: 0,
+                              borderTopRightRadius: 0,
+                            }}
+                          >
+                            <View
+                              style={{
+                                flex: 1,
+                                backgroundColor: "rgba(0,0,0,0.55)",
+                                borderTopLeftRadius: 0,
+                                borderTopRightRadius: 0,
+                              }}
+                            />
+                          </View>
+                          <View style={{ zIndex: 1 }}>
+                            <Text
+                              className="text-white font-rubik-bold"
+                              style={{ fontSize: 15 }}
+                              numberOfLines={1}
+                            >
+                              {rpTitle}
+                            </Text>
+                            <View className="flex-row items-center gap-1 mt-1.5">
+                              <MapPin size={11} color="rgba(255,255,255,0.7)" />
+                              <Text
+                                className="text-white/70 text-[11px] font-rubik flex-1"
+                                numberOfLines={1}
+                              >
+                                {rpTownship}{rpRegion ? ` | ${rpRegion}` : ""}
+                              </Text>
+                            </View>
+                            <View className="flex-row items-center justify-between mt-2">
+                              {rpPrice ? (
+                                <Text className="text-white text-sm font-rubik-extrabold">
+                                  {rpPrice}
+                                </Text>
+                              ) : <View />}
+                              {rpType ? (
+                                <View className="flex-row items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full backdrop-blur-sm">
+                                  <Building2 size={10} color="white" />
+                                  <Text className="text-white text-[10px] font-rubik-medium">
+                                    {rpType}
+                                  </Text>
+                                </View>
+                              ) : null}
+                            </View>
+                          </View>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+              />
             </View>
-            <View className="flex-1">
-              <Text className="text-black-300 dark:text-gray-100 font-rubik-bold text-base">
-                {property.profiles?.full_name ||
-                  (isBurmese ? "ပိုင်ရှင်" : "Owner")}
-              </Text>
-              <Text className="text-black-100 dark:text-gray-400 text-sm font-rubik">
-                {property.search_value || property.phone || ""}
-              </Text>
-            </View>
-          </View>
+          )}
 
         </View>
       </ScrollView>
