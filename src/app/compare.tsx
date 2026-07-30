@@ -2,12 +2,25 @@ import { useCompareStore } from "@/store/useCompareStore";
 import { router } from "expo-router";
 import {
   Bed,
+  Building,
+  Building2,
+  Car,
+  CheckCircle,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  Clock,
+  Eye,
+  Hash,
   Home,
+  LampCeiling,
+  LandPlot,
+  Layers,
   MapPin,
   Maximize2,
   Navigation,
+  Ruler,
   ShowerHead,
   Star,
   X,
@@ -17,6 +30,7 @@ import {
   Dimensions,
   FlatList,
   Image,
+  Linking,
   Modal,
   ScrollView,
   Text,
@@ -27,6 +41,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const GREEN = "#22c55e";
+const GREEN_LIGHT = "#dcfce7";
+const GRAY = "#8C8E98";
+const GRAY_LIGHT = "#F5F5F7";
+const GRAY_BORDER = "#E8E8ED";
+const TEXT_PRIMARY = "#191D31";
+const TEXT_SECONDARY = "#666876";
 const DEFAULT_IMAGE =
   "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80";
 
@@ -42,18 +63,65 @@ const isVideoFile = (url: string) => {
   );
 };
 
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View className="flex-row items-center py-2.5">
+      <View
+        className="w-9 h-9 rounded-xl items-center justify-center mr-3"
+        style={{ backgroundColor: GREEN_LIGHT }}
+      >
+        {icon}
+      </View>
+      <View className="flex-1">
+        <Text className="text-xs font-rubik-medium" style={{ color: GRAY }}>
+          {label}
+        </Text>
+        <Text
+          className="text-sm font-rubik-semibold mt-0.5"
+          style={{ color: TEXT_PRIMARY }}
+          numberOfLines={1}
+        >
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function FeatureChip({ label }: { label: string }) {
+  return (
+    <View
+      className="flex-row items-center px-3.5 py-2 rounded-full mr-2 mb-2"
+      style={{ backgroundColor: GREEN_LIGHT }}
+    >
+      <CheckCircle size={13} color={GREEN} style={{ marginRight: 5 }} />
+      <Text className="text-xs font-rubik-medium" style={{ color: TEXT_SECONDARY }}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 function PropertyDetail({ item }: { item: any }) {
   const removeItem = useCompareStore((s) => s.remove);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [showFullDesc, setShowFullDesc] = useState(false);
 
   const displayTitle = item.title_en || item.title_mm || "Property";
   const displayPrice =
     item.currency_unit === "lakhs"
-      ? `${item.price} Lakhs`
+      ? `${item.price.toLocaleString()} သိန်း (ကျပ်)`
       : `$${item.price}`;
-  const displayImage = item.images?.[0] || DEFAULT_IMAGE;
   const regionName = item.states_regions
     ? item.states_regions.name_mm || item.states_regions.name_en
     : "";
@@ -73,12 +141,24 @@ function PropertyDetail({ item }: { item: any }) {
     mediaDataset = [...mediaDataset, ...item.images];
   if (mediaDataset.length === 0) mediaDataset = [DEFAULT_IMAGE];
 
+  const isLongDesc = (item.description || "").length > 150;
+
+  const mapUrl =
+    item.latitude && item.longitude
+      ? `https://www.openstreetmap.org/export/embed.html?bbox=${
+          item.longitude - 0.003
+        }%2C${item.latitude - 0.003}%2C${item.longitude + 0.003}%2C${
+          item.latitude + 0.003
+        }&layer=mapnik&marker=${item.latitude}%2C${item.longitude}`
+      : null;
+
+  const features: string[] = item.features || [];
+
   return (
     <View style={{ width: SCREEN_WIDTH }}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Image Carousel with Arrow Buttons */}
+        {/* ── Image Gallery ── */}
         <View>
-          {/* Close button */}
           <TouchableOpacity
             onPress={() => removeItem(item.id)}
             className="absolute top-3 right-3 z-20"
@@ -88,6 +168,7 @@ function PropertyDetail({ item }: { item: any }) {
               <X size={16} color="#ffffff" />
             </View>
           </TouchableOpacity>
+
           <TouchableOpacity
             activeOpacity={1}
             onPress={() => {
@@ -161,147 +242,300 @@ function PropertyDetail({ item }: { item: any }) {
           )}
         </View>
 
-        <View className="px-5 pt-5 pb-10">
-          <View className="flex-row gap-2 mb-3 flex-wrap">
-            <View className="bg-primary-100 px-3 py-1 rounded-full">
-              <Text className="text-primary-300 text-xs font-rubik-semibold capitalize">
-                {propertyTypeLabel}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-1 bg-primary-100 px-3 py-1 rounded-full">
-              <Star size={12} color="#22c55e" fill="#22c55e" />
-              <Text className="text-primary-300 text-xs font-rubik-semibold">
-                {item.rating || "5.0"}
-              </Text>
-            </View>
-          </View>
-
-          <Text className="text-2xl font-rubik-extrabold text-black-300 mb-1">
+        {/* ── Property Header Card ── */}
+        <View
+          className="mx-4 mt-4 px-5 pt-6 pb-5 rounded-[20px] bg-white"
+          style={{
+            elevation: 6,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.08,
+            shadowRadius: 12,
+          }}
+        >
+          <Text
+            className="font-rubik-bold leading-8"
+            style={{ color: "#111827", fontSize: 22 }}
+            numberOfLines={2}
+          >
             {displayTitle}
           </Text>
-          <Text className="text-primary-300 text-xl font-rubik-bold mb-4">
-            {displayPrice}
-          </Text>
 
-          <View className="bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-4">
-            <View className="flex-row items-center justify-between">
-              <View>
-                <Text className="text-black-100 text-xs font-rubik-medium uppercase tracking-wider">
-                  Ad Number
-                </Text>
-                <Text className="text-black-300 text-lg font-rubik-extrabold mt-0.5">
-                  PROP-{10000 + (item.ad_number || 0)}
-                </Text>
-              </View>
-              <View className="w-px h-10 bg-gray-200" />
-              <View className="items-end">
-                <Text className="text-black-100 text-xs font-rubik-medium uppercase tracking-wider">
-                  Posted
-                </Text>
-                <Text className="text-black-300 text-sm font-rubik-bold mt-0.5">
-                  {item.created_at
-                    ? new Date(item.created_at).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })
-                    : "-"}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View className="flex-row justify-between bg-primary-100 rounded-2xl p-4 mb-4">
-            <View className="items-center gap-1 flex-1">
-              <Bed size={20} color="#22c55e" />
-              <Text className="text-black-100 text-xs font-rubik mt-1">Beds</Text>
-              <Text className="text-black-300 text-sm font-rubik-extrabold">{item.bedrooms || 0}</Text>
-            </View>
-            <View className="items-center gap-1 flex-1">
-              <ShowerHead size={20} color="#22c55e" />
-              <Text className="text-black-100 text-xs font-rubik mt-1">Baths</Text>
-              <Text className="text-black-300 text-sm font-rubik-extrabold">{item.bathrooms || 0}</Text>
-            </View>
-            <View className="items-center gap-1 flex-1">
-              <Maximize2 size={20} color="#22c55e" />
-              <Text className="text-black-100 text-xs font-rubik mt-1">Area</Text>
-              <Text className="text-black-300 text-sm font-rubik-extrabold">
-                {item.area_value
-                  ? `${item.area_value}${item.area_unit === "sqft" ? "ft²" : "A"}`
+          <View
+            className="flex-row items-center justify-between mt-4 -mx-5 -mb-5 px-5 py-3 rounded-b-[20px]"
+            style={{ backgroundColor: "#FB6C00" }}
+          >
+            <View className="flex-row items-center gap-2">
+              <Clock size={15} color="#fff" />
+              <Text className="font-rubik-medium" style={{ color: "#fff", fontSize: 14 }}>
+                {item.created_at
+                  ? new Date(item.created_at).toLocaleString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
                   : "-"}
               </Text>
             </View>
-            <View className="items-center gap-1 flex-1">
-              <Home size={20} color="#22c55e" />
-              <Text className="text-black-100 text-xs font-rubik mt-1">Type</Text>
-              <Text className="text-black-300 text-sm font-rubik-extrabold">{propertyTypeLabel}</Text>
+            <View className="flex-row items-center gap-2">
+              <Eye size={15} color="#fff" />
+              <Text className="font-rubik-medium" style={{ color: "#fff", fontSize: 14 }}>
+                {item.views ?? 0} Views
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View className="px-4 mt-5">
+          {/* ── Quick Info ── */}
+          <View
+            className="rounded-2xl px-5 py-4 mb-5 bg-white"
+            style={{
+              elevation: 3,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.06,
+              shadowRadius: 10,
+              borderWidth: 1,
+              borderColor: GRAY_BORDER,
+            }}
+          >
+            <Text className="text-base font-rubik-extrabold mb-3" style={{ color: TEXT_PRIMARY }}>
+              Quick Info
+            </Text>
+            <View className="flex-row flex-wrap">
+              <View className="w-1/2">
+                <InfoRow
+                  icon={<Hash size={16} color={GREEN} />}
+                  label="Property Code"
+                  value={`PROP-${10000 + (item.ad_number || 0)}`}
+                />
+                <InfoRow
+                  icon={<Building2 size={16} color={GREEN} />}
+                  label="Property Type"
+                  value={propertyTypeLabel}
+                />
+                <InfoRow
+                  icon={<Home size={16} color={GREEN} />}
+                  label="Price"
+                  value={displayPrice}
+                />
+                <InfoRow
+                  icon={<MapPin size={16} color={GREEN} />}
+                  label="Township"
+                  value={townshipName || "-"}
+                />
+                <InfoRow
+                  icon={<Ruler size={16} color={GREEN} />}
+                  label="Area"
+                  value={
+                    item.area_value
+                      ? `${item.area_value} ${item.area_unit === "sqft" ? "sqft" : "Acre"}`
+                      : "-"
+                  }
+                />
+                {item.width && item.length && (
+                  <InfoRow
+                    icon={<LandPlot size={16} color={GREEN} />}
+                    label="Land Size"
+                    value={`${item.width}×${item.length}ft`}
+                  />
+                )}
+              </View>
+              <View className="w-1/2">
+                <InfoRow
+                  icon={<Building size={16} color={GREEN} />}
+                  label="Building Type"
+                  value={item.building_type || propertyTypeLabel}
+                />
+                <InfoRow
+                  icon={<Star size={16} color={GREEN} />}
+                  label="Ownership"
+                  value={item.ownership || "-"}
+                />
+                <InfoRow
+                  icon={<Bed size={16} color={GREEN} />}
+                  label="Bedrooms"
+                  value={item.bedrooms ? `${item.bedrooms}` : "-"}
+                />
+                <InfoRow
+                  icon={<ShowerHead size={16} color={GREEN} />}
+                  label="Bathrooms"
+                  value={item.bathrooms ? `${item.bathrooms}` : "-"}
+                />
+                <InfoRow
+                  icon={<Layers size={16} color={GREEN} />}
+                  label="Floors"
+                  value={item.floor || "-"}
+                />
+                <InfoRow
+                  icon={<LampCeiling size={16} color={GREEN} />}
+                  label="Furnished"
+                  value={item.furnished_status || "-"}
+                />
+              </View>
+            </View>
+            <View className="flex-row pt-1">
+              <View className="w-1/2">
+                <InfoRow
+                  icon={<Car size={16} color={GREEN} />}
+                  label="Parking"
+                  value={item.parking ? "Available" : "-"}
+                />
+              </View>
+              <View className="w-1/2">
+                <InfoRow
+                  icon={<Clock size={16} color={GREEN} />}
+                  label="Year Built"
+                  value={item.year_built || "-"}
+                />
+              </View>
             </View>
           </View>
 
-          <Text className="text-base font-rubik-bold text-black-300 mb-2">Description</Text>
-          <Text className="text-black-200 text-sm font-rubik leading-6 mb-4">
-            {item.description || "No description available."}
-          </Text>
-
-          <Text className="text-base font-rubik-bold text-black-300 mb-2">Location</Text>
-          <View className="flex-row items-center gap-2 mb-4">
-            <MapPin size={16} color="#666876" />
-            <Text className="text-black-200 text-sm font-rubik flex-1">{displayLocation}</Text>
+          {/* ── Description ── */}
+          <View
+            className="rounded-2xl px-5 py-4 mb-5 bg-white"
+            style={{
+              elevation: 3,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.06,
+              shadowRadius: 10,
+              borderWidth: 1,
+              borderColor: GRAY_BORDER,
+            }}
+          >
+            <Text className="text-base font-rubik-extrabold" style={{ color: TEXT_PRIMARY }}>
+              Description
+            </Text>
+            <View className="mt-3 pt-3" style={{ borderTopWidth: 2, borderTopColor: "#D90000" }}>
+              <Text
+                className="text-sm font-rubik leading-6"
+                style={{ color: TEXT_SECONDARY }}
+                numberOfLines={showFullDesc ? undefined : 3}
+              >
+                {item.description || "No description available."}
+              </Text>
+              {isLongDesc && (
+                <TouchableOpacity
+                  onPress={() => setShowFullDesc(!showFullDesc)}
+                  className="flex-row items-center gap-1 mt-2"
+                >
+                  <Text className="text-sm font-rubik-semibold" style={{ color: GREEN }}>
+                    {showFullDesc ? "See less" : "See more"}
+                  </Text>
+                  {showFullDesc ? (
+                    <ChevronUp size={14} color={GREEN} />
+                  ) : (
+                    <ChevronDown size={14} color={GREEN} />
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
-          {item.latitude && item.longitude ? (
-            <TouchableOpacity
-              onPress={() =>
-                router.push(
-                  `/property/map?latitude=${item.latitude}&longitude=${item.longitude}&title=${encodeURIComponent(displayTitle)}&address=${encodeURIComponent(displayLocation)}` as any,
-                )
-              }
-              activeOpacity={0.9}
-              className="rounded-2xl overflow-hidden mb-5"
-              style={{ height: 180 }}
+          {/* ── Features ── */}
+          {features.length > 0 && (
+            <View
+              className="rounded-2xl px-5 py-4 mb-5 bg-white"
+              style={{
+                elevation: 3,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 10,
+                borderWidth: 1,
+                borderColor: GRAY_BORDER,
+              }}
             >
-              <WebView
-                source={{
-                  uri: `https://www.openstreetmap.org/export/embed.html?bbox=${
-                    item.longitude - 0.003
-                  }%2C${item.latitude - 0.003}%2C${item.longitude + 0.003}%2C${
-                    item.latitude + 0.003
-                  }&layer=mapnik&marker=${item.latitude}%2C${item.longitude}`,
-                }}
-                style={{ flex: 1 }}
-                scrollEnabled={false}
-                pointerEvents="none"
-              />
-              <View className="absolute bottom-2 right-2 bg-white/90 px-2.5 py-1 rounded-full flex-row items-center gap-1">
-                <Navigation size={11} color="#666876" />
-                <Text className="text-black-200 text-xs font-rubik-medium">Tap to expand</Text>
-              </View>
-            </TouchableOpacity>
-          ) : (
-            <View className="rounded-2xl overflow-hidden border border-primary-200 mb-5">
-              <View className="bg-primary-100 items-center justify-center py-8 gap-2">
-                <MapPin size={32} color="#22c55e" />
-                <Text className="text-black-200 text-sm font-rubik-medium text-center px-4">
-                  {displayLocation}
-                </Text>
+              <Text className="text-base font-rubik-extrabold mb-3" style={{ color: TEXT_PRIMARY }}>
+                Features
+              </Text>
+              <View className="flex-row flex-wrap">
+                {features.map((f: string, i: number) => (
+                  <FeatureChip key={i} label={f} />
+                ))}
               </View>
             </View>
           )}
 
-          <View className="flex-row items-center gap-3 pt-2 border-t border-primary-100">
-            <View className="size-10 rounded-full bg-primary-100 items-center justify-center">
-              <Text className="text-primary-300 text-base font-rubik-bold">
-                {(item.profiles?.full_name || "O")[0].toUpperCase()}
+          {/* ── Location ── */}
+          <View
+            className="rounded-2xl overflow-hidden mb-5 bg-white"
+            style={{
+              elevation: 3,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.06,
+              shadowRadius: 10,
+              borderWidth: 1,
+              borderColor: GRAY_BORDER,
+            }}
+          >
+            <View className="px-5 pt-4 pb-3">
+              <Text className="text-base font-rubik-extrabold mb-1" style={{ color: TEXT_PRIMARY }}>
+                Location
               </Text>
+              <View className="flex-row items-center gap-2">
+                <MapPin size={15} color={GREEN} />
+                <Text className="text-sm font-rubik flex-1" style={{ color: TEXT_SECONDARY }}>
+                  {displayLocation}
+                </Text>
+              </View>
             </View>
-            <View className="flex-1">
-              <Text className="text-black-300 font-rubik-bold text-sm">
-                {item.profiles?.full_name || "Owner"}
+
+            {mapUrl ? (
+              <TouchableOpacity
+                onPress={() =>
+                  router.push(
+                    `/property/map?latitude=${item.latitude}&longitude=${item.longitude}&title=${encodeURIComponent(displayTitle)}&address=${encodeURIComponent(displayLocation)}` as any,
+                  )
+                }
+                activeOpacity={0.9}
+                style={{ height: 180, borderTopWidth: 1, borderTopColor: GRAY_BORDER }}
+              >
+                <WebView
+                  source={{ uri: mapUrl }}
+                  style={{ flex: 1 }}
+                  scrollEnabled={false}
+                  pointerEvents="none"
+                />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() =>
+                  Linking.openURL(
+                    `https://www.google.com/maps/search/${encodeURIComponent(displayLocation)}`,
+                  )
+                }
+                style={{ height: 120, borderTopWidth: 1, borderTopColor: GRAY_BORDER }}
+              >
+                <View className="flex-1 items-center justify-center" style={{ backgroundColor: GRAY_LIGHT }}>
+                  <MapPin size={32} color={GREEN} />
+                  <Text className="text-sm font-rubik-medium mt-1" style={{ color: GREEN }}>
+                    Open Map
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              onPress={() =>
+                Linking.openURL(
+                  `https://www.google.com/maps/search/${encodeURIComponent(displayLocation)}`,
+                )
+              }
+              className="flex-row items-center justify-center py-3 gap-2"
+              style={{ borderTopWidth: 1, borderTopColor: GRAY_BORDER }}
+            >
+              <Navigation size={15} color={GREEN} />
+              <Text className="font-rubik-bold text-sm" style={{ color: GREEN }}>
+                View on Google Maps
               </Text>
-              <Text className="text-black-100 text-xs font-rubik">
-                {item.search_value || item.phone || ""}
-              </Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -371,7 +605,7 @@ export default function CompareScreen() {
   }, [items.length]);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-green-50">
       <View className="flex-row items-center px-4 py-3 bg-white border-b border-primary-200">
         <TouchableOpacity
           onPress={() => router.back()}

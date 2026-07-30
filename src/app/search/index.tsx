@@ -46,7 +46,7 @@ export default function SearchScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-100 dark:bg-gray-800">
+    <SafeAreaView className="flex-1 bg-green-50 dark:bg-gray-800">
       <StatusBar style={isDark ? "light" : "dark"} />
       <View className="bg-white dark:bg-black px-4 py-4 flex-row items-center border-b border-primary-200 dark:border-gray-800">
         <TouchableOpacity

@@ -1,14 +1,10 @@
-import { useThemeStore } from "@/store/useThemeStore";
 import { router } from "expo-router";
 import { ChevronLeft, Eye, Lock, Shield, UserX } from "lucide-react-native";
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PrivacySettingsScreen() {
-  const { t } = useTranslation();
-  const isDark = useThemeStore((s) => s.resolvedTheme) === "dark";
   const [showOnline, setShowOnline] = useState(true);
   const [showPhone, setShowPhone] = useState(true);
   const [profilePublic, setProfilePublic] = useState(true);

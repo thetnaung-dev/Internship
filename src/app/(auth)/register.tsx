@@ -147,13 +147,13 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-100">
-      <View className="px-4 py-4 flex-row items-center">
+    <SafeAreaView className="flex-1 bg-green-50">
+      <View className="px-4 pt-4 pb-1 flex-row items-center">
         <TouchableOpacity
           onPress={() => router.back()}
-          className="w-10 h-10 items-center justify-center rounded-full bg-white border border-primary-200"
+          className="w-8 h-8 items-center justify-center rounded-full bg-white border border-primary-200"
         >
-          <ChevronLeft size={24} color="#22c55e" />
+          <ChevronLeft size={20} color="#22c55e" />
         </TouchableOpacity>
       </View>
 
@@ -161,129 +161,132 @@ export default function RegisterScreen() {
         className="flex-1 px-6"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ flexGrow: 1 }}
       >
-        <View className="mt-4 mb-8">
-          <Text className="text-3xl font-rubik-extrabold text-black-300">
-            {t("register.title")}
-          </Text>
-          <Text className="text-black-100 font-rubik mt-2 text-sm">
-            {t("register.subtitle")}
-          </Text>
-        </View>
-
-        <View className="mb-4">
-          <Text className="text-black-200 font-rubik-semibold mb-2 text-sm">
-            {t("register.name")}
-          </Text>
-          <View className="flex-row items-center bg-white border border-primary-200 rounded-xl px-4 py-3">
-            <User size={20} color="#8C8E98" />
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              className="flex-1 ml-3 font-rubik text-black-300"
-              placeholder={t("register.namePlaceholder")}
-            />
+        <View className="flex-1 justify-center">
+          <View className="mb-3">
+            <Text className="text-2xl font-rubik-extrabold text-black-300">
+              {t("register.title")}
+            </Text>
+            <Text className="text-black-100 font-rubik mt-1 text-sm">
+              {t("register.subtitle")}
+            </Text>
           </View>
-        </View>
 
-        <View className="mb-4">
-          <Text className="text-black-200 font-rubik-semibold mb-2 text-sm">
-            {t("register.email")}
-          </Text>
-          <View className="flex-row items-center bg-white border border-primary-200 rounded-xl px-4 py-3">
-            <Mail size={20} color="#8C8E98" />
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              className="flex-1 ml-3 font-rubik text-black-300"
-              placeholder={t("register.emailPlaceholder")}
-              autoCapitalize="none"
-            />
+          <View className="mb-2">
+            <Text className="text-black-200 font-rubik-medium mb-1 text-sm">
+              {t("register.name")}
+            </Text>
+            <View className="flex-row items-center bg-white border border-primary-200 rounded-xl px-4 py-3">
+              <User size={18} color="#8C8E98" />
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                className="flex-1 ml-3 font-rubik text-black-300"
+                placeholder={t("register.namePlaceholder")}
+              />
+            </View>
           </View>
-        </View>
 
-        <View className="mb-4">
-          <Text className="text-black-200 font-rubik-semibold mb-2 text-sm">
-            {t("register.password")}
-          </Text>
-          <View className="flex-row items-center bg-white border border-primary-200 rounded-xl px-4 py-3">
-            <Lock size={20} color="#8C8E98" />
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry={!showPassword}
-              className="flex-1 ml-3 font-rubik text-black-300"
-              placeholder={t("register.passwordPlaceholder")}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              {showPassword ? <EyeOff size={20} color="#666876" /> : <Eye size={20} color="#666876" />}
-            </TouchableOpacity>
+          <View className="mb-2">
+            <Text className="text-black-200 font-rubik-medium mb-1 text-sm">
+              {t("register.email")}
+            </Text>
+            <View className="flex-row items-center bg-white border border-primary-200 rounded-xl px-4 py-3">
+              <Mail size={18} color="#8C8E98" />
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                className="flex-1 ml-3 font-rubik text-black-300"
+                placeholder={t("register.emailPlaceholder")}
+                autoCapitalize="none"
+              />
+            </View>
           </View>
-        </View>
 
-        <View className="mb-4">
-          <Text className="text-black-200 font-rubik-semibold mb-2 text-sm">
-            {t("register.confirmPassword")}
-          </Text>
-          <View className="flex-row items-center bg-white border border-primary-200 rounded-xl px-4 py-3">
-            <Lock size={20} color="#8C8E98" />
-            <TextInput
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry={!showConfirmPassword}
-              className="flex-1 ml-3 font-rubik text-black-300"
-              placeholder={t("register.passwordPlaceholder")}
-            />
-            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-              {showConfirmPassword ? <EyeOff size={20} color="#666876" /> : <Eye size={20} color="#666876" />}
-            </TouchableOpacity>
+          <View className="mb-2">
+            <Text className="text-black-200 font-rubik-medium mb-1 text-sm">
+              {t("register.password")}
+            </Text>
+            <View className="flex-row items-center bg-white border border-primary-200 rounded-xl px-4 py-3">
+              <Lock size={18} color="#8C8E98" />
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                className="flex-1 ml-3 font-rubik text-black-300"
+                placeholder={t("register.passwordPlaceholder")}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOff size={18} color="#666876" /> : <Eye size={18} color="#666876" />}
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
-        <TouchableOpacity
-          onPress={handleRegister}
-          disabled={loading}
-          className="bg-primary-300 py-4 rounded-xl items-center mt-6"
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text className="text-white font-rubik-bold">{t("register.button")}</Text>
-          )}
-        </TouchableOpacity>
+          <View className="mb-2">
+            <Text className="text-black-200 font-rubik-medium mb-1 text-sm">
+              {t("register.confirmPassword")}
+            </Text>
+            <View className="flex-row items-center bg-white border border-primary-200 rounded-xl px-4 py-3">
+              <Lock size={18} color="#8C8E98" />
+              <TextInput
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+                className="flex-1 ml-3 font-rubik text-black-300"
+                placeholder={t("register.passwordPlaceholder")}
+              />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                {showConfirmPassword ? <EyeOff size={18} color="#666876" /> : <Eye size={18} color="#666876" />}
+              </TouchableOpacity>
+            </View>
+          </View>
 
-        <View className="flex-row items-center my-6">
-          <View className="flex-1 h-px bg-primary-200" />
-          <Text className="mx-4 text-black-100 text-sm font-rubik">or</Text>
-          <View className="flex-1 h-px bg-primary-200" />
-        </View>
+          <TouchableOpacity
+            onPress={handleRegister}
+            disabled={loading}
+            className="bg-primary-300 py-3 rounded-xl items-center mt-2"
+          >
+            {loading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text className="text-white font-rubik-bold text-base">{t("register.button")}</Text>
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={handleGoogleSignIn}
-          disabled={loading}
-          className="flex-row items-center justify-center bg-white border border-primary-200 rounded-xl py-4 active:opacity-80"
-        >
-          <Image
-            source={{
-              uri: "https://cdn-icons-png.flaticon.com/512/2991/2991148.png",
-            }}
-            className="w-6 h-6 mr-3"
-            resizeMode="contain"
-          />
-          <Text className="text-black-300 font-rubik-semibold text-base">
-            {t("register.googleButton")}
-          </Text>
-        </TouchableOpacity>
+          <View className="flex-row items-center my-2">
+            <View className="flex-1 h-px bg-primary-200" />
+            <Text className="mx-3 text-black-100 text-sm font-rubik">or</Text>
+            <View className="flex-1 h-px bg-primary-200" />
+          </View>
 
-        <View className="flex-row justify-center items-center mt-6 mb-12">
-          <Text className="text-black-100 text-sm font-rubik">
-            {t("register.haveAccount")}
-          </Text>
-          <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
-            <Text className="text-primary-300 font-rubik-bold text-sm ml-1">
-              {t("register.login")}
+          <TouchableOpacity
+            onPress={handleGoogleSignIn}
+            disabled={loading}
+            className="flex-row items-center justify-center bg-white border border-primary-200 rounded-xl py-3 active:opacity-80"
+          >
+            <Image
+              source={{
+                uri: "https://cdn-icons-png.flaticon.com/512/2991/2991148.png",
+              }}
+              className="w-6 h-6 mr-3"
+              resizeMode="contain"
+            />
+            <Text className="text-black-300 font-rubik-semibold text-base">
+              {t("register.googleButton")}
             </Text>
           </TouchableOpacity>
+
+          <View className="flex-row justify-center items-center mt-2 mb-1">
+            <Text className="text-black-100 font-rubik">
+              {t("register.haveAccount")}
+            </Text>
+            <TouchableOpacity onPress={() => router.replace("/(auth)/login")}>
+              <Text className="text-primary-300 font-rubik-bold text-sm ml-1">
+                {t("register.login")}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 

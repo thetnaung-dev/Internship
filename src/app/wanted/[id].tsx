@@ -7,7 +7,7 @@ import { ActivityIndicator, Linking, ScrollView, Text, TouchableOpacity, View } 
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function WantedDetailScreen() {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
   const { id } = useLocalSearchParams<{ id: string }>();
 
@@ -47,7 +47,7 @@ export default function WantedDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+      <SafeAreaView className="flex-1 bg-green-50 items-center justify-center">
         <ActivityIndicator size="large" color="#22c55e" />
       </SafeAreaView>
     );
@@ -55,7 +55,7 @@ export default function WantedDetailScreen() {
 
   if (!listing) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center">
+      <SafeAreaView className="flex-1 bg-green-50 items-center justify-center">
         <Text className="text-gray-500 font-rubik">
           {isBurmese ? "ကြော်ငြာမတွေ့ပါ" : "Listing not found"}
         </Text>
@@ -138,7 +138,7 @@ export default function WantedDetailScreen() {
   const isLongDesc = listing.description && listing.description.length > DESCRIPTION_TRUNCATE;
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-green-50">
       <View className="px-5 pt-2 pb-3 border-b border-gray-200 bg-white flex-row items-center">
         <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 items-center justify-center rounded-full bg-gray-100 mr-3">
           <ChevronLeft size={24} color="#030712" />

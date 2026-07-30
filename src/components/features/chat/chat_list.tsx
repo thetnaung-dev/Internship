@@ -14,6 +14,7 @@ import { FlashList } from "@shopify/flash-list";
 import {
   ActivityIndicator,
   Animated,
+  DeviceEventEmitter,
   Image,
   StyleSheet,
   Text,
@@ -171,6 +172,7 @@ export function ChatList() {
         c.id === id ? { ...c, [field]: value, unreadCount: value } : c,
       ),
     );
+    DeviceEventEmitter.emit("refreshUnreadCount");
   };
 
   const closeSwipeable = (id: string) => {
@@ -301,7 +303,7 @@ export function ChatList() {
             </Text>
             {!searchQuery.trim() && (
               <Text style={styles.emptySubtext}>
-                Tap "Chat" on a property to start one.
+                Tap &quot;Chat&quot; on a property to start one.
               </Text>
             )}
           </View>

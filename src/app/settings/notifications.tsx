@@ -1,14 +1,10 @@
-import { useThemeStore } from "@/store/useThemeStore";
 import { router } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
 import { ScrollView, Switch, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function NotificationSettingsScreen() {
-  const { t } = useTranslation();
-  const isDark = useThemeStore((s) => s.resolvedTheme) === "dark";
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [smsEnabled, setSmsEnabled] = useState(false);

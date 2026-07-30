@@ -57,7 +57,7 @@ export default function AuthCallback() {
   }, [params.code, params.access_token, params.refresh_token]);
 
   return (
-    <View className="flex-1 justify-center items-center bg-primary-100">
+    <View className="flex-1 justify-center items-center bg-green-50">
       <ActivityIndicator size="large" color="#22c55e" />
     </View>
   );

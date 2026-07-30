@@ -33,6 +33,7 @@ interface Listing {
   created_at: string;
   is_sold: boolean;
   is_rented: boolean;
+  views: number;
   states_regions?: { name_en: string; name_mm: string } | null;
   townships?: { name_en: string; name_mm: string } | null;
 }
@@ -137,7 +138,7 @@ export default function MyListingsScreen() {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) {
-          setAlertDialog({ title: "Error", message: "You must be logged in." });
+          setAlertDialog({ title: t("profile.error") || "Error", message: t("myListings.loginRequired") || "You must be logged in." });
           setDeleting(null);
           return;
         }
@@ -149,7 +150,7 @@ export default function MyListingsScreen() {
         if (error) {
           setAlertDialog({
             title: t("profile.error") || "Error",
-            message: error.message || "Failed to delete listing.",
+            message: error.message || t("myListings.deleteFailed") || "Failed to delete listing.",
           });
         } else {
           setListings((prev) => prev.filter((l) => l.id !== id));
@@ -161,14 +162,14 @@ export default function MyListingsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-primary-100 dark:bg-gray-800 items-center justify-center">
+      <SafeAreaView className="flex-1 bg-green-50 dark:bg-gray-800 items-center justify-center">
         <ActivityIndicator size="large" className="text-primary-300" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-100 dark:bg-gray-800">
+    <SafeAreaView className="flex-1 bg-green-50 dark:bg-gray-800">
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* HEADER */}

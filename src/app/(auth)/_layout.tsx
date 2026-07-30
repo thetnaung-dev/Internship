@@ -52,6 +52,12 @@ export default function AuthLayout() {
             animationTypeForReplace: "pop",
           }}
         />
+        <Stack.Screen
+          name="reset-password"
+          options={{
+            animationTypeForReplace: "pop",
+          }}
+        />
       </Stack>
     </>
   );

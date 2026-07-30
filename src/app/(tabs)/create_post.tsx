@@ -72,7 +72,7 @@ export default function CreatePostScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-100 dark:bg-black">
+    <SafeAreaView className="flex-1 bg-green-50 dark:bg-black">
       <StatusBar style={isDark ? "light" : "dark"} />
       <View className="bg-white dark:bg-gray-900 px-4 py-4 flex-row items-center border-b border-primary-200 dark:border-gray-800">
         <TouchableOpacity

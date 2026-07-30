@@ -13,6 +13,7 @@ const AlertDialogRoot = forwardRef(
     </View>
   ),
 );
+AlertDialogRoot.displayName = "AlertDialogRoot";
 
 const AlertDialogContent = forwardRef(
   ({ children, className, ...props }: any, ref) => (
@@ -21,6 +22,7 @@ const AlertDialogContent = forwardRef(
     </View>
   ),
 );
+AlertDialogContent.displayName = "AlertDialogContent";
 
 const AlertDialogCloseButton = forwardRef(
   ({ children, className, ...props }: any, ref) => (
@@ -29,6 +31,7 @@ const AlertDialogCloseButton = forwardRef(
     </Pressable>
   ),
 );
+AlertDialogCloseButton.displayName = "AlertDialogCloseButton";
 
 const AlertDialogHeader = forwardRef(
   ({ children, className, ...props }: any, ref) => (
@@ -37,6 +40,7 @@ const AlertDialogHeader = forwardRef(
     </View>
   ),
 );
+AlertDialogHeader.displayName = "AlertDialogHeader";
 
 const AlertDialogFooter = forwardRef(
   ({ children, className, ...props }: any, ref) => (
@@ -45,6 +49,7 @@ const AlertDialogFooter = forwardRef(
     </View>
   ),
 );
+AlertDialogFooter.displayName = "AlertDialogFooter";
 
 const AlertDialogBody = forwardRef(
   ({ children, className, ...props }: any, ref) => (
@@ -53,6 +58,7 @@ const AlertDialogBody = forwardRef(
     </View>
   ),
 );
+AlertDialogBody.displayName = "AlertDialogBody";
 
 const AlertDialogBackdrop = forwardRef(
   ({ children, className, ...props }: any, ref) => (
@@ -65,6 +71,7 @@ const AlertDialogBackdrop = forwardRef(
     </View>
   ),
 );
+AlertDialogBackdrop.displayName = "AlertDialogBackdrop";
 
 const AnimatePresence = ({ children }: any) => children;
 

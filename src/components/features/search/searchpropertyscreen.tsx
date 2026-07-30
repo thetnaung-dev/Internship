@@ -8,7 +8,6 @@ import {
   Image,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -60,8 +59,8 @@ export default function PropertySearchForm() {
     n.toString().replace(/\d/g, (d) => "၀၁၂၃၄၅၆၇၈၉"[parseInt(d)]);
 
   const [dealType, setDealType] = useState("sale");
-  const [agentType, setAgentType] = useState("all");
-  const [textSearch, setTextSearch] = useState("");
+  const [, setAgentType] = useState("all");
+  const [, setTextSearch] = useState("");
 
   const [rawRegions, setRawRegions] = useState<SupabaseRegionRow[]>([]);
   const [rawTownships, setRawTownships] = useState<SupabaseTownshipRow[]>([]);
@@ -188,7 +187,7 @@ export default function PropertySearchForm() {
         if (townshipsRes.error) throw townshipsRes.error;
         setRawRegions(regionsRes.data || []);
         setRawTownships(townshipsRes.data || []);
-      } catch (error: any) {
+      } catch {
         setAlertDialog({
           title: t("error.databaseErrorTitle") || "Database Error",
           message: t("error.databaseErrorMessage") || "Could not synchronize geolocation assets.",

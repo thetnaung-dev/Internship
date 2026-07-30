@@ -1,13 +1,11 @@
 import { router } from "expo-router";
-import { ChevronLeft, ChevronRight, Lock, Bell, User, Shield, Moon } from "lucide-react-native";
+import { ChevronLeft, ChevronRight, Lock, Bell, User } from "lucide-react-native";
 import React from "react";
-import { useTranslation } from "react-i18next";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useThemeStore } from "@/store/useThemeStore";
 
 export default function SettingsScreen() {
-  const { t } = useTranslation();
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
 

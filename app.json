@@ -3,6 +3,7 @@
     "main": "expo-router/entry",
     "name": "Nestfinder",
     "slug": "nestfinder",
+    "scheme": "nestfinder",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -88,7 +89,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "cc054378-1ace-4e06-9129-269990129560"
+        "projectId": ""
       }
     }
   }

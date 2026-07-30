@@ -1,13 +1,13 @@
 import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { File } from "expo-file-system";
 import { ChevronLeft, User } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { DeviceEventEmitter } from "react-native";
 import {
   ActivityIndicator,
   Image,
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -19,6 +19,7 @@ import { Button, ButtonText } from "@/components/features/ui/button/button";
 import { Heading } from "@/components/features/ui/heading/heading";
 
 export default function EditProfileScreen() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -81,16 +82,19 @@ export default function EditProfileScreen() {
       if (avatarUrl && !avatarUrl.startsWith("http")) {
         const ext = avatarUrl.split(".").pop()?.toLowerCase() || "jpg";
         const mimeType = ext === "png" ? "image/png" : "image/jpeg";
-        const filePath = `${user.id}/avatar.${ext}`;
+        const filePath = `${user.id}/avatar_${Date.now()}.${ext}`;
 
-        const file = new File(avatarUrl);
-        const arrayBuffer = await file.arrayBuffer();
+        const formData = new FormData();
+        formData.append("file", {
+          uri: avatarUrl,
+          type: mimeType,
+          name: `avatar.${ext}`,
+        } as any);
 
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("avatars")
-          .upload(filePath, arrayBuffer, {
+          .upload(filePath, formData, {
             upsert: true,
-            contentType: mimeType,
           });
 
         if (uploadError) throw uploadError;
@@ -98,7 +102,7 @@ export default function EditProfileScreen() {
         const { data: urlData } = supabase.storage
           .from("avatars")
           .getPublicUrl(uploadData.path);
-        finalAvatarUrl = urlData.publicUrl;
+        finalAvatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
       }
 
       const { error } = await supabase
@@ -107,6 +111,7 @@ export default function EditProfileScreen() {
         .eq("id", user.id);
 
       if (error) throw error;
+      DeviceEventEmitter.emit("profileUpdated");
       router.back();
     } catch (err) {
       console.error("Error saving profile:", err);
@@ -131,7 +136,7 @@ export default function EditProfileScreen() {
           <ChevronLeft size={24} color="#22c55e" />
         </TouchableOpacity>
         <Text className="flex-1 text-center text-lg font-bold text-slate-900 mr-6">
-          Edit Profile
+          {t("editProfile.title")}
         </Text>
       </View>
 
@@ -152,17 +157,17 @@ export default function EditProfileScreen() {
             )}
           </View>
           <Text className="text-amber-500 font-semibold text-sm mt-3">
-            Change Photo
+            {t("editProfile.changePhoto")}
           </Text>
         </TouchableOpacity>
 
         <Text className="text-slate-500 text-xs font-bold mb-1.5 uppercase tracking-wider">
-          Username
+          {t("editProfile.username")}
         </Text>
         <TextInput
           value={fullName}
           onChangeText={setFullName}
-          placeholder="Enter your name"
+          placeholder={t("editProfile.namePlaceholder")}
           placeholderTextColor="#94a3b8"
           className="bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-slate-900 text-base mb-8"
         />
@@ -174,7 +179,7 @@ export default function EditProfileScreen() {
           activeOpacity={0.7}
         >
           <Text className="text-white font-semibold text-sm">
-            {saving ? "Saving..." : "Save Changes"}
+            {saving ? t("editProfile.saving") : t("editProfile.saveChanges")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -187,11 +192,11 @@ export default function EditProfileScreen() {
         <AlertDialog.Backdrop />
         <AlertDialog.Content className="p-6 rounded-3xl bg-white w-5/6 items-center shadow-xl">
           <AlertDialog.Header>
-            <Heading>Error</Heading>
+            <Heading>{t("editProfile.saveError")}</Heading>
           </AlertDialog.Header>
           <AlertDialog.Body>
             <Text className="text-center text-slate-500">
-              Failed to save profile. Please try again.
+              {t("editProfile.failedToSave")}
             </Text>
           </AlertDialog.Body>
           <AlertDialog.Footer className="w-full flex-row justify-center">
@@ -199,7 +204,7 @@ export default function EditProfileScreen() {
               onPress={() => setShowError(false)}
               className="flex-1"
             >
-              <ButtonText>OK</ButtonText>
+              <ButtonText>{t("createWanted.ok")}</ButtonText>
             </Button>
           </AlertDialog.Footer>
         </AlertDialog.Content>

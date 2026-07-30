@@ -1,8 +1,8 @@
 import { supabase } from "@/lib/supabase";
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
 import * as Location from "expo-location";
 import { Locate, LocateFixed, X } from "lucide-react-native";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
@@ -166,14 +166,13 @@ export default function MapTabScreen() {
     return { latitude, longitude };
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-      const timeout = setTimeout(() => {
-        if (!cancelled) setLoading(false);
-      }, 15000);
+  useEffect(() => {
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      if (!cancelled) setLoading(false);
+    }, 15000);
 
-      const loadProperties = async (loc: { latitude: number; longitude: number } | null) => {
+    const loadProperties = async (loc: { latitude: number; longitude: number } | null) => {
         let query = supabase
           .from("properties")
           .select(
@@ -219,8 +218,8 @@ export default function MapTabScreen() {
 
       const init = async () => {
         try {
-          const loc = userLocation ?? await centerOnUser();
-          setUserLocation(loc);
+          const loc = userLocation ?? (await centerOnUser()) ?? null;
+          if (loc) setUserLocation(loc);
           await loadProperties(loc);
         } catch (err) {
           console.error("Map init error:", err);
@@ -239,8 +238,7 @@ export default function MapTabScreen() {
         cancelled = true;
         clearTimeout(timeout);
       };
-    }, [activeCategory]),
-  );
+    }, [activeCategory]);
 
   const handleMessage = (event: any) => {
     try {
@@ -254,14 +252,14 @@ export default function MapTabScreen() {
 
   if (loading && !ready) {
     return (
-      <SafeAreaView className="flex-1 bg-white items-center justify-center">
+      <SafeAreaView className="flex-1 bg-green-50 items-center justify-center">
         <ActivityIndicator size="large" color="#22c55e" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-green-50" edges={["top"]}>
       <View className="flex-1">
         {htmlCache ? (
           <WebView

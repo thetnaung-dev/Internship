@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { Card } from "@/components/features/property/Cards";
 import { useCompareStore } from "@/store/useCompareStore";
 import { useThemeStore } from "@/store/useThemeStore";
-import { router, useFocusEffect } from "expo-router";
+import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ChevronDown, Search, User, ClipboardList } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
@@ -79,17 +79,23 @@ export default function HomeScreen() {
     }
   };
 
+  const fetchUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("id", user.id)
+        .single();
+      setUser(profile);
+    }
+  };
+
   useEffect(() => {
     const init = async () => {
+      await fetchUser();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, avatar_url")
-          .eq("id", user.id)
-          .single();
-        setUser(profile);
-
         const { data: saved } = await supabase
           .from("saved_properties")
           .select("property_id")
@@ -98,6 +104,8 @@ export default function HomeScreen() {
       }
     };
     init();
+    const sub = DeviceEventEmitter.addListener("profileUpdated", fetchUser);
+    return () => sub.remove();
   }, []);
 
   useEffect(() => {
@@ -109,11 +117,9 @@ export default function HomeScreen() {
     return () => sub.remove();
   }, []);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      fetchProperties(activeCategory);
-    }, [activeCategory, saleSubFilter, rentSubFilter]),
-  );
+  useEffect(() => {
+    fetchProperties(activeCategory);
+  }, [activeCategory, saleSubFilter, rentSubFilter]);
 
   const handleSave = async (propertyId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -181,28 +187,28 @@ export default function HomeScreen() {
 
       <View className="bg-white dark:bg-black border-b border-primary-100 dark:border-gray-800">
         <View className="px-5 pt-2 pb-3">
-          <View className="flex flex-row items-center justify-between">
-            <View className="flex flex-row">
-              <View className="size-12 rounded-full bg-primary-100 dark:bg-gray-800 items-center justify-center overflow-hidden">
-                {user?.avatar_url ? (
-                  <Image
-                    source={{ uri: user.avatar_url }}
-                    className="size-full"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <User size={22} color="#22c55e" />
-                )}
-              </View>
-              <View className="flex flex-col items-start ml-2 justify-center">
-                <Text className="text-xs font-rubik text-black-100 dark:text-gray-400">
-                  {getGreeting()}
-                </Text>
-                <Text className="text-base font-rubik-medium text-black-300 dark:text-gray-100">
-                  {user?.full_name || (isBurmese ? "ဧည့်သည်" : "Guest")}
-                </Text>
-              </View>
-            </View>
+            <View className="flex flex-row items-center justify-between">
+              <TouchableOpacity onPress={() => router.push("/profile" as any)} className="flex flex-row">
+                <View className="size-12 rounded-full bg-primary-100 dark:bg-gray-800 items-center justify-center overflow-hidden">
+                  {user?.avatar_url ? (
+                    <Image
+                      source={{ uri: user.avatar_url }}
+                      className="size-full"
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <User size={22} color="#22c55e" />
+                  )}
+                </View>
+                <View className="flex flex-col items-start ml-2 justify-center">
+                  <Text className="text-xs font-rubik text-black-100 dark:text-gray-400">
+                    {getGreeting()}
+                  </Text>
+                  <Text className="text-base font-rubik-medium text-black-300 dark:text-gray-100">
+                    {user?.full_name || (isBurmese ? "ဧည့်သည်" : "Guest")}
+                  </Text>
+                </View>
+              </TouchableOpacity>
             <View className="flex-row items-center gap-3">
               <TouchableOpacity onPress={() => router.push("/wanted" as any)}>
                 <ClipboardList size={24} color={isDark ? "#d1d5db" : "#191D31"} />

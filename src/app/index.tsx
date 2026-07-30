@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
+import * as Linking from "expo-linking";
 import { StatusBar } from "expo-status-bar";
 import { Home } from "lucide-react-native";
 import { useEffect, useState } from "react";
@@ -28,12 +29,19 @@ export default function OnboardingScreen() {
   const buttonOpacity = useSharedValue(0);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        router.replace("/(tabs)");
-      } else {
-        setChecking(false);
+    Linking.getInitialURL().then((url) => {
+      if (url && url.includes("reset-password")) {
+        router.replace("/(auth)/reset-password");
+        return;
       }
+
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          router.replace("/(tabs)");
+        } else {
+          setChecking(false);
+        }
+      });
     });
   }, []);
 
@@ -71,7 +79,7 @@ export default function OnboardingScreen() {
   if (checking) return null;
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-100">
+    <SafeAreaView className="flex-1 bg-green-50">
       <StatusBar style="dark" />
 
       <View className="flex-1 justify-center px-8">

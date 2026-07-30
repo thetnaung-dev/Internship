@@ -167,7 +167,8 @@
     "errorTitle": "အမှား",
     "loginFailed": "Login မအောင်မြင်ပါ",
     "enterEmailPassword": "အီးမေးလ်နှင့် လျှို့ဝှက်နံပါတ် ထည့်ပါ",
-    "googleButton": "Google ဖြင့် ဝင်ရန်"
+    "googleButton": "Google ဖြင့် ဝင်ရန်",
+    "forgotPassword": "လျှို့ဝှက်နံပါတ် မေ့နေပါသလား?"
   },
 
   "register": {
@@ -218,7 +219,11 @@
     "savedProperties": "သိမ်းဆည်းထားသော အိမ်ခြံမြေများ",
     "noSavedProperties": "သိမ်းဆည်းထားသော အိမ်ခြံမြေ မရှိသေးပါ",
     "browseProperties": "အိမ်ခြံမြေများ ကြည့်ရှုရန်",
-    "error": "အမှား"
+    "error": "အမှား",
+    "logoutTitle": "ထွက်မည်",
+    "logoutConfirm": "သေချာပေါက် ထွက်လိုပါသလား။",
+    "cancel": "မလုပ်တော့ပါ",
+    "logout": "ထွက်မည်"
   },
 
   "dropdown_options": {
@@ -306,6 +311,220 @@
     "detailDescription": "အသေးစိတ်",
     "readMore": "ပိုဖတ်ရန်",
     "readLess": "ပိုနည်း"
+  },
+
+  "compare": {
+    "title": "နှိုင်းယှဉ်ထားသော စာရင်းများ",
+    "empty": "နှိုင်းယှဉ်ရန် အိမ်ခြံမြေများ ရွေးချယ်ပါ",
+    "quickInfo": "အချက်အလက်များ",
+    "propertyCode": "အိမ်ခြံမြေကုဒ်",
+    "propertyType": "အမျိုးအစား",
+    "price": "စျေးနှုန်း",
+    "township": "မြို့နယ်",
+    "landSize": "မြေအကျယ်",
+    "buildingType": "အဆောက်အဦး",
+    "ownership": "ပိုင်ဆိုင်မှု",
+    "bedrooms": "အိပ်ခန်း",
+    "bathrooms": "ရေချိုးခန်း",
+    "floors": "အလွှာ",
+    "furnished": "ပရိဘောဂ",
+    "parking": "ကားပါကင်",
+    "available": "ရှိသည်",
+    "yearBuilt": "တည်ဆောက်နှစ်",
+    "description": "အကျဉ်းချုပ်",
+    "noDescription": "အသေးစိတ်အချက်အလက်မရှိသေးပါ",
+    "seeMore": "ဆက်ဖတ်ရန်",
+    "seeLess": "ရှင်းရှင်းပြရန်",
+    "features": "ပါဝင်သောအရာများ",
+    "location": "တည်နေရာ",
+    "openMap": "မြေပုံဖွင့်ရန်",
+    "viewOnGoogleMaps": "Google Maps တွင်ကြည့်ရန်",
+    "views": "ကြည့်ရှုမှု",
+    "area": "ဧရိယာ"
+  },
+
+  "forgotPassword": {
+    "title": "လျှို့ဝှက်နံပါတ်မေ့နေပါသလား",
+    "subtitle": "ပြန်လည်သတ်မှတ်ရန် link ပို့ရန် သင်၏အီးမေးလ်ကို ထည့်ပါ။",
+    "email": "အီးမေးလ်",
+    "emailPlaceholder": "your@email.com",
+    "sendResetLink": "လင့်ခ်ပို့မည်",
+    "checkEmail": "သင်၏အီးမေးလ်ကို စစ်ဆေးပါ",
+    "sentMessage": "ပြန်လည်သတ်မှတ်ရန် link ကို {{email}} သို့ ပို့ပြီးပါပြီ။",
+    "backToLogin": "Login သို့ပြန်သွားရန်"
+  },
+
+  "resetPassword": {
+    "title": "လျှို့ဝှက်နံပါတ်ပြန်သတ်မှတ်ရန်",
+    "subtitle": "သင်၏လျှို့ဝှက်နံပါတ်အသစ်ကို အောက်တွင်ထည့်ပါ။",
+    "newPassword": "လျှို့ဝှက်နံပါတ်အသစ်",
+    "newPasswordPlaceholder": "လျှို့ဝှက်နံပါတ်အသစ် ထည့်ပါ",
+    "confirmPassword": "လျှို့ဝှက်နံပါတ်အတည်ပြုပါ",
+    "confirmPasswordPlaceholder": "လျှို့ဝှက်နံပါတ်အသစ် ပြန်ထည့်ပါ",
+    "updatePassword": "ပြောင်းလဲမည်",
+    "backToLogin": "Login သို့ပြန်သွားရန်",
+    "verifying": "အတည်ပြုနေသည်...",
+    "tryAgain": "ထပ်ကြိုးစားပါ",
+    "invalidLink": "လင့်ခ်မမှန်ကန်ပါ သို့မဟုတ် သက်တမ်းကုန်သွားပါပြီ။",
+    "fillBothFields": "ကျေးဇူးပြု၍ နှစ်ခုလုံးဖြည့်ပါ။",
+    "minLength": "လျှို့ဝှက်နံပါတ်သည် အနည်းဆုံး ၆ လုံးရှိရပါမည်။",
+    "passwordsDoNotMatch": "လျှို့ဝှက်နံပါတ်များ တူညီမှုမရှိပါ။"
+  },
+
+  "home": {
+    "goodMorning": "မင်္ဂလာနံနက်ခင်းပါ",
+    "goodAfternoon": "မင်္ဂလာနေ့လယ်ခင်းပါ",
+    "goodEvening": "မင်္ဂလာညနေခင်းပါ",
+    "guest": "ဧည့်သည်",
+    "noProperties": "အိမ်ခြံမြေများ မတွေ့ပါ"
+  },
+
+  "settings": {
+    "title": "ဆက်တင်များ",
+    "appearance": "အသွင်အပြင်",
+    "light": "အလင်း",
+    "dark": "အမှောင်",
+    "system": "စနစ်",
+    "account": "အကောင့်",
+    "notifications": "အသိပေးချက်များ",
+    "privacy": "ကိုယ်ရေးလုံခြုံမှု",
+    "privacySecurity": "ကိုယ်ရေးလုံခြုံမှုနှင့် လုံခြုံရေး",
+    "privacyControls": "ကိုယ်ရေးလုံခြုံမှု ထိန်းချုပ်မှု",
+    "security": "လုံခြုံရေး",
+    "showOnlineStatus": "အွန်လိုင်းအခြေအနေ ပြရန်",
+    "showPhoneNumber": "ဖုန်းနံပါတ် ပြရန်",
+    "privateProfile": "ပရိုဖိုင်ကို သီးသန့်ထားရန်",
+    "changePassword": "လျှို့ဝှက်နံပါတ် ပြောင်းလဲရန်",
+    "pushNotifications": "Push အသိပေးချက်များ",
+    "pushDescription": "သင့်စက်သို့ အကြောင်းကြားချက်များ လက်ခံရယူပါ",
+    "emailNotifications": "အီးမေးလ် အသိပေးချက်များ",
+    "emailDescription": "အီးမေးလ်မှတစ်ဆင့် အပ်ဒိတ်များ လက်ခံရယူပါ",
+    "smsNotifications": "SMS အသိပေးချက်များ",
+    "smsDescription": "SMS မှတစ်ဆင့် အကြောင်းကြားချက်များ လက်ခံရယူပါ"
+  },
+
+  "editProfile": {
+    "title": "ပရိုဖိုင် တည်းဖြတ်ရန်",
+    "changePhoto": "ဓာတ်ပုံပြောင်းရန်",
+    "username": "အသုံးပြုသူအမည်",
+    "namePlaceholder": "သင့်အမည်ထည့်ပါ",
+    "saving": "သိမ်းဆည်းနေသည်...",
+    "saveChanges": "သိမ်းဆည်းမည်",
+    "cancel": "မလုပ်တော့ပါ",
+    "saveFailed": "ပရိုဖိုင်ကို သိမ်းဆည်း၍မရပါ။ ထပ်ကြိုးစားပါ။",
+    "notLoggedIn": "အကောင့်ဝင်ရောက်မထားပါ",
+    "uploadError": "ဓာတ်ပုံတင်ရာတွင် အမှားရှိသည်",
+    "saveError": "သိမ်းဆည်းရာတွင် အမှားရှိသည်",
+    "failedToSave": "ပရိုဖိုင်ကို သိမ်းဆည်း၍မရပါ",
+    "user": "အသုံးပြုသူ",
+    "editProfileButton": "ပရိုဖိုင် တည်းဖြတ်ရန်"
+  },
+
+  "chat": {
+    "messages": "မက်ဆေ့ချ်များ",
+    "searchPlaceholder": "စကားပြောခန်းများ ရှာဖွေရန်...",
+    "noConversations": "စကားပြောခန်း မရှိသေးပါ။",
+    "noConversationsSearch": "ရှာဖွေမှုနှင့် ကိုက်ညီသော စကားပြောခန်း မရှိပါ။",
+    "typeMessage": "မက်ဆေ့ချ် ရိုက်ထည့်ပါ...",
+    "editMessage": "မက်ဆေ့ချ် ပြင်ရန်...",
+    "cancel": "မလုပ်တော့ပါ",
+    "photoLibrary": "ဓာတ်ပုံများ",
+    "files": "ဖိုင်များ",
+    "camera": "ကင်မရာ",
+    "fileTooLarge": "ဖိုင်အရွယ်အစား ကြီးလွန်းသည်",
+    "maxFileSize": "အများဆုံး ဖိုင်အရွယ်အစားမှာ 300 MB ဖြစ်သည်။",
+    "sendFailed": "မက်ဆေ့ချ် ပို့ရန် မအောင်မြင်ပါ။ ထပ်ကြိုးစားပါ။",
+    "delete": "ဖျက်ရန်",
+    "mute": "အသံပိတ်ရန်",
+    "unmute": "အသံဖွင့်ရန်",
+    "archive": "သိမ်းဆည်းရန်",
+    "unarchive": "ပြန်ထုတ်ရန်",
+    "error": "မှားယွင်းမှု"
+  },
+
+  "tabs": {
+    "home": "မူလ",
+    "map": "မြေပုံ",
+    "create": "ဖန်တီးရန်",
+    "chat": "စကားပြော",
+    "profile": "ပရိုဖိုင်",
+    "listings": "စာရင်းများ:",
+    "compare": "နှိုင်းယှဉ်"
+  },
+
+  "offline": {
+    "noConnection": "အင်တာနက်ချိတ်ဆက်မှုမရှိပါ"
+  },
+
+  "mapScreen": {
+    "unavailable": "မြေပုံမရနိုင်ပါ",
+    "lakhs": "သိန်း",
+    "kmAway": "ကီလိုမီတာ အကွာ"
+  },
+
+  "myListings": {
+    "postingCycle": "တင်ခွင့်သတ်မှတ်ချက်",
+    "loginRequired": "လော့ဂ်အင်ဝင်ရန် လိုအပ်ပါသည်။",
+    "deleteFailed": "စာရင်းဖျက်ရန် မအောင်မြင်ပါ။",
+    "cancel": "မလုပ်တော့ပါ",
+    "lakhs": "သိန်း"
+  },
+
+  "createWanted": {
+    "title": "ဝယ်/ငှားလိုကြော်ငြာအသစ်",
+    "wantToBuy": "ဝယ်ယူလိုသည်",
+    "wantToRent": "ငှားရမ်းလိုသည်",
+    "titleField": "ခေါင်းစဉ် *",
+    "titlePlaceholder": "ဥပမာ - မရမ်းကုန်းမြို့နယ်တွင် တိုက်ခန်းရှာနေပါသည်",
+    "description": "အသေးစိတ်ဖော်ပြချက်",
+    "descriptionPlaceholder": "သင်ရှာနေသောအိမ်ခြံမြေအကြောင်း အသေးစိတ်ရေးပါ...",
+    "propertyType": "အိမ်ခြံမြေအမျိုးအစား",
+    "selectPropertyType": "အမျိုးအစားရွေးပါ",
+    "minPrice": "အနည်းဆုံးဈေး (သိန်း)",
+    "maxPrice": "အများဆုံးဈေး (သိန်း)",
+    "stateRegion": "တိုင်းဒေသကြီး / ပြည်နယ်",
+    "selectStateRegion": "တိုင်းဒေသကြီး / ပြည်နယ်ရွေးပါ",
+    "township": "မြို့နယ်",
+    "selectTownship": "မြို့နယ်ရွေးပါ",
+    "contactPhone": "ဆက်သွယ်ရန် ဖုန်းနံပါတ် *",
+    "phonePlaceholder": "ဖုန်းနံပါတ်",
+    "postListing": "ကြော်ငြာတင်မည်",
+    "notice": "သတိပေးချက်",
+    "enterTitle": "ခေါင်းစဉ် ရိုက်ထည့်ပါ။",
+    "enterPhone": "ဖုန်းနံပါတ် ရိုက်ထည့်ပါ။",
+    "success": "အောင်မြင်ပါသည်",
+    "posted": "သင်၏ကြော်ငြာကို အောင်မြင်စွာ တင်ပြီးပါပြီ။",
+    "error": "မှားယွင်းမှု",
+    "ok": "ကောင်းပြီ"
+  },
+
+  "search": {
+    "forSale": "ရောင်းရန်",
+    "forRent": "ငှားရန်",
+    "newLaunch": "ကြိုပွိုင့်",
+    "building": "အဆောင်",
+    "selectStateRegion": "တိုင်းဒေသကြီး / ပြည်နယ်ရွေးပါ",
+    "selectTownship": "မြို့နယ်ရွေးပါ",
+    "allPropertyTypes": "အားလုံး",
+    "condominium": "ကွန်ဒို",
+    "apartment": "တိုက်ခန်း",
+    "houseVilla": "လုံးချင်းအိမ်",
+    "land": "မြေကွက်",
+    "hostel": "အဆောင်",
+    "allFloors": "အလွှာအားလုံး",
+    "selectFloor": "အလွှာရွေးပါ",
+    "rooms": "အခန်း",
+    "squareFeet": "စတုရန်းပေ",
+    "search": "ရှာမည်",
+    "lakhs": "သိန်း",
+    "saved": "သိမ်းပြီး",
+    "removed": "ဖယ်ရှားပြီး",
+    "propertySaved": "အိမ်ခြံမြေကို အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။",
+    "propertyRemoved": "အိမ်ခြံမြေကို သိမ်းဆည်းမှုမှ ဖယ်ရှားပြီးပါပြီ။",
+    "databaseError": "ဒေတာဘေ့စ် အမှား",
+    "searchFailed": "ရှာဖွေမှု မအောင်မြင်ပါ။ ထပ်ကြိုးစားပါ။",
+    "noProperties": "အိမ်ခြံမြေများ မတွေ့ပါ",
+    "adPrefix": "Ad #"
   },
 
   "alerts_and_dialogs": {

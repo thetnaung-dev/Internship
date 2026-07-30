@@ -1,7 +1,6 @@
 import { router, Tabs } from "expo-router";
 import {
   CirclePlus,
-  GitCompare,
   Home,
   Map,
   MessageSquare,
@@ -32,7 +31,8 @@ export default function TabsLayout() {
       if (mounted) setTotalUnread(data ?? 0);
     };
     fetchUnread();
-    return () => { mounted = false; };
+    const sub = DeviceEventEmitter.addListener("refreshUnreadCount", fetchUnread);
+    return () => { mounted = false; sub.remove(); };
   }, []);
 
   const compareItems = useCompareStore((s) => s.items);
@@ -92,6 +92,19 @@ export default function TabsLayout() {
         />
         <Tabs.Screen
           name="chat"
+          listeners={() => ({
+            tabPress: () => {
+              const fetchUnread = async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+                const { data } = await supabase.rpc("get_total_unread_count", {
+                  p_user_id: user.id,
+                });
+                setTotalUnread(data ?? 0);
+              };
+              fetchUnread();
+            },
+          })}
           options={{
             title: "Chat",
             tabBarIcon: ({ color }) => (

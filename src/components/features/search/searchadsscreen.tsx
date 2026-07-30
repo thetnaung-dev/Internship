@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
-import { ChevronDown, ChevronLeft } from "lucide-react-native";
+import { ChevronLeft } from "lucide-react-native";
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {

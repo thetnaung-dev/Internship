@@ -63,12 +63,14 @@ function SectionCard({
   icon,
   completed,
   isBurmese,
+  required,
   children,
 }: {
   title: string;
   icon: React.ReactNode;
   completed: boolean;
   isBurmese: boolean;
+  required?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -86,7 +88,7 @@ function SectionCard({
           )}
         </View>
         <Text className="flex-1 text-sm font-rubik-bold text-gray-800">
-          {title}
+          {title}{required ? " *" : ""}
         </Text>
         {completed && (
           <Text className="text-[10px] font-rubik-semibold text-green-500">
@@ -129,6 +131,8 @@ export default function CreatePostForm({
   const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
   const isHostel = dealType === "hostel";
   const isWantToRent = dealType === "want_to_rent";
+  const isWantToBuy = dealType === "want_to_buy";
+  const isWanted = isWantToRent || isWantToBuy;
 
   const [isLoading, setIsLoading] = useState(false);
   const [isMapSyncing, setIsMapSyncing] = useState(true);
@@ -191,14 +195,14 @@ export default function CreatePostForm({
       (formData.titleMm.trim() ? 1 : 0) +
       (formData.titleEn.trim() ? 1 : 0) +
       (formData.propertyType || isHostel ? 1 : 0) +
-      (isWantToRent ? (formData.monthlyFeeFrom || formData.monthlyFeeTo ? 1 : 0) : (formData.price ? 1 : 0));
+      (isWanted ? (formData.monthlyFeeFrom || formData.monthlyFeeTo ? 1 : 0) : (formData.price ? 1 : 0));
 
     const details = isHostel
       ? (formData.hostelType.length > 0 ? 1 : 0) +
         (formData.roomCapacity.length > 0 ? 1 : 0) +
         (formData.descriptionMm.trim() ? 1 : 0) +
         (formData.descriptionEn.trim() ? 1 : 0)
-      : isWantToRent
+      : isWanted
         ? (formData.areaFrom || formData.areaTo ? 1 : 0) +
           (formData.furnishedStatus ? 1 : 0) +
           (formData.descriptionMm.trim() ? 1 : 0) +
@@ -215,7 +219,7 @@ export default function CreatePostForm({
 
     const media = (images.length > 0 ? 1 : 0) + (video ? 1 : 0);
 
-    const totalFields = isHostel ? 10 : isWantToRent ? 10 : 11;
+    const totalFields = isHostel ? 10 : isWanted ? 10 : 11;
     const filled = basic + details + location + media;
     return {
       basic: basic >= (isHostel ? 4 : 4),
@@ -224,7 +228,7 @@ export default function CreatePostForm({
       media: media >= 1,
       percent: Math.round((filled / totalFields) * 100),
     };
-  }, [formData, isHostel, isWantToRent, showDimensions, showAreaBox, images, video]);
+  }, [formData, isHostel, isWanted, showDimensions, showAreaBox, images, video]);
 
   // ── Dropdown data ────────────────────────────────────────────────
   const propertyTypes = [
@@ -314,7 +318,7 @@ export default function CreatePostForm({
 
         setRawRegions(regionsRes.data || []);
         setRawTownships(townshipsRes.data || []);
-      } catch (error: any) {
+      } catch {
         setAlertDialog({
           title: t("error.databaseErrorTitle") || "Database Error",
           message: isBurmese ? "တည်နေရာဒေတာ မSync နိုင်ပါ။" : "Could not synchronize geolocation assets.",
@@ -465,7 +469,7 @@ export default function CreatePostForm({
         return;
       }
 
-      if (!isWantToRent) {
+      if (!isWanted) {
         const { data: canPost } = await supabase.rpc("can_user_post", { user_uuid: user.id });
         if (canPost === false) {
           showAlert(
@@ -480,10 +484,10 @@ export default function CreatePostForm({
       }
 
       // Validate required fields
-      if (!formData.titleMm.trim() || !formData.titleEn.trim()) {
+      if (!formData.titleMm.trim()) {
         showAlert(
-          isBurmese ? "ခေါင်းစဉ်ထည့်ရန် လိုအပ်ပါသည်" : "Title Required",
-          isBurmese ? "မြန်မာလိုနှင့် အင်္ဂလိပ်လို ခေါင်းစဉ်နှစ်ခုလုံး ထည့်ပါ။" : "Please enter both Burmese and English titles.",
+          isBurmese ? "မြန်မာလိုခေါင်းစဉ်ထည့်ရန် လိုအပ်ပါသည်" : "Title Required",
+          isBurmese ? "ကျေးဇူးပြု၍ မြန်မာလိုခေါင်းစဉ် ထည့်ပါ။" : "Please enter a title in Burmese.",
         );
         setIsLoading(false);
         return;
@@ -496,7 +500,7 @@ export default function CreatePostForm({
         setIsLoading(false);
         return;
       }
-      if (!formData.price && !isWantToRent) {
+      if (!formData.price && !isWanted) {
         showAlert(
           isBurmese ? "စျေးနှုန်းထည့်ရန် လိုအပ်ပါသည်" : "Price Required",
           isBurmese ? "ကျေးဇူးပြု၍ စျေးနှုန်းထည့်ပါ။" : "Please enter a price.",
@@ -504,15 +508,19 @@ export default function CreatePostForm({
         setIsLoading(false);
         return;
       }
-      if (isWantToRent && !formData.monthlyFeeFrom && !formData.monthlyFeeTo) {
+      if (isWanted && !formData.monthlyFeeFrom && !formData.monthlyFeeTo) {
         showAlert(
-          isBurmese ? "လစဉ်ငှားရမ်းခထည့်ရန် လိုအပ်ပါသည်" : "Monthly Fee Required",
-          isBurmese ? "ကျေးဇူးပြု၍ လစဉ်ငှားရမ်းခ ထည့်ပါ။" : "Please enter at least one monthly fee amount.",
+          isBurmese
+            ? `လစဉ်ငှားရမ်းခထည့်ရန် လိုအပ်ပါသည်`
+            : "Budget or Monthly Fee Required",
+          isBurmese
+            ? "ကျေးဇူးပြု၍ ငွေကြေးပမာဏ ထည့်ပါ။"
+            : "Please enter at least one amount.",
         );
         setIsLoading(false);
         return;
       }
-      if (isWantToRent && !formData.furnishedStatus) {
+      if (isWanted && !formData.furnishedStatus) {
         showAlert(
           isBurmese ? "ဖာနီးရှားပါဝင်မှု ရွေးပါ" : "Furnished Status Required",
           isBurmese ? "ကျေးဇူးပြု၍ ဖာနီးရှားပါဝင်မှုကို ရွေးချယ်ပါ။" : "Please select a furnished status.",
@@ -529,13 +537,13 @@ export default function CreatePostForm({
         return;
       }
 
-      // ── want_to_rent → save to wanted_listings ────────────────
-      if (isWantToRent) {
+      // ── wanted (want_to_rent / want_to_buy) → save to wanted_listings ─────
+      if (isWanted) {
         const wantedPayload = {
           user_id: user.id,
           title: formData.titleEn || formData.titleMm,
           description: [formData.descriptionMm, formData.descriptionEn].filter(Boolean).join("\n---\n") || null,
-          deal_type: "rent",
+          deal_type: isWantToRent ? "rent" : "buy",
           property_type: formData.propertyType || null,
           region_id: formData.regionId || null,
           township_id: formData.townshipId || null,
@@ -741,7 +749,7 @@ export default function CreatePostForm({
                 style={styles.input}
               />
             </FormField>
-            <FormField label={isBurmese ? "ခေါင်းစဉ် (English)" : "Title (English)"} required>
+            <FormField label={isBurmese ? "ခေါင်းစဉ် (English)" : "Title (English)"}>
               <TextInput
                 placeholder="Enter title in English"
                 value={formData.titleEn}
@@ -775,7 +783,7 @@ export default function CreatePostForm({
                   style={styles.input}
                 />
               </FormField>
-            ) : isWantToRent ? (
+            ) : isWanted ? (
               <>
                 <FormField label={isBurmese ? "ငွေကြေး" : "Currency Unit"} required>
                   <SelectField
@@ -787,8 +795,12 @@ export default function CreatePostForm({
                 <FormField
                   label={
                     isBurmese
-                      ? `လစဉ်ငှားရမ်းခ (${formData.currencyUnit === "lakhs" ? "ကျပ် (သိန်း)" : "USD"})`
-                      : `Monthly Fee (${formData.currencyUnit === "lakhs" ? "Kyat (Lakh)" : "USD"})`
+                      ? isWantToRent
+                        ? `လစဉ်ငှားရမ်းခ (${formData.currencyUnit === "lakhs" ? "ကျပ် (သိန်း)" : "USD"})`
+                        : `ဘတ်ဂျက် (${formData.currencyUnit === "lakhs" ? "ကျပ် (သိန်း)" : "USD"})`
+                      : isWantToRent
+                        ? `Monthly Fee (${formData.currencyUnit === "lakhs" ? "Kyat (Lakh)" : "USD"})`
+                        : `Budget (${formData.currencyUnit === "lakhs" ? "Kyat (Lakh)" : "USD"})`
                   }
                   required
                 >
@@ -901,7 +913,7 @@ export default function CreatePostForm({
                   </View>
                 </FormField>
               </>
-            ) : isWantToRent ? (
+            ) : isWanted ? (
               <>
                 {["apartment", "condo"].includes(formData.propertyType) && (
                   <FormField label={isBurmese ? "အလွှာ" : "Floor"}>
@@ -1128,8 +1140,9 @@ export default function CreatePostForm({
             icon={<MapPin size={16} color="#9CA3AF" />}
             completed={completion.location}
             isBurmese={isBurmese}
+            required
           >
-            {!isWantToRent && (
+            {!isWanted && (
               <>
                 <TouchableOpacity
                   onPress={async () => {
@@ -1215,7 +1228,7 @@ export default function CreatePostForm({
               />
             </FormField>
 
-            {isWantToRent && (
+            {isWanted && (
               <TouchableOpacity
                 onPress={() => setFormData((prev) => ({ ...prev, coBrokerage: !prev.coBrokerage }))}
                 className="flex-row items-center gap-3 py-2"
@@ -1235,7 +1248,7 @@ export default function CreatePostForm({
           </SectionCard>
 
           {/* ── SECTION 4: MEDIA ──────────────────────────────── */}
-          {!isWantToRent && (
+          {!isWanted && (
           <SectionCard
             title={isBurmese ? "ဓာတ်ပုံနှင့်ဗီဒီယို" : "Photos & Video"}
             icon={<ImageIcon size={16} color="#9CA3AF" />}

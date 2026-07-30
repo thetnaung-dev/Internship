@@ -1,8 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import { router } from "expo-router";
 import { ChevronLeft, Mail } from "lucide-react-native";
+import * as Linking from "expo-linking";
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   ScrollView,
@@ -14,7 +14,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ForgotPasswordScreen() {
-  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -26,7 +25,7 @@ export default function ForgotPasswordScreen() {
     setError("");
 
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: "nestfinder://reset-password",
+      redirectTo: Linking.createURL("reset-password"),
     });
 
     setLoading(false);
@@ -38,7 +37,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-100">
+    <SafeAreaView className="flex-1 bg-green-50">
       <View className="px-4 py-4">
         <TouchableOpacity
           onPress={() => router.back()}
@@ -67,7 +66,7 @@ export default function ForgotPasswordScreen() {
               Check your email
             </Text>
             <Text className="text-primary-300 font-rubik mt-2 text-center">
-              We've sent a password reset link to {email}
+              We&apos;ve sent a password reset link to {email}
             </Text>
           </View>
         ) : (

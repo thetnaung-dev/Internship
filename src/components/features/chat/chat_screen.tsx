@@ -5,6 +5,7 @@ import * as Clipboard from "expo-clipboard";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
+import { useTranslation } from "react-i18next";
 import {
   CheckSquare,
   ChevronLeft,
@@ -26,6 +27,7 @@ import { FlashList, FlashListRef } from "@shopify/flash-list";
 import {
   ActionSheetIOS,
   ActivityIndicator,
+  DeviceEventEmitter,
   Image,
   Modal,
   Platform,
@@ -124,6 +126,7 @@ function getFileIcon(mimeType: string) {
 }
 
 export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
+  const { t } = useTranslation();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -182,6 +185,8 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
           .from("conversations")
           .update({ [field]: 0 })
           .eq("id", channelId);
+
+        DeviceEventEmitter.emit("refreshUnreadCount");
 
         const otherId = conv.buyer_id === user.id ? conv.seller_id : conv.buyer_id;
         otherIdRef.current = otherId;
@@ -302,7 +307,7 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
     if (result.canceled || !result.assets.length) return;
     const oversized = result.assets.find((a) => a.fileSize && a.fileSize > MAX_FILE_SIZE);
     if (oversized) {
-      setAlertDialog({ title: "File too large", message: "Maximum file size is 300 MB." });
+      setAlertDialog({ title: t("chat.fileTooLarge"), message: t("chat.maxFileSize") });
       return;
     }
     const mapped: PendingAttachment[] = result.assets.map((asset) => ({
@@ -324,7 +329,7 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
       if (result.canceled || !result.assets.length) return;
       const oversized = result.assets.find((a) => a.size && a.size > MAX_FILE_SIZE);
       if (oversized) {
-        setAlertDialog({ title: "File too large", message: "Maximum file size is 300 MB." });
+        setAlertDialog({ title: t("chat.fileTooLarge"), message: t("chat.maxFileSize") });
         return;
       }
       const mapped: PendingAttachment[] = result.assets.map((asset) => ({
@@ -365,7 +370,7 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
     if (asset.fileSize && asset.fileSize > MAX_FILE_SIZE) {
-      setAlertDialog({ title: "File too large", message: "Maximum file size is 300 MB." });
+      setAlertDialog({ title: t("chat.fileTooLarge"), message: t("chat.maxFileSize") });
       return;
     }
     setPendingAttachments((prev) => [
@@ -567,7 +572,7 @@ export default function ChatRoomScreen({ channelId }: ChatRoomScreenProps) {
       }
     } catch (err) {
       console.error("Error sending message:", err);
-      setAlertDialog({ title: "Error", message: "Failed to send message. Please try again." });
+      setAlertDialog({ title: t("chat.error"), message: t("chat.sendFailed") });
       setInput(textToSend);
       if (replyToMsg) setReplyTo(replyToMsg);
       setPendingAttachments(attachmentsToSend);

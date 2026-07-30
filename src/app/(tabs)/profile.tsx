@@ -23,6 +23,7 @@ import { useLanguageStore } from "@/store/useLanguageStore";
 import React, { Component, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  DeviceEventEmitter,
   Image,
   ScrollView,
   Text,
@@ -31,7 +32,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
-import { useThemeStore } from "@/store/useThemeStore";
 
 class NavBoundary extends Component<{ children: React.ReactNode }, { error: boolean }> {
   state = { error: false };
@@ -53,17 +53,16 @@ class NavBoundary extends Component<{ children: React.ReactNode }, { error: bool
 function ProfileContent() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [postCount, setPostCount] = useState(0);
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
 
   const { t, i18n } = useTranslation();
   const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
-  const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
-  const isDark = resolvedTheme === "dark";
 
   useEffect(() => {
     fetchProfile();
+    const sub = DeviceEventEmitter.addListener("profileUpdated", fetchProfile);
+    return () => sub.remove();
   }, []);
 
   const fetchProfile = async () => {
@@ -80,13 +79,7 @@ function ProfileContent() {
       .select("full_name, email, avatar_url")
       .eq("id", user.id)
       .single();
-    const { count } = await supabase
-      .from("properties")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id);
     setProfile(profileData);
-    setAvatarError(false);
-    setPostCount(count || 0);
     setLoading(false);
   };
 
@@ -112,7 +105,7 @@ function ProfileContent() {
     );
 
   return (
-    <SafeAreaView className="flex-1 bg-primary-100 dark:bg-black">
+    <SafeAreaView className="flex-1 bg-green-50 dark:bg-black">
       <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
         <View className="bg-primary-300 dark:bg-gray-900 pt-8 pb-14 px-6 items-center rounded-b-[40px]">
           <TouchableOpacity
@@ -138,35 +131,11 @@ function ProfileContent() {
           </Text>
         </View>
 
-        <View className="mx-6 -mt-10 bg-white dark:bg-gray-900 rounded-2xl p-5 flex-row shadow-lg shadow-black-100/10 border border-primary-200 dark:border-gray-800">
-          <View className="flex-1 items-center border-r border-primary-200 dark:border-gray-800">
-            <Text className="text-2xl font-rubik-black text-black-300 dark:text-gray-100">
-              {postCount}
-            </Text>
-            <Text className="text-black-100 dark:text-gray-400 text-xs font-rubik mt-1">
-              {t("profile.totalPosts")}
-            </Text>
-          </View>
-          <View className="flex-1 items-center">
-            <Text className="text-2xl font-rubik-extrabold text-primary-300">
-              {t("profile.active")}
-            </Text>
-            <Text className="text-black-100 dark:text-gray-400 text-xs font-rubik mt-1">
-              {t("profile.accountStatus")}
-            </Text>
-          </View>
-        </View>
-
         <View className="mt-8 px-6">
           <Text className="text-black-100 dark:text-gray-400 text-xs font-rubik-bold mb-3 uppercase">
             {t("profile.settings")}
           </Text>
           <View className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-primary-200 dark:border-gray-800">
-            <MenuRow
-              icon={<User size={20} color="#666876" />}
-              title={t("profile.profileSettings")}
-              onPress={() => router.push("/edit-profile")}
-            />
             <MenuRow
               icon={<Home size={20} color="#666876" />}
               title={t("profile.myListings")}
@@ -225,11 +194,11 @@ function ProfileContent() {
         <AlertDialogBackdrop />
         <AlertDialogContent className="p-6 rounded-3xl bg-white dark:bg-gray-900 items-center">
           <AlertDialogHeader>
-            <Heading className="text-black-300 dark:text-gray-100">Logout</Heading>
+            <Heading className="text-black-300 dark:text-gray-100">{t("profile.logoutTitle")}</Heading>
           </AlertDialogHeader>
           <AlertDialogBody>
             <Text className="text-center text-black-200 dark:text-gray-300">
-              Are you sure you want to log out?
+              {t("profile.logoutConfirm")}
             </Text>
           </AlertDialogBody>
           <AlertDialogFooter className="w-full">
@@ -237,10 +206,10 @@ function ProfileContent() {
               onPress={() => setShowLogoutDialog(false)}
               className="flex-1 mr-2"
             >
-              <ButtonText>Cancel</ButtonText>
+              <ButtonText>{t("profile.cancel")}</ButtonText>
             </Button>
             <Button onPress={handleLogout} className="bg-red-500 flex-1">
-              <ButtonText>Logout</ButtonText>
+              <ButtonText>{t("profile.logout")}</ButtonText>
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

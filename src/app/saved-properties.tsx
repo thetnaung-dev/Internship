@@ -24,16 +24,18 @@ interface SavedProperty {
   price: number;
   currency_unit: string;
   deal_type: string;
+  property_type: string;
   images: string[];
   ad_number: number;
   created_at: string;
+  states_regions?: { name_en: string; name_mm: string } | null;
+  townships?: { name_en: string; name_mm: string } | null;
 }
 
 export default function SavedPropertiesScreen() {
   const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
   const isDark = resolvedTheme === "dark";
-  const { t, i18n } = useTranslation();
-  const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
+  const { t } = useTranslation();
   const [properties, setProperties] = useState<SavedProperty[]>([]);
   const [loading, setLoading] = useState(true);
   const [unsaving, setUnsaving] = useState<string | null>(null);

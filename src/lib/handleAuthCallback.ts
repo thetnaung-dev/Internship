@@ -9,12 +9,32 @@ async function syncProfileAvatar() {
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  const avatarUrl = user.user_metadata?.avatar_url || null;
+  const googleIdentity = user.identities?.find(
+    (id) => id.provider === "google",
+  );
+  const googleAvatarUrl =
+    user.user_metadata?.avatar_url ||
+    user.user_metadata?.picture ||
+    googleIdentity?.identity_data?.avatar_url ||
+    googleIdentity?.identity_data?.picture ||
+    null;
   const fullName =
     user.user_metadata?.full_name ||
     user.user_metadata?.name ||
+    googleIdentity?.identity_data?.full_name ||
+    googleIdentity?.identity_data?.name ||
     user.email?.split("@")[0] ||
     "User";
+
+  // Check if profile already has an avatar
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select("avatar_url")
+    .eq("id", user.id)
+    .single();
+
+  const avatarUrl =
+    existing?.avatar_url || googleAvatarUrl;
 
   await supabase.from("profiles").upsert(
     {

@@ -167,7 +167,8 @@
     "errorTitle": "Error",
     "loginFailed": "Login Failed",
     "enterEmailPassword": "Please enter email and password",
-    "googleButton": "Continue with Google"
+    "googleButton": "Continue with Google",
+    "forgotPassword": "Forgot Password?"
   },
 
   "register": {
@@ -218,7 +219,11 @@
     "savedProperties": "Saved Properties",
     "noSavedProperties": "No saved properties yet",
     "browseProperties": "Browse Properties",
-    "error": "Error"
+    "error": "Error",
+    "logoutTitle": "Logout",
+    "logoutConfirm": "Are you sure you want to log out?",
+    "cancel": "Cancel",
+    "logout": "Logout"
   },
 
   "dropdown_options": {
@@ -306,6 +311,220 @@
     "detailDescription": "Detail Description",
     "readMore": "Read more",
     "readLess": "Read less"
+  },
+
+  "compare": {
+    "title": "Compared Listings",
+    "empty": "Select properties to compare",
+    "quickInfo": "Quick Info",
+    "propertyCode": "Property Code",
+    "propertyType": "Property Type",
+    "price": "Price",
+    "township": "Township",
+    "landSize": "Land Size",
+    "buildingType": "Building Type",
+    "ownership": "Ownership",
+    "bedrooms": "Bedrooms",
+    "bathrooms": "Bathrooms",
+    "floors": "Floors",
+    "furnished": "Furnished",
+    "parking": "Parking",
+    "available": "Available",
+    "yearBuilt": "Year Built",
+    "description": "Description",
+    "noDescription": "No description available.",
+    "seeMore": "See more",
+    "seeLess": "See less",
+    "features": "Features",
+    "location": "Location",
+    "openMap": "Open Map",
+    "viewOnGoogleMaps": "View on Google Maps",
+    "views": "Views",
+    "area": "Area"
+  },
+
+  "forgotPassword": {
+    "title": "Forgot Password",
+    "subtitle": "Enter your email to receive a reset link.",
+    "email": "Email",
+    "emailPlaceholder": "your@email.com",
+    "sendResetLink": "Send Reset Link",
+    "checkEmail": "Check your email",
+    "sentMessage": "We've sent a password reset link to {{email}}",
+    "backToLogin": "Back to Login"
+  },
+
+  "resetPassword": {
+    "title": "Reset Password",
+    "subtitle": "Enter your new password below.",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter new password",
+    "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Confirm new password",
+    "updatePassword": "Update Password",
+    "backToLogin": "Back to Login",
+    "verifying": "Verifying reset link...",
+    "tryAgain": "Try again",
+    "invalidLink": "Invalid or expired reset link.",
+    "fillBothFields": "Please fill in both fields.",
+    "minLength": "Password must be at least 6 characters.",
+    "passwordsDoNotMatch": "Passwords do not match."
+  },
+
+  "home": {
+    "goodMorning": "Good Morning",
+    "goodAfternoon": "Good Afternoon",
+    "goodEvening": "Good Evening",
+    "guest": "Guest",
+    "noProperties": "No properties found"
+  },
+
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "account": "Account",
+    "notifications": "Notifications",
+    "privacy": "Privacy",
+    "privacySecurity": "Privacy & Security",
+    "privacyControls": "Privacy Controls",
+    "security": "Security",
+    "showOnlineStatus": "Show online status",
+    "showPhoneNumber": "Show phone number",
+    "privateProfile": "Private profile",
+    "changePassword": "Change Password",
+    "pushNotifications": "Push Notifications",
+    "pushDescription": "Receive alerts on your device",
+    "emailNotifications": "Email Notifications",
+    "emailDescription": "Receive updates via email",
+    "smsNotifications": "SMS Notifications",
+    "smsDescription": "Receive alerts via SMS"
+  },
+
+  "editProfile": {
+    "title": "Edit Profile",
+    "changePhoto": "Change Photo",
+    "username": "Username",
+    "namePlaceholder": "Enter your name",
+    "saving": "Saving...",
+    "saveChanges": "Save Changes",
+    "cancel": "Cancel",
+    "saveFailed": "Failed to save profile. Please try again.",
+    "notLoggedIn": "Not logged in",
+    "uploadError": "Upload Error",
+    "saveError": "Save Error",
+    "failedToSave": "Failed to save profile",
+    "user": "User",
+    "editProfileButton": "Edit Profile"
+  },
+
+  "chat": {
+    "messages": "Messages",
+    "searchPlaceholder": "Search conversations...",
+    "noConversations": "No conversations yet.",
+    "noConversationsSearch": "No conversations match your search.",
+    "typeMessage": "Type a message...",
+    "editMessage": "Edit message...",
+    "cancel": "Cancel",
+    "photoLibrary": "Photo Library",
+    "files": "Files",
+    "camera": "Camera",
+    "fileTooLarge": "File too large",
+    "maxFileSize": "Maximum file size is 300 MB.",
+    "sendFailed": "Failed to send message. Please try again.",
+    "delete": "Delete",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "archive": "Archive",
+    "unarchive": "Unarchive",
+    "error": "Error"
+  },
+
+  "tabs": {
+    "home": "Home",
+    "map": "Map",
+    "create": "Create",
+    "chat": "Chat",
+    "profile": "Profile",
+    "listings": "Listings:",
+    "compare": "Compare"
+  },
+
+  "offline": {
+    "noConnection": "No Internet Connection"
+  },
+
+  "mapScreen": {
+    "unavailable": "Map unavailable",
+    "lakhs": "Lakhs",
+    "kmAway": "km away"
+  },
+
+  "myListings": {
+    "postingCycle": "Posting cycle",
+    "loginRequired": "You must be logged in.",
+    "deleteFailed": "Failed to delete listing.",
+    "cancel": "Cancel",
+    "lakhs": "Lakhs"
+  },
+
+  "createWanted": {
+    "title": "New Wanted Listing",
+    "wantToBuy": "Want to Buy",
+    "wantToRent": "Want to Rent",
+    "titleField": "Title *",
+    "titlePlaceholder": "e.g. Looking for an apartment in Mayangone",
+    "description": "Description",
+    "descriptionPlaceholder": "Describe what you're looking for...",
+    "propertyType": "Property Type",
+    "selectPropertyType": "Select property type",
+    "minPrice": "Min Price (Lakh)",
+    "maxPrice": "Max Price (Lakh)",
+    "stateRegion": "State / Region",
+    "selectStateRegion": "Select state/region",
+    "township": "Township",
+    "selectTownship": "Select township",
+    "contactPhone": "Contact Phone *",
+    "phonePlaceholder": "Phone number",
+    "postListing": "Post Listing",
+    "notice": "Notice",
+    "enterTitle": "Please enter a title.",
+    "enterPhone": "Please enter a phone number.",
+    "success": "Success",
+    "posted": "Your wanted listing has been posted.",
+    "error": "Error",
+    "ok": "OK"
+  },
+
+  "search": {
+    "forSale": "For Sale",
+    "forRent": "For Rent",
+    "newLaunch": "New Launch",
+    "building": "Building",
+    "selectStateRegion": "Select State/Region",
+    "selectTownship": "Select Township",
+    "allPropertyTypes": "All Property Types",
+    "condominium": "Condominium",
+    "apartment": "Apartment",
+    "houseVilla": "House / Villa",
+    "land": "Land",
+    "hostel": "Hostel",
+    "allFloors": "All Floors",
+    "selectFloor": "Select Floor",
+    "rooms": "Rooms",
+    "squareFeet": "Square Feet",
+    "search": "Search",
+    "lakhs": "Lakhs",
+    "saved": "Saved",
+    "removed": "Removed",
+    "propertySaved": "Property saved successfully.",
+    "propertyRemoved": "Property removed from saved.",
+    "databaseError": "Database Error",
+    "searchFailed": "Search failed. Please try again.",
+    "noProperties": "No properties found",
+    "adPrefix": "Ad #"
   },
 
   "alerts_and_dialogs": {

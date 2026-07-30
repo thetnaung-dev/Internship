@@ -109,20 +109,16 @@ export default function CreateWantedScreen() {
     if (!title.trim()) {
       setAlertConfig({
         visible: true,
-        title: isBurmese ? "သတိပေးချက်" : "Notice",
-        message: isBurmese
-          ? "ခေါင်းစဉ် ရိုက်ထည့်ပါ။"
-          : "Please enter a title.",
+        title: t("createWanted.notice"),
+        message: t("createWanted.enterTitle"),
       });
       return;
     }
     if (!phone.trim()) {
       setAlertConfig({
         visible: true,
-        title: isBurmese ? "သတိပေးချက်" : "Notice",
-        message: isBurmese
-          ? "ဖုန်းနံပါတ် ရိုက်ထည့်ပါ။"
-          : "Please enter a phone number.",
+        title: t("createWanted.notice"),
+        message: t("createWanted.enterPhone"),
       });
       return;
     }
@@ -148,16 +144,14 @@ export default function CreateWantedScreen() {
 
       setAlertConfig({
         visible: true,
-        title: isBurmese ? "အောင်မြင်ပါသည်" : "Success",
-        message: isBurmese
-          ? "သင်၏ကြော်ငြာကို အောင်မြင်စွာ တင်ပြီးပါပြီ။"
-          : "Your wanted listing has been posted.",
+        title: t("createWanted.success"),
+        message: t("createWanted.posted"),
         isSuccess: true,
       });
     } catch (err: any) {
       setAlertConfig({
         visible: true,
-        title: isBurmese ? "မှားယွင်းမှု" : "Error",
+        title: t("createWanted.error"),
         message: err.message,
       });
     } finally {

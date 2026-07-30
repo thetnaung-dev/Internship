@@ -60,7 +60,7 @@ const EMPTY_FILTER: FilterForm = {
 export default function WantedListingsScreen() {
   const resolvedTheme = useThemeStore((s) => s.resolvedTheme);
   const isDark = resolvedTheme === "dark";
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isBurmese = i18n.language === "mm" || i18n.language?.startsWith("my");
 
   const [buyListings, setBuyListings] = useState<any[]>([]);
