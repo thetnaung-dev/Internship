@@ -13,46 +13,39 @@ UML / architecture diagrams for the Nestfinder (Expo + Supabase) app. Each diagr
 ## Flow chart
 
 ```mermaid
-%%{init: {"flowchart": {"curve": "linear"}} }%%
-flowchart TD
-    A([App Launch]) --> B[Splash screen]
-    B --> C{Authenticated?}
-    C -- No --> D[(Login / Register)]
-    C -- Yes --> E[Load language & theme]
-    D -- success --> E
-    E --> F[Home tab]
+flowchart LR
+    A([App Launch]) --> B{Signed in?}
+    B -- No --> C[[Login / Register]]
+    B -- Yes --> D[Load language & theme]
+    C --> D
+    D --> E[Home]
 
-    F --> G[Browse property feed]
-    G --> H{User action}
-    H -- Tap card --> I[Property Detail]
-    H -- Heart --> J[Save / Unsave property]
-    H -- Compare --> K[Add to Compare]
-    H -- Share --> L[Share sheet]
+    E --> F[Browse property feed]
+    F --> G{User action}
+    G -- Tap card --> H[Property Detail]
+    G -- Heart --> I[Save / Unsave]
+    G -- Compare --> J[Add to Compare]
+    G -- Share --> K[Share sheet]
 
-    I --> M[View photos / video]
-    I --> N[Open map]
-    I --> O[Contact agent]
-    O --> P[Call agent]
-    O --> Q[Chat with agent]
+    H --> L[Photos / video]
+    H --> M[Open map]
+    H --> N[Contact agent]
+    N --> O[Call agent]
+    N --> P[Chat with agent]
+    P --> Q[(Conversation)]
+    Q --> R[Send / receive messages]
 
-    Q --> R[(Conversation)]
-    R --> S[Send / receive messages]
+    G -- Search --> S[Search & filter]
+    G -- Map --> T[Map tab]
+    G -- Create --> U[Create post]
+    U --> V[Validate & upload]
+    V --> W[Insert property]
+    W --> X[My Listings]
+    G -- Saved --> Y[Saved Properties]
+    G -- Profile --> Z[Profile / Settings]
 
-    H -- Search --> T[Search & filter]
-    H -- Map --> U[Map tab / locate listings]
-    H -- Create --> V[Create Post form]
-    V --> W[Validate & upload images]
-    W --> X[Insert property]
-    X --> Y[My Listings]
-    H -- Saved --> Z[Saved Properties]
-    H -- Profile --> AA[Profile screen]
-    AA --> AB[Edit profile]
-    AA --> AC[Settings]
-    AC --> AD[Language / Dark mode]
-    H -- Wanted --> AE[Post / view wanted listings]
-
-    F --> AF{New push notification?}
-    AF -- Yes --> AG[Open chat or property]
+    E --> AA{New notification?}
+    AA -- Yes --> AB[Open chat / property]
 ```
 
 ## Sequence diagram — save / unsave a property
