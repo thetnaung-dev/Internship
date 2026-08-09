@@ -1,0 +1,34 @@
+useCaseDiagram
+    actor Guest
+    actor User as "Registered User (Buyer)"
+    actor Agent as "Registered User (Seller / Agent)"
+    actor System
+
+    Guest --> (Browse Properties)
+    Guest --> (Register Account)
+    Guest --> (Login)
+    Guest --> (Switch Language)
+
+    User --> (Search & Filter Properties)
+    User --> (View Property Detail)
+    User --> (Save / Unsave Property)
+    User --> (Compare Properties)
+    User --> (View Map / Get Directions)
+    User --> (Call Agent)
+    User --> (Chat with Agent)
+    User --> (Manage Saved Properties)
+    User --> (Post Wanted Listing)
+    User --> (Save Search)
+    User --> (Edit Profile)
+    User --> (Change Settings)
+    User --> (Toggle Dark Mode)
+
+    Agent --> (Create Property Listing)
+    Agent --> (Manage Own Listings)
+    Agent --> (Respond to Buyers via Chat)
+    Agent --> (View Agent Profile)
+
+    System --> (Authenticate via Email / Google)
+    System --> (Send Push Notifications)
+    System --> (Track Property Views)
+    System --> (Enforce Monthly Post Limit)

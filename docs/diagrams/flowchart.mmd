@@ -1,0 +1,39 @@
+flowchart TD
+    A([App Launch]) --> B[Splash screen]
+    B --> C{Authenticated?}
+    C -- No --> D[(Login / Register)]
+    C -- Yes --> E[Load language & theme]
+    D -- success --> E
+    E --> F[Home tab]
+
+    F --> G[Browse property feed]
+    G --> H{User action}
+    H -- Tap card --> I[Property Detail]
+    H -- Heart --> J[Save / Unsave property]
+    H -- Compare --> K[Add to Compare]
+    H -- Share --> L[Share sheet]
+
+    I --> M[View photos / video]
+    I --> N[Open map]
+    I --> O[Contact agent]
+    O --> P[Call agent]
+    O --> Q[Chat with agent]
+
+    Q --> R[(Conversation)]
+    R --> S[Send / receive messages]
+
+    H -- Search --> T[Search & filter]
+    H -- Map --> U[Map tab / locate listings]
+    H -- Create --> V[Create Post form]
+    V --> W[Validate & upload images]
+    W --> X[Insert property]
+    X --> Y[My Listings]
+    H -- Saved --> Z[Saved Properties]
+    H -- Profile --> AA[Profile screen]
+    AA --> AB[Edit profile]
+    AA --> AC[Settings]
+    AC --> AD[Language / Dark mode]
+    H -- Wanted --> AE[Post / view wanted listings]
+
+    F --> AF{New push notification?}
+    AF -- Yes --> AG[Open chat or property]
