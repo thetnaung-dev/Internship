@@ -70,14 +70,20 @@ sequenceDiagram
     U->>C: Tap heart icon
     C->>H: onSave(propertyId)
     H->>S: auth.getUser()
-    alt User not signed in
+
+    opt user not signed in
         H->>U: Redirect to Login
-    else property already saved
-        S-->>H: savedIds contains id
-        H->>S: DELETE saved_properties
-    else property not saved
-        H->>S: INSERT saved_properties
     end
+
+    opt already saved
+        S-->>H: savedIds contains propertyId
+        H->>S: DELETE saved_properties(propertyId)
+    end
+
+    opt not saved
+        H->>S: INSERT saved_properties(userId, propertyId)
+    end
+
     H-->>U: Update heart icon (animated)
     H->>EB: emit("savedPropertiesChanged")
     Note over EB,SP: Cross-screen sync
