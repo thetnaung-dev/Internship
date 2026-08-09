@@ -10,9 +10,9 @@ import {
 import React, { useEffect, useState } from "react";
 import { DeviceEventEmitter, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase } from "@/lib/supabase";
-import { useCompareStore } from "@/store/useCompareStore";
-import { useThemeStore } from "@/store/useThemeStore";
+import { supabase } from "@/shared/lib/supabase";
+import { useCompareStore } from "@/features/property/useCompareStore";
+import { useThemeStore } from "@/shared/store/useThemeStore";
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();

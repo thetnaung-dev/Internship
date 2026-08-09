@@ -1,9 +1,1 @@
-import { useLocalSearchParams } from "expo-router";
-import React from "react";
-import ChatRoomScreen from "../../components/features/chat/chat_screen";
-
-export default function ActiveChannelScreen() {
-  const { channelId } = useLocalSearchParams<{ channelId: string }>();
-  if (!channelId) return null;
-  return <ChatRoomScreen channelId={channelId} />;
-}
+export { default } from "@/features/chat/ActiveChannelScreen";

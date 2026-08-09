@@ -3,7 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import * as Linking from "expo-linking";
 import React, { useEffect } from "react";
 
-import { handleAuthCallbackUrl } from "@/lib/handleAuthCallback";
+import { handleAuthCallbackUrl } from "@/shared/lib/handleAuthCallback";
 
 export default function AuthLayout() {
   useEffect(() => {

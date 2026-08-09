@@ -1,35 +1,25 @@
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { router, Stack } from "expo-router";
 import * as Linking from "expo-linking";
+import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import "../../global.css";
 
-import i18n from "@/lib/i18n";
+SplashScreen.preventAutoHideAsync();
+
+import i18n from "@/shared/lib/i18n";
 import {
   registerForPushNotifications,
   savePushToken,
   setupNotificationListeners,
-} from "@/lib/notifications";
-import { useLanguageStore } from "@/store/useLanguageStore";
-import { useThemeStore } from "@/store/useThemeStore";
-import ThemeProvider from "@/components/ThemeProvider";
-import { useNetworkListener } from "@/hooks/useNetworkListener";
-import OfflineOverlay from "@/components/OfflineOverlay";
-
-const linking = {
-  prefixes: [Linking.createURL("/")],
-  config: {
-    screens: {
-      "(auth)": {
-        screens: {
-          "reset-password": "reset-password",
-        },
-      },
-    },
-  },
-};
+} from "@/shared/lib/notifications";
+import { useLanguageStore } from "@/shared/store/useLanguageStore";
+import { useThemeStore } from "@/shared/store/useThemeStore";
+import ThemeProvider from "@/shared/components/ThemeProvider";
+import { useNetworkListener } from "@/shared/hooks/useNetworkListener";
+import OfflineOverlay from "@/shared/components/OfflineOverlay";
 
 export default function RootLayout() {
   useEffect(() => {
@@ -91,7 +81,7 @@ export default function RootLayout() {
       <KeyboardProvider>
         <ThemeProvider>
           <BottomSheetModalProvider>
-            <Stack screenOptions={{ headerShown: false }} linking={linking}>
+            <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
               <Stack.Screen name="chat" />
             </Stack>
