@@ -8,7 +8,7 @@ UML / architecture diagrams for the Nestfinder (Expo + Supabase) app. Each diagr
 | Sequence diagram | [sequence.mmd](./sequence.mmd) | Save / unsave a property with cross-screen sync |
 | Class diagram | [class.mmd](./class.mmd) | Main screens, components, stores and services |
 | ER diagram | [er.mmd](./er.mmd) | Supabase database schema and relationships |
-| Use case diagram | [usecase.mmd](./usecase.mmd) | Actors and their use cases |
+| Use case diagram | [usecase.mmd](./usecase.mmd) | Actors and their use cases (rendered as a flowchart; GitHub Mermaid has no `useCaseDiagram` support) |
 
 ## Flow chart
 
@@ -368,39 +368,41 @@ erDiagram
 
 ## Use case diagram
 
+> GitHub Mermaid does not support the native `useCaseDiagram` type, so the use case model is rendered as a flowchart below.
+
 ```mermaid
-useCaseDiagram
-    actor Guest
-    actor User as "Registered User (Buyer)"
-    actor Agent as "Registered User (Seller / Agent)"
-    actor System
+flowchart LR
+    Guest([Guest])
+    User([Registered User / Buyer])
+    Agent([Registered User / Seller - Agent])
+    System([System])
 
-    Guest --> (Browse Properties)
-    Guest --> (Register Account)
-    Guest --> (Login)
-    Guest --> (Switch Language)
+    Guest --> G1[Browse Properties]
+    Guest --> G2[Register Account]
+    Guest --> G3[Login]
+    Guest --> G4[Switch Language]
 
-    User --> (Search & Filter Properties)
-    User --> (View Property Detail)
-    User --> (Save / Unsave Property)
-    User --> (Compare Properties)
-    User --> (View Map / Get Directions)
-    User --> (Call Agent)
-    User --> (Chat with Agent)
-    User --> (Manage Saved Properties)
-    User --> (Post Wanted Listing)
-    User --> (Save Search)
-    User --> (Edit Profile)
-    User --> (Change Settings)
-    User --> (Toggle Dark Mode)
+    User --> U1[Search & Filter Properties]
+    User --> U2[View Property Detail]
+    User --> U3[Save / Unsave Property]
+    User --> U4[Compare Properties]
+    User --> U5[View Map / Get Directions]
+    User --> U6[Call Agent]
+    User --> U7[Chat with Agent]
+    User --> U8[Manage Saved Properties]
+    User --> U9[Post Wanted Listing]
+    User --> U10[Save Search]
+    User --> U11[Edit Profile]
+    User --> U12[Change Settings]
+    User --> U13[Toggle Dark Mode]
 
-    Agent --> (Create Property Listing)
-    Agent --> (Manage Own Listings)
-    Agent --> (Respond to Buyers via Chat)
-    Agent --> (View Agent Profile)
+    Agent --> A1[Create Property Listing]
+    Agent --> A2[Manage Own Listings]
+    Agent --> A3[Respond to Buyers via Chat]
+    Agent --> A4[View Agent Profile]
 
-    System --> (Authenticate via Email / Google)
-    System --> (Send Push Notifications)
-    System --> (Track Property Views)
-    System --> (Enforce Monthly Post Limit)
+    System --> S1[Authenticate via Email / Google]
+    System --> S2[Send Push Notifications]
+    System --> S3[Track Property Views]
+    System --> S4[Enforce Monthly Post Limit]
 ```
