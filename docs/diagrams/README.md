@@ -13,7 +13,7 @@ UML / architecture diagrams for the Nestfinder (Expo + Supabase) app. Each diagr
 ## Flow chart
 
 ```mermaid
-flowchart LR
+flowchart TD
     A([Start]) --> B[Splash]
     B --> C{Signed in?}
     C -- No --> D[Onboarding]
