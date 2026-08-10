@@ -5,7 +5,7 @@ UML / architecture diagrams for the Nestfinder (Expo + Supabase) app. Each diagr
 | Diagram | File | Description |
 | --- | --- | --- |
 | Flow chart | [flowchart.mmd](./flowchart.mmd) | App-level navigation and feature flow |
-| Sequence diagram (app flow) | [sequence-app.mmd](./sequence-app.mmd) | Frontend-only app flow: start, auth state, onboarding, actions, login gate |
+| Sequence diagram (app flow) | [sequence-app.mmd](./sequence-app.mmd) | UI-screen flow: onboarding, home, login, detail, chat/create, profile/saved |
 | Sequence diagram (save flow) | [sequence.mmd](./sequence.mmd) | Save / unsave a property with cross-screen sync |
 | Class diagram | [class.mmd](./class.mmd) | Main screens, components, stores and services |
 | ER diagram | [er.mmd](./er.mmd) | Supabase database schema and relationships |
@@ -47,37 +47,42 @@ flowchart TD
 sequenceDiagram
     autonumber
     actor U as User
-    participant A as App (Frontend)
+    participant O as Onboarding
+    participant H as Home
+    participant L as Login / Register
+    participant D as Property Detail
+    participant C as Chat / Create Post
+    participant P as Profile / Saved
 
-    U->>A: Launch app
-    A->>A: Check saved session
+    U->>O: Launch app
+    O->>O: Check saved session
 
     opt signed in
-        A->>A: Navigate to Home
+        O->>H: Go to Home
     end
 
     opt signed out
-        A->>A: Show Onboarding
-        U->>A: Tap Get Started
-        A->>A: Navigate to Home
+        O->>O: Show onboarding
+        U->>O: Tap Get Started
+        O->>H: Go to Home
     end
 
-    A->>A: Home
+    U->>H: Browse / Search / Map
+    H->>D: Open property
+    U->>D: View details / map / agent
+    D->>H: Back to Home
 
-    U->>A: Browse / Search / Map / Detail
-    A->>A: Render property feed / results
-
-    U->>A: Save / Chat / Create post / Profile
+    U->>H: Save / Chat / Create post / Profile
     opt guest
-        A->>A: Show Login / Register
-        U->>A: Email / Google credentials
-        A->>A: Store session locally
+        H->>L: Open Login / Register
+        U->>L: Email / Google
+        L->>H: Session stored, back to Home
     end
+    H->>C: Open Chat / Create post
+    H->>P: Open Profile / Saved
 
-    A->>A: Update UI after action
-
-    U->>A: Exit app
-    A->>A: End
+    U->>O: Exit app
+    O->>O: End
 ```
 
 ## Sequence diagram — save / unsave a property
