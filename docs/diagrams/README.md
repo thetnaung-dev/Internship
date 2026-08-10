@@ -5,7 +5,7 @@ UML / architecture diagrams for the Nestfinder (Expo + Supabase) app. Each diagr
 | Diagram | File | Description |
 | --- | --- | --- |
 | Flow chart | [flowchart.mmd](./flowchart.mmd) | App-level navigation and feature flow |
-| Sequence diagram (app flow) | [sequence-app.mmd](./sequence-app.mmd) | End-to-end app flow from the flowchart: start, auth, onboarding, actions, login gate |
+| Sequence diagram (app flow) | [sequence-app.mmd](./sequence-app.mmd) | Frontend-only app flow: start, auth state, onboarding, actions, login gate |
 | Sequence diagram (save flow) | [sequence.mmd](./sequence.mmd) | Save / unsave a property with cross-screen sync |
 | Class diagram | [class.mmd](./class.mmd) | Main screens, components, stores and services |
 | ER diagram | [er.mmd](./er.mmd) | Supabase database schema and relationships |
@@ -47,36 +47,34 @@ flowchart TD
 sequenceDiagram
     autonumber
     actor U as User
-    participant A as App
-    participant S as Supabase
+    participant A as App (Frontend)
 
     U->>A: Launch app
-    A->>S: auth.getUser()
+    A->>A: Check saved session
 
     opt signed in
-        S-->>A: user
+        A->>A: Navigate to Home
     end
 
     opt signed out
-        A->>A: Onboarding -> Get Started
+        A->>A: Show Onboarding
+        U->>A: Tap Get Started
+        A->>A: Navigate to Home
     end
 
     A->>A: Home
 
     U->>A: Browse / Search / Map / Detail
-    A->>S: Query properties
-    S-->>A: Property data
+    A->>A: Render property feed / results
 
     U->>A: Save / Chat / Create post / Profile
     opt guest
-        A->>U: Login / Register
-        U->>A: Email / Google
-        A->>S: Authenticate
-        S-->>A: session
+        A->>A: Show Login / Register
+        U->>A: Email / Google credentials
+        A->>A: Store session locally
     end
 
-    A->>S: Perform action
-    S-->>A: Confirmation
+    A->>A: Update UI after action
 
     U->>A: Exit app
     A->>A: End
