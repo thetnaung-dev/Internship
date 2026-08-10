@@ -30,6 +30,13 @@ flowchart TD
     J -- guest --> K
     K --> F
 
+    C --> SB[(Supabase - Auth / Database / Storage)]
+    K --> SB
+    G --> SB
+    H --> SB
+    I --> SB
+    J --> SB
+
     F -- Exit app --> Z([End])
 ```
 
