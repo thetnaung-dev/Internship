@@ -5,7 +5,8 @@ UML / architecture diagrams for the Nestfinder (Expo + Supabase) app. Each diagr
 | Diagram | File | Description |
 | --- | --- | --- |
 | Flow chart | [flowchart.mmd](./flowchart.mmd) | App-level navigation and feature flow |
-| Sequence diagram | [sequence.mmd](./sequence.mmd) | Save / unsave a property with cross-screen sync |
+| Sequence diagram (app flow) | [sequence-app.mmd](./sequence-app.mmd) | End-to-end app flow from the flowchart: start, auth, onboarding, actions, login gate |
+| Sequence diagram (save flow) | [sequence.mmd](./sequence.mmd) | Save / unsave a property with cross-screen sync |
 | Class diagram | [class.mmd](./class.mmd) | Main screens, components, stores and services |
 | ER diagram | [er.mmd](./er.mmd) | Supabase database schema and relationships |
 | Use case diagram | [usecase.mmd](./usecase.mmd) | Actors and their use cases (rendered as a flowchart; GitHub Mermaid has no `useCaseDiagram` support) |
@@ -38,6 +39,70 @@ flowchart TD
     J --> SB
 
     F -- Exit app --> Z([End])
+```
+
+## Sequence diagram — app flow (from flowchart)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant App as App
+    participant S as Supabase
+
+    U->>App: Launch app
+    App->>S: auth.getUser()
+
+    opt signed in
+        S-->>App: user
+        App->>App: Navigate to Home
+    end
+
+    opt signed out
+        S-->>App: no user
+        App->>App: Show Onboarding
+        U->>App: Tap Get Started
+        App->>App: Navigate to Home
+    end
+
+    U->>App: Browse & view properties
+    App->>S: Query properties
+    S-->>App: Property data
+
+    U->>App: Search / Map / Property detail
+    App->>S: Query properties (filters / location / id)
+    S-->>App: Results
+
+    U->>App: Save / Compare / Share
+    opt guest
+        App->>S: auth.getUser()
+        opt no user
+            App->>U: Redirect to Login / Register
+            U->>App: Email or Google credentials
+            App->>S: Authenticate (email / OAuth)
+            S-->>App: session
+            App->>App: Return to Home
+        end
+    end
+    App->>S: Save / compare / share action
+    S-->>App: Confirmation
+
+    U->>App: Chat / Create post / Profile
+    opt guest
+        App->>S: auth.getUser()
+        opt no user
+            App->>U: Redirect to Login / Register
+            U->>App: Email or Google credentials
+            App->>S: Authenticate (email / OAuth)
+            S-->>App: session
+            App->>App: Return to Home
+        end
+    end
+    App->>S: Chat / insert post / profile action
+    S-->>App: Confirmation
+
+    U->>App: Exit app
+    App->>App: End
 ```
 
 ## Sequence diagram — save / unsave a property
