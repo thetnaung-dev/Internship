@@ -14,7 +14,7 @@ UML / architecture diagrams for the Nestfinder (Expo + Supabase) app. Each diagr
 
 ```mermaid
 flowchart LR
-    A([App Launch]) --> B[Splash]
+    A([Start]) --> B[Splash]
     B --> C{Reset-password deep link?}
     C -- Yes --> D[Reset Password]
     C -- No --> E{Already signed in?}
@@ -58,6 +58,8 @@ flowchart LR
 
     T --> F{New notification?}
     F -- Yes --> G2[Open chat / property]
+
+    T -- Exit app --> ENDN([End])
 ```
 
 ## Sequence diagram — save / unsave a property
