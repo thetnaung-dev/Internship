@@ -57,11 +57,12 @@ sequenceDiagram
     H->>S: auth.getUser()
 
     opt user not signed in
-        H->>U: Redirect to Login
+        H->>U: Redirect to Login and stop
     end
 
+    Note over H: Check local savedIds.has(propertyId)
+
     opt already saved
-        S-->>H: savedIds contains propertyId
         H->>S: DELETE saved_properties(propertyId)
     end
 
@@ -69,7 +70,8 @@ sequenceDiagram
         H->>S: INSERT saved_properties(userId, propertyId)
     end
 
-    H-->>U: Update heart icon (animated)
+    H-->>C: savedIds updated, heart re-renders
+    C->>U: Show animated heart state
     H->>EB: emit("savedPropertiesChanged")
     Note over EB,SP: Cross-screen sync
     EB-->>SP: listener refreshes saved list
