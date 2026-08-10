@@ -14,38 +14,50 @@ UML / architecture diagrams for the Nestfinder (Expo + Supabase) app. Each diagr
 
 ```mermaid
 flowchart LR
-    A([App Launch]) --> B{Signed in?}
-    B -- No --> C[[Login / Register]]
-    B -- Yes --> D[Load language & theme]
-    C --> D
-    D --> E[Home]
+    A([App Launch]) --> B[Splash]
+    B --> C{Reset-password deep link?}
+    C -- Yes --> D[Reset Password]
+    C -- No --> E{Already signed in?}
+    E -- Yes --> T[(Home tab)]
+    E -- No --> G[Onboarding - brand + tagline]
+    G --> H[Get Started]
+    H --> T
+    D --> T
 
-    E --> F[Browse property feed]
-    F --> G{User action}
-    G -- Tap card --> H[Property Detail]
-    G -- Heart --> I[Save / Unsave]
-    G -- Compare --> J[Add to Compare]
-    G -- Share --> K[Share sheet]
+    T --> I[Browse property feed]
+    I --> J{User action}
+    J -- Tap card --> K[Property Detail]
+    J -- Heart --> L[Save / Unsave]
+    J -- Compare --> M[Add to Compare]
+    J -- Share --> N[Share sheet]
+    J -- Search --> W[Search & filter]
+    J -- Map tab --> X[Map tab - locate listings]
+    J -- Create --> Y[Create post]
+    J -- Saved --> AC[Saved Properties]
+    J -- Profile --> AD[Profile / Settings]
 
-    H --> L[Photos / video]
-    H --> M[Open map]
-    H --> N[Contact agent]
-    N --> O[Call agent]
-    N --> P[Chat with agent]
-    P --> Q[(Conversation)]
-    Q --> R[Send / receive messages]
+    Y --> Z[Validate & upload images]
+    Z --> AA[Insert property]
+    AA --> AB[My Listings]
 
-    G -- Search --> S[Search & filter]
-    G -- Map --> T[Map tab]
-    G -- Create --> U[Create post]
-    U --> V[Validate & upload]
-    V --> W[Insert property]
-    W --> X[My Listings]
-    G -- Saved --> Y[Saved Properties]
-    G -- Profile --> Z[Profile / Settings]
+    K --> O[Photos / video]
+    K --> P[Open map]
+    K --> Q[Contact agent]
+    Q --> R[Call agent]
+    Q --> S[Chat with agent]
+    S --> U[(Conversation)]
+    U --> V[Send / receive messages]
 
-    E --> AA{New notification?}
-    AA -- Yes --> AB[Open chat / property]
+    L -- guest --> E2[Login / Register]
+    Y -- guest --> E2
+    S -- guest --> E2
+    AC -- guest --> E2
+    AD -- guest --> E2
+    E2 --> E3[Email or Google OAuth]
+    E3 --> T
+
+    T --> F{New notification?}
+    F -- Yes --> G2[Open chat / property]
 ```
 
 ## Sequence diagram — save / unsave a property
