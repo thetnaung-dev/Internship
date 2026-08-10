@@ -1,47 +1,18 @@
 flowchart LR
     A([Start]) --> B[Splash]
-    B --> C{Reset-password deep link?}
-    C -- Yes --> D[Reset Password]
-    C -- No --> E{Already signed in?}
-    E -- Yes --> T[(Home tab)]
-    E -- No --> G[Onboarding - brand + tagline]
-    G --> H[Get Started]
-    H --> T
-    D --> T
+    B --> C{Signed in?}
+    C -- No --> D[Onboarding]
+    D --> E[Get Started]
+    E --> F[Home]
+    C -- Yes --> F
 
-    T --> I[Browse property feed]
-    I --> J{User action}
-    J -- Tap card --> K[Property Detail]
-    J -- Heart --> L[Save / Unsave]
-    J -- Compare --> M[Add to Compare]
-    J -- Share --> N[Share sheet]
-    J -- Search --> W[Search & filter]
-    J -- Map tab --> X[Map tab - locate listings]
-    J -- Create --> Y[Create post]
-    J -- Saved --> AC[Saved Properties]
-    J -- Profile --> AD[Profile / Settings]
+    F --> G[Browse & view properties]
+    F --> H[Search / Map / Property detail]
+    F --> I[Save / Compare / Share]
+    F --> J[Chat / Create post / Profile]
 
-    Y --> Z[Validate & upload images]
-    Z --> AA[Insert property]
-    AA --> AB[My Listings]
+    I -- guest --> K[Login / Register]
+    J -- guest --> K
+    K --> F
 
-    K --> O[Photos / video]
-    K --> P[Open map]
-    K --> Q[Contact agent]
-    Q --> R[Call agent]
-    Q --> S[Chat with agent]
-    S --> U[(Conversation)]
-    U --> V[Send / receive messages]
-
-    L -- guest --> E2[Login / Register]
-    Y -- guest --> E2
-    S -- guest --> E2
-    AC -- guest --> E2
-    AD -- guest --> E2
-    E2 --> E3[Email or Google OAuth]
-    E3 --> T
-
-    T --> F{New notification?}
-    F -- Yes --> G2[Open chat / property]
-
-    T -- Exit app --> ENDN([End])
+    F -- Exit app --> Z([End])
