@@ -47,62 +47,39 @@ flowchart TD
 sequenceDiagram
     autonumber
     actor U as User
-    participant App as App
+    participant A as App
     participant S as Supabase
 
-    U->>App: Launch app
-    App->>S: auth.getUser()
+    U->>A: Launch app
+    A->>S: auth.getUser()
 
     opt signed in
-        S-->>App: user
-        App->>App: Navigate to Home
+        S-->>A: user
     end
 
     opt signed out
-        S-->>App: no user
-        App->>App: Show Onboarding
-        U->>App: Tap Get Started
-        App->>App: Navigate to Home
+        A->>A: Onboarding -> Get Started
     end
 
-    U->>App: Browse & view properties
-    App->>S: Query properties
-    S-->>App: Property data
+    A->>A: Home
 
-    U->>App: Search / Map / Property detail
-    App->>S: Query properties (filters / location / id)
-    S-->>App: Results
+    U->>A: Browse / Search / Map / Detail
+    A->>S: Query properties
+    S-->>A: Property data
 
-    U->>App: Save / Compare / Share
+    U->>A: Save / Chat / Create post / Profile
     opt guest
-        App->>S: auth.getUser()
-        opt no user
-            App->>U: Redirect to Login / Register
-            U->>App: Email or Google credentials
-            App->>S: Authenticate (email / OAuth)
-            S-->>App: session
-            App->>App: Return to Home
-        end
+        A->>U: Login / Register
+        U->>A: Email / Google
+        A->>S: Authenticate
+        S-->>A: session
     end
-    App->>S: Save / compare / share action
-    S-->>App: Confirmation
 
-    U->>App: Chat / Create post / Profile
-    opt guest
-        App->>S: auth.getUser()
-        opt no user
-            App->>U: Redirect to Login / Register
-            U->>App: Email or Google credentials
-            App->>S: Authenticate (email / OAuth)
-            S-->>App: session
-            App->>App: Return to Home
-        end
-    end
-    App->>S: Chat / insert post / profile action
-    S-->>App: Confirmation
+    A->>S: Perform action
+    S-->>A: Confirmation
 
-    U->>App: Exit app
-    App->>App: End
+    U->>A: Exit app
+    A->>A: End
 ```
 
 ## Sequence diagram — save / unsave a property
