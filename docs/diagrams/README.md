@@ -129,6 +129,100 @@ sequenceDiagram
 classDiagram
     direction LR
 
+    class Property {
+        +id: string
+        +title_en: string
+        +title_mm: string
+        +price: number
+        +currency_unit: string
+        +deal_type: string
+        +property_type: string
+        +images: string[]
+        +area_value: number
+        +area_unit: string
+        +floor: string
+        +views: number
+        +is_sold: boolean
+    }
+
+    class Profile {
+        +id: string
+        +full_name: string
+        +avatar_url: string
+        +phone: string
+        +city: string
+        +region: string
+    }
+
+    class Conversation {
+        +id: string
+        +property_id: string
+        +buyer_id: string
+        +seller_id: string
+        +created_at: date
+    }
+
+    class Message {
+        +id: string
+        +conversation_id: string
+        +sender_id: string
+        +text: string
+        +read_at: date
+    }
+
+    class Card {
+        +item: Property
+        +isSaved: boolean
+        +onSave()
+        +onCompare()
+    }
+
+    class Skeleton {
+        +PropertyCardSkeleton
+        +PropertyListSkeleton
+        +ChatListSkeleton
+        +ProfileSkeleton
+    }
+
+    class SegmentedToggle {
+        +options
+        +value
+        +onChange()
+    }
+
+    class HomeScreen {
+        -properties: Property[]
+        -savedIds: Set
+        +fetchProperties(category)
+        +handleSave(propertyId)
+    }
+
+    class PropertyDetailScreen {
+        -property: Property
+        -agent: Profile
+        -related: Property[]
+        +fetchPropertyDetails()
+        +handleChat()
+    }
+
+    class AgentScreen {
+        -agent: Profile
+        -listings: Property[]
+        +handleCall()
+        +handleChat()
+    }
+
+    class SearchScreen {
+        -results: Property[]
+        -filters
+        +handleSearchSubmit()
+    }
+
+    class ChatScreen {
+        -messages: Message[]
+        +sendMessage()
+    }
+
     class SupabaseClient {
         +auth
         +from(table)
@@ -172,98 +266,35 @@ classDiagram
         +setOnline()
     }
 
-    class Property {
-        +id: string
-        +title_en: string
-        +title_mm: string
-        +price: number
-        +currency_unit: string
-        +deal_type: string
-        +property_type: string
-        +images: string[]
-        +area_value: number
-        +area_unit: string
-        +floor: string
-        +views: number
-        +is_sold: boolean
-    }
+    Card "1" --> "1" Property : shows
+    HomeScreen "1" --> "0..*" Card : renders
+    PropertyDetailScreen "1" --> "0..*" Card : renders
+    AgentScreen "1" --> "0..*" Card : renders
+    SearchScreen "1" --> "0..*" Card : renders
 
-    class Profile {
-        +id: string
-        +full_name: string
-        +avatar_url: string
-        +phone: string
-        +city: string
-        +region: string
-    }
+    HomeScreen "1" --> "0..*" Property : loads
+    SearchScreen "1" --> "0..*" Property : shows results
+    PropertyDetailScreen "1" --> "1" Property : displays
+    PropertyDetailScreen "1" --> "0..1" Profile : shows agent
+    AgentScreen "1" --> "1" Profile : displays
+    AgentScreen "1" --> "0..*" Property : lists
 
-    class Card {
-        +item: Property
-        +isSaved: boolean
-        +onSave()
-        +onCompare()
-    }
+    Conversation "1" --> "0..*" Message : contains
+    Conversation "1" --> "1" Property : about
+    Conversation "1" --> "1" Profile : buyer
+    Conversation "1" --> "1" Profile : seller
+    ChatScreen "1" --> "1" Conversation : displays
 
-    class Skeleton {
-        +PropertyCardSkeleton
-        +PropertyListSkeleton
-        +ChatListSkeleton
-        +ProfileSkeleton
-    }
+    HomeScreen "1" --> "1" SupabaseClient : uses
+    PropertyDetailScreen "1" --> "1" SupabaseClient : uses
+    AgentScreen "1" --> "1" SupabaseClient : uses
+    ChatScreen "1" --> "1" SupabaseClient : uses
+    Notifications "1" --> "1" SupabaseClient : uses
 
-    class SegmentedToggle {
-        +options
-        +value
-        +onChange()
-    }
-
-    class HomeScreen {
-        -properties: Property[]
-        -savedIds: Set
-        +fetchProperties(category)
-        +handleSave(propertyId)
-    }
-
-    class PropertyDetailScreen {
-        -property: Property
-        -agent: Profile
-        -related: Property[]
-        +fetchPropertyDetails()
-        +handleChat()
-    }
-
-    class AgentScreen {
-        -agent: Profile
-        -listings: Property[]
-        -stats
-        +handleCall()
-        +handleChat()
-    }
-
-    class SearchScreen {
-        -results: Property[]
-        -filters
-        +handleSearchSubmit()
-    }
-
-    class ChatScreen {
-        -messages: Message[]
-        +sendMessage()
-    }
-
-    HomeScreen --> Card : renders
-    PropertyDetailScreen --> Card : renders
-    AgentScreen --> Card : renders
-    SearchScreen --> Card : renders
-    HomeScreen --> SupabaseClient
-    PropertyDetailScreen --> SupabaseClient
-    AgentScreen --> SupabaseClient
-    ChatScreen --> SupabaseClient
-    HomeScreen --> useCompareStore
-    HomeScreen --> useThemeStore
-    useLanguageStore --> i18n : changes language
-    Notifications --> SupabaseClient
-    useThemeStore --> useNetworkStore
+    HomeScreen "1" --> "1" useCompareStore : uses
+    HomeScreen "1" --> "1" useThemeStore : uses
+    useLanguageStore "1" --> "1" i18n : changes language
+    useThemeStore "1" --> "1" useNetworkStore : observes
 ```
 
 ## ER diagram
