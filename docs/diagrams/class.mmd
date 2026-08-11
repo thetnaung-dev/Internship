@@ -150,28 +150,29 @@ erDiagram
         timestamptz viewed_at
     }
 
-    PROFILES ||--o{ PROPERTIES : owns
-    PROFILES ||--o{ SAVED_PROPERTIES : saves
-    PROFILES ||--o{ CONVERSATIONS : buyer
-    PROFILES ||--o{ CONVERSATIONS : seller
-    PROFILES ||--o{ MESSAGES : sends
-    PROFILES ||--o{ WANTED_LISTINGS : posts
-    PROFILES ||--o{ SAVED_SEARCHES : owns
-    PROFILES ||--o{ PUSH_TOKENS : registers
+    AUTH_USERS ||--|| PROFILES : "has (1 : 1..1)"
+    AUTH_USERS ||--o{ PROPERTY_VIEWS : "viewed (1 : 0..*)"
+    AUTH_USERS ||--o{ WANTED_LISTING_VIEWS : "viewed (1 : 0..*)"
 
-    STATES_REGIONS ||--o{ TOWNSHIPS : contains
-    STATES_REGIONS ||--o{ PROPERTIES : locates
-    TOWNSHIPS ||--o{ PROPERTIES : locates
-    STATES_REGIONS ||--o{ WANTED_LISTINGS : locates
-    TOWNSHIPS ||--o{ WANTED_LISTINGS : locates
+    PROFILES ||--o{ PROPERTIES : "owns (1 : 0..*)"
+    PROFILES ||--o{ SAVED_PROPERTIES : "saves (1 : 0..*)"
+    PROFILES ||--o{ CONVERSATIONS : "buyer (1 : 0..*)"
+    PROFILES ||--o{ CONVERSATIONS : "seller (1 : 0..*)"
+    PROFILES ||--o{ MESSAGES : "sends (1 : 0..*)"
+    PROFILES ||--o{ WANTED_LISTINGS : "posts (1 : 0..*)"
+    PROFILES ||--o{ SAVED_SEARCHES : "owns (1 : 0..*)"
+    PROFILES ||--o{ PUSH_TOKENS : "registers (1 : 0..*)"
 
-    PROPERTIES ||--o{ SAVED_PROPERTIES : saved by
-    PROPERTIES ||--o{ CONVERSATIONS : about
-    PROPERTIES ||--o{ PROPERTY_VIEWS : tracked by
+    STATES_REGIONS ||--o{ TOWNSHIPS : "contains (1 : 0..*)"
+    STATES_REGIONS ||--o{ PROPERTIES : "locates (1 : 0..*)"
+    TOWNSHIPS ||--o{ PROPERTIES : "locates (1 : 0..*)"
+    STATES_REGIONS ||--o{ WANTED_LISTINGS : "locates (1 : 0..*)"
+    TOWNSHIPS ||--o{ WANTED_LISTINGS : "locates (1 : 0..*)"
 
-    CONVERSATIONS ||--o{ MESSAGES : contains
+    PROPERTIES ||--o{ SAVED_PROPERTIES : "saved by (1 : 0..*)"
+    PROPERTIES ||--o{ CONVERSATIONS : "about (1 : 0..*)"
+    PROPERTIES ||--o{ PROPERTY_VIEWS : "tracked by (1 : 0..*)"
 
-    WANTED_LISTINGS ||--o{ WANTED_LISTING_VIEWS : tracked by
+    CONVERSATIONS ||--}| MESSAGES : "contains (1 : 1..*)"
 
-    AUTH_USERS ||--o{ PROPERTY_VIEWS : viewed
-    AUTH_USERS ||--o{ WANTED_LISTING_VIEWS : viewed
+    WANTED_LISTINGS ||--o{ WANTED_LISTING_VIEWS : "tracked by (1 : 0..*)"
