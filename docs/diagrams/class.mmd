@@ -1,169 +1,134 @@
-classDiagram
-    direction LR
-
-    class Property {
-        +id: string
-        +title_en: string
-        +title_mm: string
-        +price: number
-        +currency_unit: string
-        +deal_type: string
-        +property_type: string
-        +images: string[]
-        +area_value: number
-        +area_unit: string
-        +floor: string
-        +views: number
-        +is_sold: boolean
+erDiagram
+    PROPERTY {
+        uuid id PK
+        text title_en
+        text title_mm
+        numeric price
+        text currency_unit
+        text deal_type
+        text property_type
+        text[] images
+        numeric area_value
+        text area_unit
+        text floor
+        int views
+        boolean is_sold
     }
 
-    class Profile {
-        +id: string
-        +full_name: string
-        +avatar_url: string
-        +phone: string
-        +city: string
-        +region: string
+    PROFILE {
+        uuid id PK
+        text full_name
+        text avatar_url
+        text phone
+        text city
+        text region
     }
 
-    class Conversation {
-        +id: string
-        +property_id: string
-        +buyer_id: string
-        +seller_id: string
-        +created_at: date
+    CONVERSATION {
+        uuid id PK
+        uuid property_id FK
+        uuid buyer_id FK
+        uuid seller_id FK
+        timestamptz created_at
     }
 
-    class Message {
-        +id: string
-        +conversation_id: string
-        +sender_id: string
-        +text: string
-        +read_at: date
+    MESSAGE {
+        uuid id PK
+        uuid conversation_id FK
+        uuid sender_id FK
+        text text
+        timestamptz read_at
     }
 
-    class Card {
-        +item: Property
-        +isSaved: boolean
-        +onSave()
-        +onCompare()
+    CARD {
+        property item
+        boolean isSaved
     }
 
-    class Skeleton {
-        +PropertyCardSkeleton
-        +PropertyListSkeleton
-        +ChatListSkeleton
-        +ProfileSkeleton
+    HOME_SCREEN {
+        property[] properties
+        set savedIds
     }
 
-    class SegmentedToggle {
-        +options
-        +value
-        +onChange()
+    PROPERTY_DETAIL_SCREEN {
+        property property
+        profile agent
+        property[] related
     }
 
-    class HomeScreen {
-        -properties: Property[]
-        -savedIds: Set
-        +fetchProperties(category)
-        +handleSave(propertyId)
+    AGENT_SCREEN {
+        profile agent
+        property[] listings
     }
 
-    class PropertyDetailScreen {
-        -property: Property
-        -agent: Profile
-        -related: Property[]
-        +fetchPropertyDetails()
-        +handleChat()
+    SEARCH_SCREEN {
+        property[] results
+        object filters
     }
 
-    class AgentScreen {
-        -agent: Profile
-        -listings: Property[]
-        +handleCall()
-        +handleChat()
+    CHAT_SCREEN {
+        message[] messages
     }
 
-    class SearchScreen {
-        -results: Property[]
-        -filters
-        +handleSearchSubmit()
+    SUPABASE_CLIENT {
+        auth
+        from(table)
+        storage
+        rpc(name)
     }
 
-    class ChatScreen {
-        -messages: Message[]
-        +sendMessage()
+    I18N {
+        language
     }
 
-    class SupabaseClient {
-        +auth
-        +from(table)
-        +storage
-        +rpc(name)
+    NOTIFICATIONS {
+        registerForPushNotifications()
+        savePushToken()
     }
 
-    class i18n {
-        +language
-        +changeLanguage(lang)
+    USE_THEME_STORE {
+        theme
+        resolvedTheme
     }
 
-    class Notifications {
-        +registerForPushNotifications()
-        +savePushToken()
-        +setupNotificationListeners()
+    USE_LANGUAGE_STORE {
+        language
     }
 
-    class useThemeStore {
-        +theme
-        +resolvedTheme
-        +setTheme()
-        +loadTheme()
+    USE_COMPARE_STORE {
+        property[] items
     }
 
-    class useLanguageStore {
-        +language
-        +setLanguage()
-        +loadLanguage()
+    USE_NETWORK_STORE {
+        boolean isOnline
     }
 
-    class useCompareStore {
-        +items: Property[]
-        +add(property)
-        +remove(id)
-        +clear()
-    }
+    HOME_SCREEN ||--o{ CARD : renders
+    PROPERTY_DETAIL_SCREEN ||--o{ CARD : renders
+    AGENT_SCREEN ||--o{ CARD : renders
+    SEARCH_SCREEN ||--o{ CARD : renders
+    CARD ||--|| PROPERTY : shows
 
-    class useNetworkStore {
-        +isOnline
-        +setOnline()
-    }
+    HOME_SCREEN ||--o{ PROPERTY : loads
+    SEARCH_SCREEN ||--o{ PROPERTY : shows results
+    PROPERTY_DETAIL_SCREEN ||--|| PROPERTY : displays
+    PROPERTY_DETAIL_SCREEN ||--o| PROFILE : shows agent
+    AGENT_SCREEN ||--|| PROFILE : displays
+    AGENT_SCREEN ||--o{ PROPERTY : lists
 
-    Card "1" --> "1" Property : shows
-    HomeScreen "1" --> "0..*" Card : renders
-    PropertyDetailScreen "1" --> "0..*" Card : renders
-    AgentScreen "1" --> "0..*" Card : renders
-    SearchScreen "1" --> "0..*" Card : renders
+    CONVERSATION ||--o{ MESSAGE : contains
+    CONVERSATION ||--|| PROPERTY : about
+    CONVERSATION ||--|| PROFILE : buyer
+    CONVERSATION ||--|| PROFILE : seller
+    CHAT_SCREEN ||--|| CONVERSATION : displays
 
-    HomeScreen "1" --> "0..*" Property : loads
-    SearchScreen "1" --> "0..*" Property : shows results
-    PropertyDetailScreen "1" --> "1" Property : displays
-    PropertyDetailScreen "1" --> "0..1" Profile : shows agent
-    AgentScreen "1" --> "1" Profile : displays
-    AgentScreen "1" --> "0..*" Property : lists
+    HOME_SCREEN ||--|| SUPABASE_CLIENT : uses
+    PROPERTY_DETAIL_SCREEN ||--|| SUPABASE_CLIENT : uses
+    AGENT_SCREEN ||--|| SUPABASE_CLIENT : uses
+    CHAT_SCREEN ||--|| SUPABASE_CLIENT : uses
+    NOTIFICATIONS ||--|| SUPABASE_CLIENT : uses
 
-    Conversation "1" --> "0..*" Message : contains
-    Conversation "1" --> "1" Property : about
-    Conversation "1" --> "1" Profile : buyer
-    Conversation "1" --> "1" Profile : seller
-    ChatScreen "1" --> "1" Conversation : displays
-
-    HomeScreen "1" --> "1" SupabaseClient : uses
-    PropertyDetailScreen "1" --> "1" SupabaseClient : uses
-    AgentScreen "1" --> "1" SupabaseClient : uses
-    ChatScreen "1" --> "1" SupabaseClient : uses
-    Notifications "1" --> "1" SupabaseClient : uses
-
-    HomeScreen "1" --> "1" useCompareStore : uses
-    HomeScreen "1" --> "1" useThemeStore : uses
-    useLanguageStore "1" --> "1" i18n : changes language
-    useThemeStore "1" --> "1" useNetworkStore : observes
+    HOME_SCREEN ||--|| USE_COMPARE_STORE : uses
+    HOME_SCREEN ||--|| USE_THEME_STORE : uses
+    USE_LANGUAGE_STORE ||--|| I18N : changes language
+    USE_THEME_STORE ||--|| USE_NETWORK_STORE : observes
