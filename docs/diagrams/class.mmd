@@ -1,134 +1,178 @@
 erDiagram
-    PROPERTY {
+    AUTH_USERS {
         uuid id PK
-        text title_en
-        text title_mm
-        numeric price
-        text currency_unit
-        text deal_type
-        text property_type
-        text[] images
-        numeric area_value
-        text area_unit
-        text floor
-        int views
-        boolean is_sold
     }
 
-    PROFILE {
+    PROFILES {
         uuid id PK
         text full_name
         text avatar_url
+        text email
         text phone
         text city
         text region
     }
 
-    CONVERSATION {
+    STATES_REGIONS {
+        text id PK
+        text name_en
+        text name_mm
+    }
+
+    TOWNSHIPS {
+        text id PK
+        text region_id FK
+        text name_en
+        text name_mm
+    }
+
+    PROPERTIES {
+        uuid id PK
+        uuid user_id FK
+        text title_en
+        text title_mm
+        text description
+        text deal_type
+        text property_type
+        numeric price
+        text currency_unit
+        jsonb images
+        text video_url
+        int bedrooms
+        int bathrooms
+        numeric width
+        numeric length
+        numeric sqft
+        numeric area_value
+        text area_unit
+        text floor
+        text state_region_id FK
+        text township_id FK
+        text search_value
+        int ad_number
+        boolean is_sold
+        boolean is_rented
+        timestamptz sold_at
+        int views
+        float latitude
+        float longitude
+        timestamptz created_at
+    }
+
+    SAVED_PROPERTIES {
+        uuid id PK
+        uuid user_id FK
+        uuid property_id FK
+        timestamptz created_at
+    }
+
+    CONVERSATIONS {
         uuid id PK
         uuid property_id FK
         uuid buyer_id FK
         uuid seller_id FK
+        boolean muted
+        boolean archived
+        boolean pinned
+        int buyer_unread_count
+        int seller_unread_count
         timestamptz created_at
+        timestamptz updated_at
     }
 
-    MESSAGE {
+    MESSAGES {
         uuid id PK
         uuid conversation_id FK
         uuid sender_id FK
         text text
+        jsonb attachment
+        uuid reply_to_id FK
+        boolean pinned_by_buyer
+        boolean pinned_by_seller
         timestamptz read_at
+        timestamptz created_at
     }
 
-    CARD {
-        property item
-        boolean isSaved
+    WANTED_LISTINGS {
+        uuid id PK
+        uuid user_id FK
+        text title
+        text description
+        text deal_type
+        text property_type
+        text region_id FK
+        text township_id FK
+        numeric budget_min
+        numeric budget_max
+        text currency_unit
+        numeric monthly_fee_from
+        numeric monthly_fee_to
+        numeric area_from
+        numeric area_to
+        text area_unit
+        text furnished_status
+        text floor
+        text contact_phone
+        text status
+        int views
+        int bedrooms
+        int bathrooms
+        boolean co_brokerage
+        timestamptz created_at
     }
 
-    HOME_SCREEN {
-        property[] properties
-        set savedIds
+    SAVED_SEARCHES {
+        uuid id PK
+        uuid user_id FK
+        text name
+        jsonb search_params
+        timestamptz created_at
     }
 
-    PROPERTY_DETAIL_SCREEN {
-        property property
-        profile agent
-        property[] related
+    PUSH_TOKENS {
+        uuid id PK
+        uuid user_id FK
+        text token
+        text platform
+        timestamptz created_at
+        timestamptz updated_at
     }
 
-    AGENT_SCREEN {
-        profile agent
-        property[] listings
+    PROPERTY_VIEWS {
+        uuid user_id PK
+        uuid property_id PK
+        timestamptz viewed_at
     }
 
-    SEARCH_SCREEN {
-        property[] results
-        object filters
+    WANTED_LISTING_VIEWS {
+        uuid user_id PK
+        uuid listing_id PK
+        timestamptz viewed_at
     }
 
-    CHAT_SCREEN {
-        message[] messages
-    }
+    PROFILES ||--o{ PROPERTIES : owns
+    PROFILES ||--o{ SAVED_PROPERTIES : saves
+    PROFILES ||--o{ CONVERSATIONS : buyer
+    PROFILES ||--o{ CONVERSATIONS : seller
+    PROFILES ||--o{ MESSAGES : sends
+    PROFILES ||--o{ WANTED_LISTINGS : posts
+    PROFILES ||--o{ SAVED_SEARCHES : owns
+    PROFILES ||--o{ PUSH_TOKENS : registers
 
-    SUPABASE_CLIENT {
-        auth
-        from(table)
-        storage
-        rpc(name)
-    }
+    STATES_REGIONS ||--o{ TOWNSHIPS : contains
+    STATES_REGIONS ||--o{ PROPERTIES : locates
+    TOWNSHIPS ||--o{ PROPERTIES : locates
+    STATES_REGIONS ||--o{ WANTED_LISTINGS : locates
+    TOWNSHIPS ||--o{ WANTED_LISTINGS : locates
 
-    I18N {
-        language
-    }
+    PROPERTIES ||--o{ SAVED_PROPERTIES : saved by
+    PROPERTIES ||--o{ CONVERSATIONS : about
+    PROPERTIES ||--o{ PROPERTY_VIEWS : tracked by
 
-    NOTIFICATIONS {
-        registerForPushNotifications()
-        savePushToken()
-    }
+    CONVERSATIONS ||--o{ MESSAGES : contains
+    MESSAGES o|--o{ MESSAGES : replies to
 
-    USE_THEME_STORE {
-        theme
-        resolvedTheme
-    }
+    WANTED_LISTINGS ||--o{ WANTED_LISTING_VIEWS : tracked by
 
-    USE_LANGUAGE_STORE {
-        language
-    }
-
-    USE_COMPARE_STORE {
-        property[] items
-    }
-
-    USE_NETWORK_STORE {
-        boolean isOnline
-    }
-
-    HOME_SCREEN ||--o{ CARD : renders
-    PROPERTY_DETAIL_SCREEN ||--o{ CARD : renders
-    AGENT_SCREEN ||--o{ CARD : renders
-    SEARCH_SCREEN ||--o{ CARD : renders
-    CARD ||--|| PROPERTY : shows
-
-    HOME_SCREEN ||--o{ PROPERTY : loads
-    SEARCH_SCREEN ||--o{ PROPERTY : shows results
-    PROPERTY_DETAIL_SCREEN ||--|| PROPERTY : displays
-    PROPERTY_DETAIL_SCREEN ||--o| PROFILE : shows agent
-    AGENT_SCREEN ||--|| PROFILE : displays
-    AGENT_SCREEN ||--o{ PROPERTY : lists
-
-    CONVERSATION ||--o{ MESSAGE : contains
-    CONVERSATION ||--|| PROPERTY : about
-    CONVERSATION ||--|| PROFILE : buyer
-    CONVERSATION ||--|| PROFILE : seller
-    CHAT_SCREEN ||--|| CONVERSATION : displays
-
-    HOME_SCREEN ||--|| SUPABASE_CLIENT : uses
-    PROPERTY_DETAIL_SCREEN ||--|| SUPABASE_CLIENT : uses
-    AGENT_SCREEN ||--|| SUPABASE_CLIENT : uses
-    CHAT_SCREEN ||--|| SUPABASE_CLIENT : uses
-    NOTIFICATIONS ||--|| SUPABASE_CLIENT : uses
-
-    HOME_SCREEN ||--|| USE_COMPARE_STORE : uses
-    HOME_SCREEN ||--|| USE_THEME_STORE : uses
-    USE_LANGUAGE_STORE ||--|| I18N : changes language
-    USE_THEME_STORE ||--|| USE_NETWORK_STORE : observes
+    AUTH_USERS ||--o{ PROPERTY_VIEWS : viewed
+    AUTH_USERS ||--o{ WANTED_LISTING_VIEWS : viewed
