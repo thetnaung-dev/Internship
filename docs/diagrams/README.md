@@ -129,7 +129,6 @@ sequenceDiagram
 
 ```mermaid
 erDiagram
-    title Supabase tables - association, aggregation, composition
     AUTH_USERS {
         uuid id PK
     }
