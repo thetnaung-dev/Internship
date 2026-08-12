@@ -442,41 +442,58 @@ erDiagram
 
 ## Use case diagram
 
-> GitHub Mermaid does not support the native `useCaseDiagram` type, so the use case model is rendered as a flowchart below.
+> GitHub Mermaid does not support the native `useCaseDiagram` type, so the use case model is rendered as a flowchart below. Use cases are grouped per actor.
 
 ```mermaid
 flowchart LR
     Guest([Guest])
     User([Registered User / Buyer])
-    Agent([Registered User / Seller - Agent])
+    Agent([Agent / Seller])
     System([System])
 
-    Guest --> G1[Browse Properties]
-    Guest --> G2[Register Account]
-    Guest --> G3[Login]
-    Guest --> G4[Switch Language]
+    subgraph GuestUC [Guest]
+        G1[Browse Properties]
+        G2[Search & Filter Properties]
+        G3[View Property Detail]
+        G4[View Map / Get Directions]
+        G5[Call Agent]
+        G6[Share Property]
+        G7[Switch Language / Theme]
+        G8[Register / Login]
+    end
 
-    User --> U1[Search & Filter Properties]
-    User --> U2[View Property Detail]
-    User --> U3[Save / Unsave Property]
-    User --> U4[Compare Properties]
-    User --> U5[View Map / Get Directions]
-    User --> U6[Call Agent]
-    User --> U7[Chat with Agent]
-    User --> U8[Manage Saved Properties]
-    User --> U9[Post Wanted Listing]
-    User --> U10[Save Search]
-    User --> U11[Edit Profile]
-    User --> U12[Change Settings]
-    User --> U13[Toggle Dark Mode]
+    subgraph UserUC [Registered User]
+        U1[Save / Unsave Property]
+        U2[Compare Properties]
+        U3[Chat with Agent]
+        U4[Manage Saved Properties]
+        U5[Post Wanted Listing]
+        U6[Save Search]
+        U7[Edit Profile]
+        U8[Manage Settings / Notifications]
+        U9[Create Property Listing]
+    end
 
-    Agent --> A1[Create Property Listing]
-    Agent --> A2[Manage Own Listings]
-    Agent --> A3[Respond to Buyers via Chat]
-    Agent --> A4[View Agent Profile]
+    subgraph AgentUC [Agent / Seller]
+        A1[Create Property Listing]
+        A2[Manage Own Listings]
+        A3[Mark Listing Sold / Rented]
+        A4[Respond to Buyers via Chat]
+        A5[View Agent Profile & Stats]
+        A6[Offer Co-brokerage]
+    end
 
-    System --> S1[Authenticate via Email / Google]
-    System --> S2[Send Push Notifications]
-    System --> S3[Track Property Views]
-    System --> S4[Enforce Monthly Post Limit]
+    subgraph SystemUC [System]
+        S1[Authenticate Email / Google]
+        S2[Reset Password]
+        S3[Send Push Notifications]
+        S4[Track Property Views]
+        S5[Track Wanted Listing Views]
+        S6[Enforce Monthly Post Limit]
+    end
+
+    Guest --> GuestUC
+    User --> UserUC
+    Agent --> AgentUC
+    System --> SystemUC
 ```
