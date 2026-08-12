@@ -125,10 +125,11 @@ sequenceDiagram
 
 ## Class diagram
 
-> Supabase tables modeled as ER-style tables (classes = DB entities). Relation symbols: `||` = 1..1, `o|` = 0..1, `}o` = 0..*, `}|` = 1..*.
+> Supabase tables modeled as ER-style tables (classes = DB entities). Relation symbols: `||` = 1..1, `o|` = 0..1, `}o` = 0..*, `}|` = 1..*. Relationship types: **association** (independent life), **aggregation** (part can outlive the whole), **composition** (part is deleted with the whole).
 
 ```mermaid
 erDiagram
+    title Supabase tables - association / aggregation / composition
     AUTH_USERS {
         uuid id PK
     }
@@ -280,32 +281,32 @@ erDiagram
         timestamptz viewed_at
     }
 
-    AUTH_USERS ||--|| PROFILES : "has (1 : 1..1)"
-    AUTH_USERS ||--o{ PROPERTY_VIEWS : "viewed (1 : 0..*)"
-    AUTH_USERS ||--o{ WANTED_LISTING_VIEWS : "viewed (1 : 0..*)"
+    AUTH_USERS ||--|| PROFILES : "has (1 : 1..1) - association"
+    AUTH_USERS ||--o{ PROPERTY_VIEWS : "viewed (1 : 0..*) - association"
+    AUTH_USERS ||--o{ WANTED_LISTING_VIEWS : "viewed (1 : 0..*) - association"
 
-    PROFILES ||--o{ PROPERTIES : "owns (1 : 0..*)"
-    PROFILES ||--o{ SAVED_PROPERTIES : "saves (1 : 0..*)"
-    PROFILES ||--o{ CONVERSATIONS : "buyer (1 : 0..*)"
-    PROFILES ||--o{ CONVERSATIONS : "seller (1 : 0..*)"
-    PROFILES ||--o{ MESSAGES : "sends (1 : 0..*)"
-    PROFILES ||--o{ WANTED_LISTINGS : "posts (1 : 0..*)"
-    PROFILES ||--o{ SAVED_SEARCHES : "owns (1 : 0..*)"
-    PROFILES ||--o{ PUSH_TOKENS : "registers (1 : 0..*)"
+    PROFILES ||--o{ PROPERTIES : "owns (1 : 0..*) - aggregation"
+    PROFILES ||--o{ SAVED_PROPERTIES : "saves (1 : 0..*) - composition"
+    PROFILES ||--o{ CONVERSATIONS : "buyer (1 : 0..*) - aggregation"
+    PROFILES ||--o{ CONVERSATIONS : "seller (1 : 0..*) - aggregation"
+    PROFILES ||--o{ MESSAGES : "sends (1 : 0..*) - composition"
+    PROFILES ||--o{ WANTED_LISTINGS : "posts (1 : 0..*) - composition"
+    PROFILES ||--o{ SAVED_SEARCHES : "owns (1 : 0..*) - composition"
+    PROFILES ||--o{ PUSH_TOKENS : "registers (1 : 0..*) - composition"
 
-    STATES_REGIONS ||--o{ TOWNSHIPS : "contains (1 : 0..*)"
-    STATES_REGIONS ||--o{ PROPERTIES : "locates (1 : 0..*)"
-    TOWNSHIPS ||--o{ PROPERTIES : "locates (1 : 0..*)"
-    STATES_REGIONS ||--o{ WANTED_LISTINGS : "locates (1 : 0..*)"
-    TOWNSHIPS ||--o{ WANTED_LISTINGS : "locates (1 : 0..*)"
+    STATES_REGIONS ||--o{ TOWNSHIPS : "contains (1 : 0..*) - association"
+    STATES_REGIONS ||--o{ PROPERTIES : "locates (1 : 0..*) - association"
+    TOWNSHIPS ||--o{ PROPERTIES : "locates (1 : 0..*) - association"
+    STATES_REGIONS ||--o{ WANTED_LISTINGS : "locates (1 : 0..*) - association"
+    TOWNSHIPS ||--o{ WANTED_LISTINGS : "locates (1 : 0..*) - association"
 
-    PROPERTIES ||--o{ SAVED_PROPERTIES : "saved by (1 : 0..*)"
-    PROPERTIES ||--o{ CONVERSATIONS : "about (1 : 0..*)"
-    PROPERTIES ||--o{ PROPERTY_VIEWS : "tracked by (1 : 0..*)"
+    PROPERTIES ||--o{ SAVED_PROPERTIES : "saved by (1 : 0..*) - composition"
+    PROPERTIES ||--o{ CONVERSATIONS : "about (1 : 0..*) - composition"
+    PROPERTIES ||--o{ PROPERTY_VIEWS : "tracked by (1 : 0..*) - composition"
 
-    CONVERSATIONS ||--}| MESSAGES : "contains (1 : 1..*)"
+    CONVERSATIONS ||--}| MESSAGES : "contains (1 : 1..*) - composition"
 
-    WANTED_LISTINGS ||--o{ WANTED_LISTING_VIEWS : "tracked by (1 : 0..*)"
+    WANTED_LISTINGS ||--o{ WANTED_LISTING_VIEWS : "tracked by (1 : 0..*) - composition"
 ```
 
 ## ER diagram
