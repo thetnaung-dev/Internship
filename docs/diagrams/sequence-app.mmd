@@ -1,39 +1,77 @@
 sequenceDiagram
     autonumber
     actor U as User
+    participant S as Splash
     participant O as Onboarding
     participant H as Home
     participant L as Login / Register
     participant D as Property Detail
-    participant C as Chat / Create Post
+    participant C as Chat
+    participant F as Post Form
     participant P as Profile / Saved
+    participant W as Wanted Listings
+    participant DB as Supabase
 
-    U->>O: Launch app
-    O->>O: Check saved session
+    U->>S: Launch app
+    S->>DB: Check saved session
+    DB-->>S: Session status
 
-    opt signed in
-        O->>H: Go to Home
-    end
-
-    opt signed out
-        O->>O: Show onboarding
+    alt signed in
+        S->>H: Go to Home
+    else signed out
+        S->>O: Show onboarding
+        U->>O: Choose language
+        U->>O: Enter name
         U->>O: Tap Get Started
         O->>H: Go to Home
     end
 
-    U->>H: Browse / Search / Map
-    H->>D: Open property
-    U->>D: View details / map / agent
-    D->>H: Back to Home
+    U->>H: Browse / Search / Map / Profile tabs
+    H->>DB: Fetch properties
+    DB-->>H: Property list
 
-    U->>H: Save / Chat / Create post / Profile
-    opt guest
-        H->>L: Open Login / Register
-        U->>L: Email / Google
-        L->>H: Session stored, back to Home
+    U->>H: Open property card
+    H->>D: Open Property Detail
+    U->>D: View gallery / details / map
+    D->>DB: Track property view
+
+    U->>D: Save / Compare / Chat / Call / Share
+    alt guest
+        D->>L: Open Login / Register
+        U->>L: Email or Google sign in
+        L->>DB: Authenticate
+        L-->>H: Session stored, back to Home
     end
-    H->>C: Open Chat / Create post
-    H->>P: Open Profile / Saved
 
-    U->>O: Exit app
-    O->>O: End
+    U->>D: Open chat with agent
+    D->>C: Open conversation
+    U->>C: Send / receive messages
+    C->>DB: Fetch / send messages
+
+    U->>H: Create Post tab
+    alt guest
+        H->>L: Open Login / Register
+        U->>L: Email or Google sign in
+        L-->>H: Session stored, back to Home
+    end
+    H->>F: Open post form
+    U->>F: Enter title, price, type, details, photos
+    F->>DB: Submit listing
+    DB-->>F: Listing created
+
+    U->>H: Profile tab
+    H->>P: Open Profile / Saved / My Listings
+    P->>DB: Fetch saved properties
+    U->>P: View saved properties
+    P->>DB: Manage listings / mark sold or rented
+
+    U->>P: Open Wanted Listings
+    P->>W: Create wanted listing
+    U->>W: Enter wanted details
+    W->>DB: Submit wanted listing
+
+    U->>P: Open Settings
+    P->>P: Account / Notification / Privacy settings
+
+    U->>S: Exit app
+    S->>S: End
