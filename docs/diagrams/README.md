@@ -15,30 +15,73 @@ UML / architecture diagrams for the Nestfinder (Expo + Supabase) app. Each diagr
 
 ```mermaid
 flowchart TD
-    A([Start]) --> B[Splash]
+    A([Start]) --> B[Splash Screen]
     B --> C{Signed in?}
     C -- No --> D[Onboarding]
-    D --> E[Get Started]
-    E --> F[Home]
-    C -- Yes --> F
+    D --> E[Choose Language]
+    E --> F[Enter Name]
+    F --> G[Welcome Screen]
+    G --> H[Tap Get Started]
+    H --> I[Home Screen]
+    C -- Yes --> I
 
-    F --> G[Browse & view properties]
-    F --> H[Search / Map / Property detail]
-    F --> I[Save / Compare / Share]
-    F --> J[Chat / Create post / Profile]
+    I --> J[Home Tab - Browse Properties]
+    I --> K[Search - Search & Filter Properties]
+    I --> L[Create Post Tab]
+    I --> M[Chat Tab - Conversations]
+    I --> N[Map Tab - Map View]
+    I --> O[Profile Tab]
 
-    I -- guest --> K[Login / Register]
-    J -- guest --> K
-    K --> F
+    J --> P[Open Property Card]
+    K --> P
+    N --> P
+    P --> Q[Property Detail]
+    Q --> R[View Gallery / Details / Map]
+    Q --> S[Save / Unsave Property]
+    Q --> T[Add to Compare List]
+    Q --> U[Share Property]
+    Q --> V[Call Agent]
+    Q --> W[Open Chat with Agent]
+    Q --> X[View Agent Profile]
 
-    C --> SB[(Supabase - Auth / Database / Storage)]
-    K --> SB
-    G --> SB
-    H --> SB
-    I --> SB
+    S -- guest --> Y[Login / Register]
+    T -- guest --> Y
+    W -- guest --> Y
+
+    L -- guest --> Y
+    L --> Z[Post Form]
+    Z --> AA[Enter Title, Price, Type, Details, Photos]
+    AA --> AB[Submit Listing]
+
+    M --> AC[Conversation List]
+    AC --> AD[Open Conversation]
+    AD --> AE[Send / Receive Messages]
+
+    O --> AF[Saved Properties]
+    O --> AG[My Listings]
+    AG --> AH[Manage Listings / Mark Sold or Rented]
+    O --> AI[Wanted Listings]
+    AI --> AJ[Create Wanted Listing]
+    O --> AK[Edit Profile]
+    O --> AL[Settings]
+    AL --> AM[Account Settings]
+    AL --> AN[Notification Settings]
+    AL --> AO[Privacy Settings]
+
+    Y --> I
+    AE --> AC
+
+    B --> SB[(Supabase - Auth / Database / Storage)]
+    C --> SB
+    Y --> SB
     J --> SB
+    K --> SB
+    AA --> SB
+    AE --> SB
+    AF --> SB
+    AJ --> SB
 
-    F -- Exit app --> Z([End])
+    I -- Exit app --> Z([End])
 ```
 
 ## Sequence diagram — app flow (from flowchart)
