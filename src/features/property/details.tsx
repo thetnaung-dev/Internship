@@ -26,6 +26,7 @@ import {
   LandPlot,
   Building2,
   ChevronRight,
+  Flag,
 } from "lucide-react-native";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -55,6 +56,7 @@ import Animated, {
   FadeInUp,
 } from "react-native-reanimated";
 import type { SharedValue } from "react-native-reanimated";
+import { ReportModal } from "@/features/report/ReportModal";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const GREEN = "#22c55e";
@@ -202,6 +204,7 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
   const [relatedProperties, setRelatedProperties] = useState<any[]>([]);
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [agent, setAgent] = useState<any>(null);
+  const [showReport, setShowReport] = useState(false);
 
   const carouselRef = useRef<FlatList>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -357,6 +360,17 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
       }
     }
     if (conversationId) router.push(`/chat/${conversationId}` as any);
+  };
+
+  const handleReportPress = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/(auth)/login");
+      return;
+    }
+    setShowReport(true);
   };
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -546,6 +560,25 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
             </Animated.Text>
 
             <View className="flex-row gap-1">
+              <TouchableOpacity
+                onPress={handleReportPress}
+                className="items-center justify-center"
+                style={{ width: 32, height: 32, borderRadius: 16 }}
+              >
+                <Animated.View
+                  style={[
+                    {
+                      position: "absolute",
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: "rgba(0,0,0,0.3)",
+                    },
+                    headerIconBgStyle,
+                  ]}
+                />
+                <AnimatedHeaderIcon Icon={Flag} size={18} scrollY={scrollY} />
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -1154,6 +1187,12 @@ export default function Details({ propertyId, onBack }: DetailsProps) {
           )}
         </View>
       </SafeAreaView>
+
+      <ReportModal
+        visible={showReport}
+        propertyId={property.id}
+        onClose={() => setShowReport(false)}
+      />
     </View>
   );
 }
